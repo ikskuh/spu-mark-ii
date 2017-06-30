@@ -1,9 +1,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "usart.h"
 #include "sram.h"
 #include "io.h"
+#include "ihex.h"
 #include "emulator.h"
 #include "spu-2.h"
 
@@ -68,6 +68,8 @@ uint16_t code[] =
 	-8
 };
 
+#include <stdio.h>
+
 int main()
 {
 	mem_init();
@@ -75,10 +77,12 @@ int main()
 	io_init();
 	
 	// Initialize memory :)
-	const unsigned count = (sizeof(code) / sizeof(code[0]));
-	for(unsigned i = 0; i < count; i++) {
-		mem_write16(2*i, code[i]);
-	}
+	/*const unsigned count = (sizeof(code) / sizeof(code[0]));*/
+	/*for(unsigned i = 0; i < count; i++) {*/
+		/*mem_write16(2*i, code[i]);*/
+	/*}*/
+	
+	ihex_load();
 	
 	while(true)
 	{

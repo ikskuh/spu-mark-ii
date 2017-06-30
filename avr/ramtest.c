@@ -3,7 +3,7 @@
 #include <util/delay.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "usart.h"
+#include "com.h"
 #include "sram.h"
 
 void delay_ms(uint16_t ms)

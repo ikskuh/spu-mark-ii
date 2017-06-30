@@ -10,8 +10,8 @@ all: main.hex ramtest.hex simulator.exe
 
 # Set dependencies here
 ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
-main.elf: avr-main.o avr-usart.o avr-sram.o avr-io.o avr-emulator.o
-simulator.exe: pc-main.o pc-simulator.o pc-emulator.o
+main.elf: avr-main.o avr-usart.o avr-sram.o avr-io.o avr-emulator.o avr-ihex.o
+simulator.exe: pc-main.o pc-simulator.o pc-emulator.o pc-ihex.o
 
 %.exe:
 	gcc $(PCFLAGS) -o $@ $^
