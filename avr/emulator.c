@@ -7,7 +7,13 @@
 
 #include <stdio.h>
 
-word_t regSP, regBP, regCP, regFLAG, regINTR;
+word_t regSP, regBP, regCP, regINTR;
+
+struct {
+	int z : 1;
+	int n : 1;
+	int i : 1;
+} regFLAG;
 
 word_t stack[STACKSIZE];
 
@@ -33,6 +39,9 @@ void emu_init()
 	regSP = 0;
 	regBP = 0;
 	regCP = 0;
+	regFLAG.z = 0;
+	regFLAG.n = 0;
+	regFLAG.i = 0;
 }
 
 // GetNextInstructionWord
@@ -47,26 +56,34 @@ void emu_step()
 {
 	word_t iword = emu_gniw();
 	struct {
-		unsigned int execZ  ; // 0
-		unsigned int execN  ; // 2
+		unsigned int exec   ; // 0
+		unsigned int flags  ; // 3
 		unsigned int input0 ; // 4
 		unsigned int input1 ; // 6
-		unsigned int flags  ; // 8
-		unsigned int output ; // 9
-		unsigned int command; // 11
+		unsigned int output ; // 8
+		unsigned int command; // 10
 	} i = {
-		(iword >>  0) & 03,
-		(iword >>  2) & 03,
+		(iword >>  0) & 05,
+		(iword >>  3) & 03,
 		(iword >>  4) & 03,
 		(iword >>  6) & 03,
-		(iword >>  8) & 01,
-		(iword >>  9) & 03,
-		(iword >> 11) & 31,
+		(iword >>  8) & 03,
+		(iword >> 10) & 63,
 	};
 	
-	bool exec = 
-		   ((i.execZ & EXEC_ALWAYS) || ((i.execZ & EXEC_SET) == !!(regFLAG & FLAG_ZERO)))
-		&& ((i.execN & EXEC_ALWAYS) || ((i.execN & EXEC_SET) == !!(regFLAG & FLAG_NEG)));
+	bool exec;
+	switch(i.exec)
+	{
+		case EXEC_ALWAYS:  exec = true;                     break;
+		case EXEC_NEVER:   exec = false;                    break;
+		case EXEC_ZERO:    exec =  regFLAG.z;               break;
+		case EXEC_NONZERO: exec = !regFLAG.z;               break;
+		case EXEC_GREATER: exec = !regFLAG.z && !regFLAG.n; break;
+		case EXEC_LESS:    exec =  regFLAG.n;               break;
+		case EXEC_GEQUAL:  exec =  regFLAG.z || regFLAG.n;  break;
+		case EXEC_LEQUAL:  exec =  regFLAG.z || !regFLAG.n; break;
+	}
+	
 	if(!exec) {
 		// We still need to advance
 		if(i.input0 == INPUT_ARG) emu_gniw();
@@ -111,11 +128,7 @@ void emu_step()
 			mem_write16(input0, output);
 			break;
 		case CMD_SETINT:
-			if(input0) {
-				regFLAG |= FLAG_INTR;
-			} else {
-				regFLAG &= ~FLAG_INTR;
-			}
+			regFLAG.i = !!input0;
 			break;
 		case CMD_INT:
 			regINTR = (input0 << 1);
@@ -197,12 +210,8 @@ void emu_step()
 	}
 	
 	if(i.flags) {
-		regFLAG &= ~(FLAG_ZERO | FLAG_NEG);
-		if(output == 0)
-			regFLAG |= FLAG_ZERO;
-		if(output & 0x8000) {
-			regFLAG |= FLAG_NEG;
-		}
+		regFLAG.z = (output == 0);
+		regFLAG.n = ((output & 0x8000) != 0);
 	}
 	
 	switch(i.output) {

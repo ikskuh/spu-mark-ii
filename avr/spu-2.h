@@ -1,17 +1,18 @@
 #pragma once
 
-#define FLAG_ZERO 1
-#define FLAG_NEG  2
-#define FLAG_INTR 4
-
 #define INPUT_ZERO 0
 #define INPUT_ARG  1
 #define INPUT_PEEK 2
 #define INPUT_POP  3
 
-#define EXEC_ALWAYS 2
-#define EXEC_UNSET  0
-#define EXEC_SET    1
+#define EXEC_ALWAYS  0
+#define EXEC_ZERO    1
+#define EXEC_NONZERO 2
+#define EXEC_GREATER 3
+#define EXEC_LESS    4
+#define EXEC_GEQUAL  5
+#define EXEC_LEQUAL  6
+#define EXEC_NEVER   7
 
 #define OUTPUT_DISCARD 0
 #define OUTPUT_PUSH    1

@@ -1,26 +1,29 @@
+exec           := (Y, >0, <0, >=0, <=0, ==0, !=0) → 3 bit
 input0, input1 := (0, arg, pop, peek) → 4 bit
-execZ, execN   := (X, 0, 1) → 4 bit
 flagmod        := (yes, no) → 1 bit
 output         := (discard, push, jump, reljump) → 2 bit
-command        := (copy, store, load, get, set, bpget, bpset, cpget, math, spget, spset, io, int, sei, cli) → 9 bit
+command        := (copy, store, load, get, set, bpget, bpset, cpget, math, spget, spset, io, int, sei, cli) → 6 bit
 
 16 Bit:
 0 1 2 3 4 5 6 7 8 9 A B C D E F
-E E e e I I i i F O O C C C C C
+E E E F I I i i O O C C C C C C
 
-  [0:1] → ExecZ
-  [2:3] → ExecN
+  [0:2] → Exec
+	[3:3] → Mod Flags
   [4:5] → Input 0
   [6:7] → Input 1
-  [8:8] → Mod Flags
- [9:10] → Output
-[11:15] → Command
+  [8:9] → Output
+[10:15] → Command
 
-ExecZ/N:
-	00 if not set
-	01 if set
-	10 always
-	11 always
+Exec:
+	000 always
+	001 =0
+	010 ≠0
+	011 >0
+	100 <0
+	101 ≥0
+	110 ≤0
+	111 never
 
 Input0/1:
 	00 Zero
@@ -35,38 +38,39 @@ Output:
 	11 Jump Relative
 
 Command:
-	00000 COPY
-	00001 CPGET
-	00010 GET
-	00011 SET
-	00100 STOR8
-	00101 STOR16
-	00110 SETINT  (input0 → an/aus)
-	00111 INT     (input0 = #intr)
-	01000 LOAD8
-	01001 LOAD16
-	01010 Input  (i0 = port)
-	01011 Output (i0 = port, i1 = value)
-	01100 BPGET
-	01101 BPSET
-	01110 SPGET
-	01111 SPSET
-	10000 ADD
-	10001 SUB
-	10010 MUL
-	10011 DIV
-	10100 MOD
-	10101 AND
-	10110 OR
-	10111 XOR
-	11000 NOT
-	11001 NEG
-	11010 ROL
-	11011 ROR
-	11100 ASL
-	11101 ASR
-	11110 LSL
-	11111 LSR
+	000000 COPY
+	000001 CPGET
+	000010 GET
+	000011 SET
+	000100 STOR8
+	000101 STOR16
+	000110 SETINT  (input0 → an/aus)
+	000111 INT     (input0 = #intr)
+	001000 LOAD8
+	001001 LOAD16
+	001010 Input  (i0 = port)
+	001011 Output (i0 = port, i1 = value)
+	001100 BPGET
+	001101 BPSET
+	001110 SPGET
+	001111 SPSET
+	010000 ADD
+	010001 SUB
+	010010 MUL
+	010011 DIV
+	010100 MOD
+	010101 AND
+	010110 OR
+	010111 XOR
+	011000 NOT
+	011001 NEG
+	011010 ROL
+	011011 ROR
+	011100 ASL
+	011101 ASR
+	011110 LSL
+	011111 LSR
+	1***** ???
 
 Execute-Cycle:
 
@@ -86,48 +90,3 @@ Execute-Cycle:
 	- discard: nothing
 	- jmp: jump to result
 	- rjmp: jump to CP+result
-
-
-while(true)
-{
-	// CYC 0
-	(execZ, execN, i0, i0, fmod, resop, cmd) = RAM[CP];
-	CP++;
-	
-	// CYC 1
-	if (((execZ != 'X') && (execZ != flags.z)) &&
-	    ((execN != 'X') && (execN != flags.n)))
-	{
-		if(i0) CP++;
-		if(i1) CP++;
-		continue;
-	}
-	
-	input0 = readInput(i0);
-	
-	// CYC 2
-	input1 = readInput(i1);
-	output = 0;
-	
-	// CYC 3
-	switch(cmd)
-	{
-		case COPY:
-			output = input0;
-			break;
-		case ...
-	}
-	
-	// CYC 4
-	if(fmod) {
-		flags.z = (output == 0);
-		flags.n = (output < 0);
-	}
-	switch(resop)
-	{
-		case disc: break;
-		case push: push(result); break;
-		case jmp: cp = result & 0xFFFE; break;
-		case rjmp: cp = (cp + result) & 0xFFFE; break;
-	}
-}
