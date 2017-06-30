@@ -2,38 +2,47 @@ TTY=/dev/ttyUSB0
 MCU=atmega32
 FREQ=20000000
 
-FLAGS= -g -Wall -Wextra -pedantic -O3 -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL -I../include
+FLAGS    = -g -Wall -Wextra -pedantic -O3 
+PCFLAGS  = $(FLAGS)
+AVRFLAGS = $(FLAGS) -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
 
-all: ramtest.hex main.hex
+all: main.hex ramtest.hex simulator.exe
 
 # Set dependencies here
-ramtest.elf: ramtest.o usart.o sram.o
+ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
+main.elf: avr-main.o avr-usart.o avr-sram.o avr-io.o avr-emulator.o
+simulator.exe: pc-main.o pc-simulator.o pc-emulator.o
 
-main.elf: main.o usart.o sram.o io.o emulator.o
+%.exe:
+	gcc $(PCFLAGS) -o $@ $^
 
-
-%: %.hex
-	
 %.hex: %.elf
 	avr-objcopy $< -O ihex $@
 
-%.elf: %.o
-	avr-gcc $(FLAGS) -o $@ $^
+%.elf:
+	avr-gcc $(AVRFLAGS) -o $@ $^
 	avr-size -C --mcu=$(MCU) $@
 
-%.o: %.c
-	avr-gcc $(FLAGS) -std=c11 -c -o $@ $<
+avr-%.o: %.c
+	avr-gcc $(AVRFLAGS) -std=c11 -c -o $@ $<
 
-%.o: %.cpp
-	avr-g++ $(FLAGS) -std=c++11 -c -o $@ $<
+avr-%.o: %.cpp
+	avr-g++ $(AVRFLAGS) -std=c++11 -c -o $@ $<
 
+pc-%.o: %.c
+	gcc $(PCFLAGS) -std=c11 -c -o $@ $<
+	
 %\:flash: %.hex
 	avrdude -p $(MCU) -c stk500v2 -P $(TTY) -e -U flash:w:$<
 	
-.PHONY: atmega32-init clean
+.PHONY: atmega32-init clean clean-all
+.SUFFIXES:
 
+clean-all: clean
+	rm *.hex *.elf *.exe
+	
 clean:
-	rm *.hex *.elf *.o
+	rm *.o
 
 atmega32-init:
 	avrdude -p atmega32 -P $(TTY) -c stk500v2 -U lfuse:w:0x4f:m -U hfuse:w:0xd1:m

@@ -5,7 +5,7 @@
 
 void io_init()
 {
-	// ??
+	com_init();
 }
 
 void io_out(uint16_t port, uint8_t value)
@@ -13,7 +13,6 @@ void io_out(uint16_t port, uint8_t value)
 	switch(port)
 	{
 		case 0: com_putc(value); break;
-	
 	}
 }
 
