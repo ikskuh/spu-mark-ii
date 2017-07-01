@@ -56,19 +56,19 @@ void emu_step()
 {
 	word_t iword = emu_gniw();
 	struct {
-		unsigned int exec   ; // 0
-		unsigned int flags  ; // 3
-		unsigned int input0 ; // 4
-		unsigned int input1 ; // 6
-		unsigned int output ; // 8
-		unsigned int command; // 10
+		unsigned int exec   ;
+		unsigned int flags  ;
+		unsigned int input0 ;
+		unsigned int input1 ;
+		unsigned int output ;
+		unsigned int command;
 	} i = {
-		(iword >>  0) & 05,
-		(iword >>  3) & 03,
-		(iword >>  4) & 03,
-		(iword >>  6) & 03,
-		(iword >>  8) & 03,
-		(iword >> 10) & 63,
+		INSTR_GETEXEC(iword),
+		INSTR_GETFLAG(iword),
+		INSTR_GETI0(iword),
+		INSTR_GETI1(iword),
+		INSTR_GETOUT(iword),
+		INSTR_GETCMD(iword),
 	};
 	
 	bool exec;

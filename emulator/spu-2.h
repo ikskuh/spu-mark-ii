@@ -1,5 +1,20 @@
 #pragma once
 
+#define INSTR_ENCODE(ex, i0, i1, fl, ou, cm) 0 \
+	| ((ex & 05) << 0) \
+	| ((fl & 01) << 3) \
+	| ((i0 & 03) << 4) \
+	| ((i1 & 03) << 6) \
+	| ((ou & 03) << 8) \
+	| ((cm & 63) << 10)
+
+#define INSTR_GETEXEC(iword) (((iword) >>  0) & 05)
+#define INSTR_GETFLAG(iword) (((iword) >>  3) & 01)
+#define INSTR_GETI0(iword)   (((iword) >>  4) & 03)
+#define INSTR_GETI1(iword)   (((iword) >>  6) & 03)
+#define INSTR_GETOUT(iword)  (((iword) >>  8) & 03)
+#define INSTR_GETCMD(iword)  (((iword) >> 10) & 63)
+
 #define INPUT_ZERO 0
 #define INPUT_ARG  1
 #define INPUT_PEEK 2

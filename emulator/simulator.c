@@ -74,6 +74,8 @@ void com_init()
 	
 	static struct termios newt;
 	newt = com_termios;
+	newt.c_iflag &= ~(INLCR | ICRNL);
+	newt.c_oflag &= ~(OCRNL | ONLCR);
 	newt.c_lflag &= ~(ICANON | ECHO);
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
 
