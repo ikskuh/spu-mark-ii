@@ -2,7 +2,7 @@ TTY=/dev/ttyUSB0
 MCU=atmega32
 FREQ=20000000
 
-FLAGS    = -g -Wall -Wextra -pedantic -O3 
+FLAGS    = -g -Wall -Wextra -pedantic -O3 -I../include
 PCFLAGS  = $(FLAGS)
 AVRFLAGS = $(FLAGS) -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
 

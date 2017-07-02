@@ -15,6 +15,14 @@
 #define INSTR_GETOUT(iword)  (((iword) >>  8) & 03)
 #define INSTR_GETCMD(iword)  (((iword) >> 10) & 63)
 
+// Misuse the INSTR_ENCODE macro to create the bit masks :)
+#define INSTR_MASK_EXEC   INSTR_ENCODE(0xFFFF, 0, 0, 0, 0, 0)
+#define INSTR_MASK_INPUT0 INSTR_ENCODE(0, 0, 0xFFFF, 0, 0, 0)
+#define INSTR_MASK_INPUT1 INSTR_ENCODE(0, 0, 0, 0xFFFF, 0, 0)
+#define INSTR_MASK_OUTPUT INSTR_ENCODE(0, 0, 0, 0, 0xFFFF, 0)
+#define INSTR_MASK_FLAG   INSTR_ENCODE(0, 0xFFFF, 0, 0, 0, 0)
+#define INSTR_MASK_CMD    INSTR_ENCODE(0, 0, 0, 0, 0, 0xFFFF)
+
 #define INPUT_ZERO 0
 #define INPUT_ARG  1
 #define INPUT_PEEK 2
@@ -50,7 +58,6 @@
 #define CMD_BPSET  13
 #define CMD_SPGET  14
 #define CMD_SPSET  15
-
 #define CMD_ADD    16
 #define CMD_SUB    17
 #define CMD_MUL    18
