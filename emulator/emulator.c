@@ -2,6 +2,7 @@
 #include "sram.h"
 #include "io.h"
 #include "spu-2.h"
+#include "trace.h"
 
 #include <stdbool.h>
 
@@ -54,6 +55,7 @@ static uint16_t emu_gniw()
 
 void emu_step()
 {
+	uint16_t addr = regCP;
 	word_t iword = emu_gniw();
 	struct {
 		unsigned int exec   ;
@@ -71,7 +73,7 @@ void emu_step()
 		INSTR_GETCMD(iword),
 	};
 	
-	bool exec;
+	bool exec = false;
 	switch(i.exec)
 	{
 		case EXEC_ALWAYS:  exec = true;                     break;
@@ -83,6 +85,13 @@ void emu_step()
 		case EXEC_GEQUAL:  exec =  regFLAG.z || regFLAG.n;  break;
 		case EXEC_LEQUAL:  exec =  regFLAG.z || !regFLAG.n; break;
 	}
+	
+	trace_instr(
+		addr, 
+		iword, 
+		emu_peek(), 
+		(regFLAG.z?1:0)|(regFLAG.n?2:0)|(regFLAG.i?4:0),
+		exec);
 	
 	if(!exec) {
 		// We still need to advance
@@ -220,6 +229,8 @@ void emu_step()
 		case OUTPUT_JUMP: regCP = output & 0xFFFE; break;
 		case OUTPUT_RJUMP: regCP = (regCP + output) & 0xFFFE; break;
 	}
+	
+	trace_result(output);
 	
 	if(regSP >= STACKSIZE) {
 		// CPU Reset on Stack Under/Overflow :(

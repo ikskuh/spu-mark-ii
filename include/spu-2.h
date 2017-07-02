@@ -1,14 +1,14 @@
 #pragma once
 
 #define INSTR_ENCODE(ex, i0, i1, fl, ou, cm) 0 \
-	| ((ex & 05) << 0) \
+	| ((ex & 07) << 0) \
 	| ((fl & 01) << 3) \
 	| ((i0 & 03) << 4) \
 	| ((i1 & 03) << 6) \
 	| ((ou & 03) << 8) \
 	| ((cm & 63) << 10)
 
-#define INSTR_GETEXEC(iword) (((iword) >>  0) & 05)
+#define INSTR_GETEXEC(iword) (((iword) >>  0) & 07)
 #define INSTR_GETFLAG(iword) (((iword) >>  3) & 01)
 #define INSTR_GETI0(iword)   (((iword) >>  4) & 03)
 #define INSTR_GETI1(iword)   (((iword) >>  6) & 03)
@@ -17,10 +17,10 @@
 
 // Misuse the INSTR_ENCODE macro to create the bit masks :)
 #define INSTR_MASK_EXEC   INSTR_ENCODE(0xFFFF, 0, 0, 0, 0, 0)
-#define INSTR_MASK_INPUT0 INSTR_ENCODE(0, 0, 0xFFFF, 0, 0, 0)
-#define INSTR_MASK_INPUT1 INSTR_ENCODE(0, 0, 0, 0xFFFF, 0, 0)
+#define INSTR_MASK_INPUT0 INSTR_ENCODE(0, 0xFFFF, 0, 0, 0, 0)
+#define INSTR_MASK_INPUT1 INSTR_ENCODE(0, 0, 0xFFFF, 0, 0, 0)
+#define INSTR_MASK_FLAG   INSTR_ENCODE(0, 0, 0, 0xFFFF, 0, 0)
 #define INSTR_MASK_OUTPUT INSTR_ENCODE(0, 0, 0, 0, 0xFFFF, 0)
-#define INSTR_MASK_FLAG   INSTR_ENCODE(0, 0xFFFF, 0, 0, 0, 0)
 #define INSTR_MASK_CMD    INSTR_ENCODE(0, 0, 0, 0, 0, 0xFFFF)
 
 #define INPUT_ZERO 0

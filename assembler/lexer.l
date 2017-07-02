@@ -177,7 +177,7 @@ ws                 [ \t]*
 0b{BINDIGIT}+                   { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 2)); }
 0o{OCTDIGIT}+                   { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 8)); }
 0x{HEXDIGIT}+                   { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 16)); }
-{DIGIT}+                        { return MKTOKEN(TOK_NUMBER, atoi(yytext)); }
+-?{DIGIT}+                      { return MKTOKEN(TOK_NUMBER, atoi(yytext)); }
 '\\.'                           { return MKTOKEN(TOK_NUMBER, escapeChar(yytext[2])); }
 '.'                             { return MKTOKEN(TOK_NUMBER, yytext[1]); }
 
@@ -430,28 +430,28 @@ int main(int argc, char ** argv)
 							break;
 						case TOK_MOD_I0:
 							currentInstruction.valid = true;
-							currentInstruction.mask |= INSTR_MASK_EXEC;
-							currentInstruction.over |= INSTR_ENCODE(0, 0, token.value, 0, 0, 0);
+							currentInstruction.mask |= INSTR_MASK_INPUT0;
+							currentInstruction.over |= INSTR_ENCODE(0, token.value, 0, 0, 0, 0);
 							break;
 						case TOK_MOD_I1:
 							currentInstruction.valid = true;
-							currentInstruction.mask |= INSTR_MASK_EXEC;
-							currentInstruction.over |= INSTR_ENCODE(0, 0, 0, token.value, 0, 0);
+							currentInstruction.mask |= INSTR_MASK_INPUT1;
+							currentInstruction.over |= INSTR_ENCODE(0, 0, token.value, 0, 0, 0);
 							break;
 						case TOK_MOD_FLAG:
 							currentInstruction.valid = true;
 							currentInstruction.mask |= INSTR_MASK_FLAG;
-							currentInstruction.over |= INSTR_ENCODE(0, token.value, 0, 0, 0, 0);
-							break;
-						case TOK_MOD_CMD:
-							currentInstruction.valid = true;
-							currentInstruction.mask |= INSTR_MASK_EXEC;
-							currentInstruction.over |= INSTR_ENCODE(0, 0, 0, 0, 0, token.value);
+							currentInstruction.over |= INSTR_ENCODE(0, 0, 0, token.value, 0, 0);
 							break;
 						case TOK_MOD_OUT:
 							currentInstruction.valid = true;
-							currentInstruction.mask |= INSTR_MASK_EXEC;
+							currentInstruction.mask |= INSTR_MASK_OUTPUT;
 							currentInstruction.over |= INSTR_ENCODE(0, 0, 0, 0, token.value, 0);
+							break;
+						case TOK_MOD_CMD:
+							currentInstruction.valid = true;
+							currentInstruction.mask |= INSTR_MASK_CMD;
+							currentInstruction.over |= INSTR_ENCODE(0, 0, 0, 0, 0, token.value);
 							break;
 						default:
 							if(state == 0) {
@@ -490,13 +490,17 @@ int main(int argc, char ** argv)
 					if(mnemonic >= 0) {
 						final = getMnemonic(stringtable[mnemonic], argc);
 					}
+					
+					// printf("[%04X,%04X,%04X]", final, currentInstruction.mask, currentInstruction.over);
+					
 					final &= ~currentInstruction.mask;
 					final |= (currentInstruction.over & currentInstruction.mask);
 					emit16(final);
-					if(state >= 2) {
+					
+					if(argc >= 1) {
 						emit16(arg0);
 					}
-					if(state >= 4) {
+					if(argc >= 2) {
 						emit16(arg1);
 					}
 					

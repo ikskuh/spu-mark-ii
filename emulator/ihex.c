@@ -94,5 +94,5 @@ void ihex_load()
 		com_putc('.');
 	}
 	
-	com_puts("ihex loader done!\n\r");
+	com_puts("\n\rihex loader done!\n\r");
 }
