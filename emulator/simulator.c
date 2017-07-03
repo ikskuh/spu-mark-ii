@@ -90,6 +90,7 @@ unsigned char com_getc( void )
 void com_putc( unsigned char data )
 {
 	fputc(data, stdout);
+	fflush(stdout);
 }
 
 bool com_canRead(void)

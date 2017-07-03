@@ -1,16 +1,10 @@
-
 .org 0x0000
+.equ grossesH 'H'
 
 _start:
-	push msg
-_loop: ; 0x04
-	[i0:peek] ld8i [f:yes]
-	[ex:nonzero] out 0x00
-	[ex:nonzero] add 1
-	[ex:nonzero] jmp _loop
+	ld data
+	out 0
 	rjmp -4
-	
-.org 0x1000
-msg:
-.asciiz "Hello World\r\n"
-.align 2
+
+data:
+.dw grossesH

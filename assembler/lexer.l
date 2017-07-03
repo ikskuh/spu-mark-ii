@@ -27,6 +27,7 @@
 #define DIR_ALIGN  3
 #define DIR_ASCII  4
 #define DIR_ASCIIZ 5
+#define DIR_EQU    6
 
 #define MKTOKEN(type, val) (((type) & 0xFFFF0000) | ((val) & 0xFFFF))
 
@@ -119,6 +120,7 @@ ws                 [ \t]*
 ^\.align                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ALIGN); }
 ^\.ascii                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCII); }
 ^\.asciiz                       { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCIIZ); }
+^\.equ                          { return MKTOKEN(TOK_DIRECTIVE, DIR_EQU); }
 
 \[{ws}ex{ws}:{ws}always{ws}\]   { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
 \[{ws}ex{ws}:{ws}zero{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
@@ -428,6 +430,13 @@ char const * lexstr()
 	return stringtable[tok.value];
 }
 
+int lexid()
+{
+	struct token tok = lex();
+	if(tok.type != TOK_IDENTIFIER) _abort();
+	return tok.value;
+}
+
 void lexnl()
 {
 	struct token tok = lex();
@@ -506,14 +515,22 @@ int main(int argc, char ** argv)
 						}
 						lexnl();
 						break;
-					case DIR_DW:
-						emit16(lexnum(NULL));
+					case DIR_DW: {
+						int patch = -1;
+						int val = lexnum(&patch);
+						if(patch >= 0) patch16(patch);
+						else emit16(val);
 						while(peek().type == TOK_COMMA) {
 							lex(); // consume comma
-							emit16(lexnum(NULL));
+							
+							patch = -1;
+							val = lexnum(&patch);
+							if(patch >= 0) patch16(patch);
+							else emit16(val);
 						}
 						lexnl();
 						break;
+					}
 					case DIR_ALIGN: {
 						int alignment = lexnum(NULL);
 						lexnl();
@@ -533,6 +550,12 @@ int main(int argc, char ** argv)
 							emit8(*str++);
 						}
 						emit8(0);
+						break;
+					}
+					case DIR_EQU: {
+						int name = lexid();
+						int value = lexnum(NULL);
+						createLabel(name, value);
 						break;
 					}
 					default: _abort();
@@ -656,11 +679,11 @@ void apply_patches()
 {
 	for(int i = 0; i < patchCount; i++)
 	{
-		uint16_t address;
+		uint16_t value;
 		switch(patches[i].type)
 		{
 			case PATCH_REFERENCE: {
-				if(getLabel(patches[i].name, &address) == false) {
+				if(getLabel(patches[i].name, &value) == false) {
 					fprintf(stderr, "Could not find label %s\n", stringtable[patches[i].name]);
 					_abort();
 				}
@@ -671,10 +694,9 @@ void apply_patches()
 		}
 		
 		patches[i].section->data[patches[i].offset + 0]
-			= ((address >> 0) & 0xFF);
+			= ((value >> 0) & 0xFF);
 		patches[i].section->data[patches[i].offset + 1]
-			= ((address >> 8) & 0xFF);
-	
+			= ((value >> 8) & 0xFF);
 	}
 }
 
