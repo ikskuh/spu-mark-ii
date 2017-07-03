@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <spu-2.h>
 
+#define MAX_STR_CONST  4096
+
 #define TOK_DIRECTIVE  0x10000 // val = directive id
 #define TOK_LABEL      0x20000 // val = string index
 #define TOK_IDENTIFIER 0x30000 // val = string index
@@ -16,12 +18,15 @@
 #define TOK_NUMBER     0xA0000 // val = 16 bit number
 #define TOK_COMMA      0xB0000 // val = 0
 #define TOK_NEWLINE    0xC0000 // val = 0
+#define TOK_STRING     0xD0000 // val = 0
 // TODO: Insert formula support later!
 
-#define DIR_ORG   0
-#define DIR_DB    1
-#define DIR_DW    2
-#define DIR_ALIGN 3
+#define DIR_ORG    0
+#define DIR_DB     1
+#define DIR_DW     2
+#define DIR_ALIGN  3
+#define DIR_ASCII  4
+#define DIR_ASCIIZ 5
 
 #define MKTOKEN(type, val) (((type) & 0xFFFF0000) | ((val) & 0xFFFF))
 
@@ -45,7 +50,11 @@ char const * tokenNames[] =
 	"Number",
 	"Comma",
 	"Newline",
+	"String"
 };
+
+char string_buf[MAX_STR_CONST];
+char *string_buf_ptr;
 
 uint16_t registerString(char const * str, int len)
 {
@@ -89,6 +98,7 @@ int escapeChar(char c)
 %}
 
 %option noyywrap
+%s STRING
 
 DIGIT              [0-9]
 HEXDIGIT           [0-9A-Fa-f]
@@ -107,6 +117,8 @@ ws                 [ \t]*
 ^\.db                           { return MKTOKEN(TOK_DIRECTIVE, DIR_DB); }
 ^\.dw                           { return MKTOKEN(TOK_DIRECTIVE, DIR_DW); }
 ^\.align                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ALIGN); }
+^\.ascii                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCII); }
+^\.asciiz                       { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCIIZ); }
 
 \[{ws}ex{ws}:{ws}always{ws}\]   { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
 \[{ws}ex{ws}:{ws}zero{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
@@ -169,7 +181,7 @@ ws                 [ \t]*
 \[{ws}cmd{ws}:{ws}lsr{ws}\]     { return MKTOKEN(TOK_MOD_CMD, CMD_LSR); }
 
 ,                               { return MKTOKEN(TOK_COMMA, 0); }
-\n                              { return MKTOKEN(TOK_NEWLINE, 0); }
+<INITIAL>\n                     { return MKTOKEN(TOK_NEWLINE, 0); }
 
 ^{ID}:                          { return MKTOKEN(TOK_LABEL, registerString(yytext, strlen(yytext) - 1)); }
 {ID}                            { return MKTOKEN(TOK_IDENTIFIER, registerString(yytext, strlen(yytext))); }
@@ -178,8 +190,30 @@ ws                 [ \t]*
 0o{OCTDIGIT}+                   { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 8)); }
 0x{HEXDIGIT}+                   { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 16)); }
 -?{DIGIT}+                      { return MKTOKEN(TOK_NUMBER, atoi(yytext)); }
+
 '\\.'                           { return MKTOKEN(TOK_NUMBER, escapeChar(yytext[2])); }
 '.'                             { return MKTOKEN(TOK_NUMBER, yytext[1]); }
+
+<INITIAL>\"                     { string_buf_ptr = string_buf; BEGIN(STRING); }
+
+<STRING>\"                      { BEGIN(INITIAL);
+																	*string_buf_ptr = '\0';
+																	return MKTOKEN(TOK_STRING, registerString(string_buf, strlen(string_buf)));
+																}
+<STRING>\n                      { _abort(); }
+<STRING>\\[0-7]{1,3}            {
+																	/* octal escape sequence */
+																	unsigned result;
+																	(void) sscanf( yytext + 1, "%o", &result );
+																	if (result > 0xff )
+																		_abort();
+																	*string_buf_ptr++ = result;
+																}
+<STRING>\\.                     { *string_buf_ptr++ = escapeChar(yytext[1]); }
+<STRING>[^\\\n\"]+              { char *yptr = yytext;
+																	while ( *yptr )
+																		*string_buf_ptr++ = *yptr++;
+																}
 
 {WS}                            { /* ignore whitespace */ }
 
@@ -317,6 +351,13 @@ int lexnum()
 	return tok.value;
 }
 
+char const * lexstr()
+{
+	struct token tok = lex();
+	if(tok.type != TOK_STRING) _abort();
+	return stringtable[tok.value];
+}
+
 void lexnl()
 {
 	struct token tok = lex();
@@ -408,6 +449,22 @@ int main(int argc, char ** argv)
 						currentSection->length = alignment * ((currentSection->offset + currentSection->length + alignment - 1) / alignment) - currentSection->offset;
 						break;
 					}
+					case DIR_ASCII: {
+						char const * str = lexstr();
+						while(*str) {
+							emit8(*str++);
+						}
+						break;
+					}
+					case DIR_ASCIIZ: {
+						char const * str = lexstr();
+						while(*str) {
+							emit8(*str++);
+						}
+						emit8(0);
+						break;
+					}
+					default: _abort();
 				}
 				break;
 			}

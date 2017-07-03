@@ -12,7 +12,5 @@ _loop: ; 0x04
 	
 .org 0x1000
 msg:
-.db 'H', 'e', 'l', 'l', 'o', ' '
-.db 'W', 'o', 'r', 'l', 'd', '!', '\r', '\n'
-.db 0
+.asciiz "Hello World\r\n"
 .align 2
