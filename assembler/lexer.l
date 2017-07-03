@@ -1,40 +1,6 @@
-
 %{
 #include <stdio.h>
-#include <stdbool.h>
-#include <spu-2.h>
-
-#define MAX_STR_CONST  4096
-
-#define TOK_DIRECTIVE  0x10000 // val = directive id
-#define TOK_LABEL      0x20000 // val = string index
-#define TOK_IDENTIFIER 0x30000 // val = string index
-#define TOK_MOD_EX     0x40000 // val = bitfield
-#define TOK_MOD_I0     0x50000 // ...
-#define TOK_MOD_I1     0x60000 //
-#define TOK_MOD_OUT    0x70000 //
-#define TOK_MOD_CMD    0x80000 //
-#define TOK_MOD_FLAG   0x90000 //
-#define TOK_NUMBER     0xA0000 // val = 16 bit number
-#define TOK_COMMA      0xB0000 // val = 0
-#define TOK_NEWLINE    0xC0000 // val = 0
-#define TOK_STRING     0xD0000 // val = 0
-// TODO: Insert formula support later!
-
-#define DIR_ORG    0
-#define DIR_DB     1
-#define DIR_DW     2
-#define DIR_ALIGN  3
-#define DIR_ASCII  4
-#define DIR_ASCIIZ 5
-#define DIR_EQU    6
-
-#define MKTOKEN(type, val) (((type) & 0xFFFF0000) | ((val) & 0xFFFF))
-
-#define _abort() do { fprintf(stderr, "abort in %s:%d!\n", __FILE__, __LINE__); abort(); } while(false)
-
-int stringtable_len = 0;
-char const * stringtable[(1<<16)] = { NULL };
+#include "assembler.h"
 
 char const * tokenNames[] = 
 {
@@ -53,29 +19,6 @@ char const * tokenNames[] =
 	"Newline",
 	"String"
 };
-
-char string_buf[MAX_STR_CONST];
-char *string_buf_ptr;
-
-uint16_t registerString(char const * str, int len)
-{
-	if(stringtable_len >= (1<<16)) {
-		_abort();
-	}
-
-	char * entry = malloc(len + 1);
-	memcpy(entry, str, len);
-	entry[len] = 0;
-	
-	for(int i = 0; i < stringtable_len; i++) {
-		if(strcmp(stringtable[i], entry) == 0) {
-			return i;
-			free(entry);
-		}
-	}
-	stringtable[stringtable_len] = entry;
-	return stringtable_len++; // yes, this is hacky, but nice!
-}
 
 int escapeChar(char c)
 {
@@ -111,6 +54,8 @@ ws                 [ \t]*
 
 %{
 ///////////////////////////////////////////////////////////////////////////////
+char string_buf[MAX_STR_CONST];
+char *string_buf_ptr;
 %}
 %%
 
@@ -225,51 +170,6 @@ ws                 [ \t]*
 
 %%
 ///////////////////////////////////////////////////////////////////////////////
-#include <unistd.h>
-
-typedef struct label
-{
-	int name;
-	uint16_t address;
-	struct label * next;
-} label_t;
-
-label_t * labels = NULL;
-
-void createLabel(int name, uint16_t location)
-{
-	label_t * it = labels;
-	if(it == NULL) {
-		it = malloc(sizeof(label_t));
-		it->name = name;
-		it->address = location;
-		it->next = NULL;
-		labels = it;
-		return;
-	}
-	while(it->next != NULL) {
-		if(it->name == name)
-			_abort();
-		it = it->next;
-	}
-	it->next = malloc(sizeof(label_t));
-	it = it->next;
-	
-	it->name = name;
-	it->address = location;
-	it->next = NULL;
-}
-
-bool getLabel(int name, uint16_t * location)
-{
-	for(label_t * it = labels; it; it = it->next) {
-		if(it->name != name)
-			continue;
-		*location = it->address;
-		return true;
-	}
-	return false;
-}
 
 uint16_t getMnemonic(char const * name, int argc)
 {
@@ -284,11 +184,6 @@ uint16_t getMnemonic(char const * name, int argc)
 
 	_abort();
 }
-
-typedef struct token
-{
-	int type, value;
-} token_t;
 
 static struct token nextToken = { -1, -1 };
 
@@ -308,86 +203,6 @@ struct token lex()
 	}
 	// fprintf(stderr, "[%d:%d]", result.type >> 16, result.value);
 	return result;
-}
-
-struct {
-	bool valid;
-	uint16_t base;
-	uint16_t mask;
-	uint16_t over;
-	uint16_t flags;
-} currentInstruction;
-
-typedef struct section
-{
-	uint16_t offset;
-	uint16_t length;
-	uint8_t * data;
-	struct section * next;
-} section_t;
-
-section_t * currentSection = NULL;
-
-typedef struct {
-	int type; // 0 = label, 1 = expression
-	section_t * section;
-	uint16_t offset;
-	int flags; // 1 = hasValue, 2 = hasAddress
-	union {
-		int name;
-	};
-} patch_t;
-
-#define PATCH_REFERENCE  0
-#define PATCH_EXPRESSION 1
-
-patch_t patches[(1<<15)];
-int patchCount = 0;
-
-void emit8(uint8_t value)
-{
-	currentSection->data[currentSection->length++] = value;
-	// fprintf(stderr, "%02X", value);
-}
-
-void emit16(uint16_t value)
-{
-	emit8((value >> 0) & 0xFF);
-	emit8((value >> 8) & 0xFF);
-}
-
-void patch16(int patch)
-{
-	patches[patch].section = currentSection;
-	patches[patch].offset  = currentSection->length;
-	patches[patch].flags  |= 2;
-	emit8(0xCC);
-	emit8(0xCC);
-}
-
-int createPatch(int type)
-{
-	patches[patchCount].type = type;
-	patches[patchCount].flags = 0;
-	return patchCount++;
-}
-
-void createSection(uint16_t offset)
-{
-	if(currentSection != NULL && currentSection->length == 0) {
-		section_t * temp = currentSection->next;
-		free(currentSection->data);
-		free(currentSection);
-		currentSection = temp;
-	}
-
-	section_t * sect = malloc(sizeof(section_t));
-	sect->next = currentSection;
-	sect->offset = offset;
-	sect->length = 0;
-	sect->data = malloc(65536);
-	
-	currentSection = sect;
 }
 
 int _lexnum(struct token * token, int * patch)
@@ -455,45 +270,24 @@ void lexcomma()
 	}
 }
 
-void generate_output();
-void apply_patches();
-
-int main(int argc, char ** argv)
+struct {
+	bool valid;
+	uint16_t base;
+	uint16_t mask;
+	uint16_t over;
+	uint16_t flags;
+} currentInstruction;
+	
+void lex_assemble(FILE * infile)
 {
 	(void)input;
 	(void)yyunput;
-	int opt;
-	while ((opt = getopt(argc, argv, "?o:")) != -1) {
-		 switch (opt) {
-		 case '?':
-		 default: /* '?' */
-				 fprintf(stderr, "Usage: %s source\n",
-								 argv[0]);
-				 exit(EXIT_FAILURE);
-		 }
- }
- 
- if (optind >= argc) {
-		fprintf(stderr, "No input file!\n");
-		exit(EXIT_FAILURE);
-	}
 	
-	if(strcmp(argv[optind], "-") == 0) {
-		yyin = stdin;
-		fprintf(stderr, "Enter thy assembly:\n");
-	} else {
-		yyin = fopen(argv[optind], "r");
-	}
-	if(yyin == NULL) {
-		fprintf(stderr, "Failed to open input file!\n");
-		return EXIT_FAILURE;
-	}
+	yyin = infile;
+	
 	
 	// initialize lexing with 1-lookahead
 	lex();
-	
-	// Create inital section
-	createSection(0x0000);
 
 	struct token token;
 	do {
@@ -667,68 +461,4 @@ int main(int argc, char ** argv)
 			}
 		}
 	} while(token.type != 0);
-	
-	apply_patches();
-	
-	generate_output();
-	
-	return 0;
-}
-
-void apply_patches()
-{
-	for(int i = 0; i < patchCount; i++)
-	{
-		uint16_t value;
-		switch(patches[i].type)
-		{
-			case PATCH_REFERENCE: {
-				if(getLabel(patches[i].name, &value) == false) {
-					fprintf(stderr, "Could not find label %s\n", stringtable[patches[i].name]);
-					_abort();
-				}
-				break;
-			}
-			// TODO: Insert expression support!
-			default: _abort();
-		}
-		
-		patches[i].section->data[patches[i].offset + 0]
-			= ((value >> 0) & 0xFF);
-		patches[i].section->data[patches[i].offset + 1]
-			= ((value >> 8) & 0xFF);
-	}
-}
-
-void generate_output()
-{
-	for(section_t * sect = currentSection; sect; sect = sect->next)
-	{
-		int start = sect->offset;
-		int length = sect->length;
-		uint8_t const * data = sect->data;
-		while(length > 0)
-		{
-			if(start >= (1<<16))
-				_abort();
-			uint8_t len = 16;
-			if(length < len) {
-				len = length;
-			}
-			uint16_t pos = start;
-			uint8_t checksum = len + (pos & 0xFF) + ((pos >> 8) & 0xFF);
-			fprintf(stdout, ":%02X%04X00", len, pos);
-			for(int i = 0; i < len; i++) {
-				checksum += *data;
-				fprintf(stdout, "%02X", *data++);
-			}
-			checksum = -checksum;
-			fprintf(stdout, "%02X\n", checksum);
-			
-			start += len;
-			length -= len;
-		}
-	}
-	// End Marker
-	fprintf(stdout, ":00000001FF\n");
 }

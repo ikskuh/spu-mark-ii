@@ -8,7 +8,7 @@ LFLAGS=$(FLAGS)
 
 all: assembler
 
-assembler: lexer.yy.o
+assembler: main.o lexer.yy.o codegen.o hexgen.o labels.o patches.o stringtable.o
 	$(LD) -o $@ $^
 
 %.yy.c: %.l
