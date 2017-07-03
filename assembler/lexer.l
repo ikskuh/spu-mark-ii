@@ -242,6 +242,8 @@ void createLabel(int name, uint16_t location)
 		it->name = name;
 		it->address = location;
 		it->next = NULL;
+		labels = it;
+		return;
 	}
 	while(it->next != NULL) {
 		if(it->name == name)
@@ -254,6 +256,17 @@ void createLabel(int name, uint16_t location)
 	it->name = name;
 	it->address = location;
 	it->next = NULL;
+}
+
+bool getLabel(int name, uint16_t * location)
+{
+	for(label_t * it = labels; it; it = it->next) {
+		if(it->name != name)
+			continue;
+		*location = it->address;
+		return true;
+	}
+	return false;
 }
 
 uint16_t getMnemonic(char const * name, int argc)
@@ -313,6 +326,22 @@ typedef struct section
 
 section_t * currentSection = NULL;
 
+typedef struct {
+	int type; // 0 = label, 1 = expression
+	section_t * section;
+	uint16_t offset;
+	int flags; // 1 = hasValue, 2 = hasAddress
+	union {
+		int name;
+	};
+} patch_t;
+
+#define PATCH_REFERENCE  0
+#define PATCH_EXPRESSION 1
+
+patch_t patches[(1<<15)];
+int patchCount = 0;
+
 void emit8(uint8_t value)
 {
 	currentSection->data[currentSection->length++] = value;
@@ -323,6 +352,22 @@ void emit16(uint16_t value)
 {
 	emit8((value >> 0) & 0xFF);
 	emit8((value >> 8) & 0xFF);
+}
+
+void patch16(int patch)
+{
+	patches[patch].section = currentSection;
+	patches[patch].offset  = currentSection->length;
+	patches[patch].flags  |= 2;
+	emit8(0xCC);
+	emit8(0xCC);
+}
+
+int createPatch(int type)
+{
+	patches[patchCount].type = type;
+	patches[patchCount].flags = 0;
+	return patchCount++;
 }
 
 void createSection(uint16_t offset)
@@ -343,12 +388,37 @@ void createSection(uint16_t offset)
 	currentSection = sect;
 }
 
-int lexnum()
+int _lexnum(struct token * token, int * patch)
+{
+	switch(token->type)
+	{
+		case TOK_NUMBER:
+			return token->value;
+		case TOK_IDENTIFIER: {
+			// Check if we need a patch
+			uint16_t address;
+			if(getLabel(token->value, &address)) {
+				return address;
+			}
+			if(patch == NULL) {
+				fprintf(stderr, "Label references are not allowed here!\n");
+				abort();
+			}
+			*patch = createPatch(PATCH_REFERENCE);
+			patches[*patch].name = token->value;
+			return 0xCCCC;
+		}
+		// TODO: Insert expression support!
+		default:
+			_abort();
+	}
+}
+
+int lexnum(int * patch)
 {
 	// TODO: Implement patching, references and expressions here
 	struct token tok = lex();
-	if(tok.type != TOK_NUMBER) _abort();
-	return tok.value;
+	return _lexnum(&tok, patch);
 }
 
 char const * lexstr()
@@ -377,6 +447,7 @@ void lexcomma()
 }
 
 void generate_output();
+void apply_patches();
 
 int main(int argc, char ** argv)
 {
@@ -424,27 +495,27 @@ int main(int argc, char ** argv)
 				switch(token.value)
 				{
 					case DIR_ORG:
-						createSection(lexnum());
+						createSection(lexnum(NULL));
 						lexnl();
 						break;
 					case DIR_DB:
-						emit8(lexnum());
+						emit8(lexnum(NULL));
 						while(peek().type == TOK_COMMA) {
 							lex(); // consume comma
-							emit8(lexnum());
+							emit8(lexnum(NULL));
 						}
 						lexnl();
 						break;
 					case DIR_DW:
-						emit16(lexnum());
+						emit16(lexnum(NULL));
 						while(peek().type == TOK_COMMA) {
 							lex(); // consume comma
-							emit16(lexnum());
+							emit16(lexnum(NULL));
 						}
 						lexnl();
 						break;
 					case DIR_ALIGN: {
-						int alignment = lexnum();
+						int alignment = lexnum(NULL);
 						lexnl();
 						currentSection->length = alignment * ((currentSection->offset + currentSection->length + alignment - 1) / alignment) - currentSection->offset;
 						break;
@@ -475,6 +546,7 @@ int main(int argc, char ** argv)
 			default: {
 				int mnemonic = -1;
 				uint16_t arg0 = 0, arg1 = 0;
+				int patch0 = -1, patch1 = -1;
 				uint16_t state = 0;
 				while(token.type != 0 && token.type != TOK_NEWLINE)
 				{
@@ -520,9 +592,7 @@ int main(int argc, char ** argv)
 								state = 1;
 							} else if(state == 1) {
 								// mnemonic 1
-								if(token.type != TOK_NUMBER)
-									_abort();
-								arg0 = token.value;
+								arg0 = _lexnum(&token, &patch0);
 								state = 2;
 							} else if(state == 2) {
 								// comma before argument 2
@@ -531,9 +601,7 @@ int main(int argc, char ** argv)
 								state = 3;
 							} else if(state == 3) {
 								// argument 2
-								if(token.type != TOK_NUMBER)
-									_abort();
-								arg1 = token.value;
+								arg0 = _lexnum(&token, &patch1);
 								state = 4;
 							}
 					}
@@ -548,17 +616,23 @@ int main(int argc, char ** argv)
 						final = getMnemonic(stringtable[mnemonic], argc);
 					}
 					
-					// printf("[%04X,%04X,%04X]", final, currentInstruction.mask, currentInstruction.over);
-					
 					final &= ~currentInstruction.mask;
 					final |= (currentInstruction.over & currentInstruction.mask);
 					emit16(final);
 					
 					if(argc >= 1) {
-						emit16(arg0);
+						if(patch0 >= 0) {
+							patch16(patch0);
+						} else {
+							emit16(arg0);
+						}
 					}
 					if(argc >= 2) {
-						emit16(arg1);
+						if(patch1 >= 0) {
+							patch16(patch1);
+						} else {
+							emit16(arg1);
+						}
 					}
 					
 					memset(&currentInstruction, 0, sizeof currentInstruction);
@@ -571,11 +645,37 @@ int main(int argc, char ** argv)
 		}
 	} while(token.type != 0);
 	
-	// TODO: Apply patches here!
+	apply_patches();
 	
 	generate_output();
 	
 	return 0;
+}
+
+void apply_patches()
+{
+	for(int i = 0; i < patchCount; i++)
+	{
+		uint16_t address;
+		switch(patches[i].type)
+		{
+			case PATCH_REFERENCE: {
+				if(getLabel(patches[i].name, &address) == false) {
+					fprintf(stderr, "Could not find label %s\n", stringtable[patches[i].name]);
+					_abort();
+				}
+				break;
+			}
+			// TODO: Insert expression support!
+			default: _abort();
+		}
+		
+		patches[i].section->data[patches[i].offset + 0]
+			= ((address >> 0) & 0xFF);
+		patches[i].section->data[patches[i].offset + 1]
+			= ((address >> 8) & 0xFF);
+	
+	}
 }
 
 void generate_output()
