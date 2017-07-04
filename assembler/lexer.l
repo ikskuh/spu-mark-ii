@@ -68,7 +68,7 @@ char *string_buf_ptr;
 ^\.equ                          { return MKTOKEN(TOK_DIRECTIVE, DIR_EQU); }
 
 \[{ws}ex{ws}:{ws}always{ws}\]   { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
-\[{ws}ex{ws}:{ws}zero{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
+\[{ws}ex{ws}:{ws}zero{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_ZERO); }
 \[{ws}ex{ws}:{ws}nonzero{ws}\]  { return MKTOKEN(TOK_MOD_EX, EXEC_NONZERO); }
 \[{ws}ex{ws}:{ws}greater{ws}\]  { return MKTOKEN(TOK_MOD_EX, EXEC_GREATER); }
 \[{ws}ex{ws}:{ws}less{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_LESS); }
@@ -431,27 +431,48 @@ void lex_assemble(FILE * infile)
 					int argc = (state >= 2) + (state >= 4);
 					uint16_t final = 0;
 					if(mnemonic >= 0) {
+						fprintf(stderr, "%s×%d", stringtable[mnemonic], argc);
 						final = getMnemonic(stringtable[mnemonic], argc);
 					}
 					
+					fprintf(stderr, "[%04X,", final);
+					
 					final &= ~currentInstruction.mask;
 					final |= (currentInstruction.over & currentInstruction.mask);
+					
+					fprintf(stderr, "%04X*%04X*→%04X]",
+						currentInstruction.mask,
+						currentInstruction.over,
+						final);
+					
 					emit16(final);
+					
+					int realargc = (INSTR_GETI0(final) == INPUT_ARG)
+						+ (INSTR_GETI1(final) == INPUT_ARG);
+					if(realargc != argc) {
+						fprintf(stderr, "Warning: argc mismatch!\n");
+					}
 					
 					if(argc >= 1) {
 						if(patch0 >= 0) {
 							patch16(patch0);
+							fprintf(stderr, ",*%d", patch0);
 						} else {
 							emit16(arg0);
+							fprintf(stderr, ",%d", arg0);
 						}
 					}
 					if(argc >= 2) {
 						if(patch1 >= 0) {
 							patch16(patch1);
+							fprintf(stderr, ",*%d", patch1);
 						} else {
 							emit16(arg1);
+							fprintf(stderr, ",%d", arg1);
 						}
 					}
+					
+					fprintf(stderr, "\n");
 					
 					memset(&currentInstruction, 0, sizeof currentInstruction);
 				}

@@ -85,16 +85,17 @@ void emu_step()
 	bool exec = false;
 	switch(i.exec)
 	{
-		case EXEC_ALWAYS:  exec = true;                     break;
-		case EXEC_NEVER:   exec = false;                    break;
+		case EXEC_ALWAYS:  exec =  true;                    break;
 		case EXEC_ZERO:    exec =  regFLAG.z;               break;
 		case EXEC_NONZERO: exec = !regFLAG.z;               break;
 		case EXEC_GREATER: exec = !regFLAG.z && !regFLAG.n; break;
 		case EXEC_LESS:    exec =  regFLAG.n;               break;
-		case EXEC_GEQUAL:  exec =  regFLAG.z || regFLAG.n;  break;
-		case EXEC_LEQUAL:  exec =  regFLAG.z || !regFLAG.n; break;
+		case EXEC_GEQUAL:  exec =  regFLAG.z || !regFLAG.n; break;
+		case EXEC_LEQUAL:  exec =  regFLAG.z ||  regFLAG.n; break;
+		case EXEC_NEVER:   exec =  false;                   break;
 	}
 	
+	trace_stack(stack, regBP, regSP);
 	trace_instr(
 		addr, 
 		iword, 

@@ -1,8 +1,8 @@
 syscall:
 	
-	push syscall_msg
-	CALL(puts)
-	pop ; remove arg
+ 	push syscall_msg
+ 	CALL(puts)
+ 	pop ; remove arg
 	
 	ret
 

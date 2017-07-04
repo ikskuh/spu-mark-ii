@@ -28,6 +28,20 @@ void trace_init()
 #endif
 }
 
+void trace_stack(word_t * stack, int bp, int count)
+{
+	if(!enabled) return;
+	com_puts("STACK [");
+	for(int i = 0; i < count; i++) {
+		com_puts(" ");
+		if(i == bp) {
+			com_putc('*');
+		}
+		com_puts(itoa(stack[i], buffer, 10));
+	}
+	com_puts(" ]\n\r");
+}
+
 void trace_instr(uint16_t addr, uint16_t instr, uint16_t top, int flags, bool exec)
 {
 	if(!enabled) return;

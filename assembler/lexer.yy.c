@@ -1679,7 +1679,7 @@ YY_RULE_SETUP
 case 9:
 YY_RULE_SETUP
 #line 71 "lexer.l"
-{ return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
+{ return MKTOKEN(TOK_MOD_EX, EXEC_ZERO); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
@@ -3344,27 +3344,48 @@ void lex_assemble(FILE * infile)
 					int argc = (state >= 2) + (state >= 4);
 					uint16_t final = 0;
 					if(mnemonic >= 0) {
+						fprintf(stderr, "%s×%d", stringtable[mnemonic], argc);
 						final = getMnemonic(stringtable[mnemonic], argc);
 					}
 					
+					fprintf(stderr, "[%04X,", final);
+					
 					final &= ~currentInstruction.mask;
 					final |= (currentInstruction.over & currentInstruction.mask);
+					
+					fprintf(stderr, "%04X*%04X*→%04X]",
+						currentInstruction.mask,
+						currentInstruction.over,
+						final);
+					
 					emit16(final);
+					
+					int realargc = (INSTR_GETI0(final) == INPUT_ARG)
+						+ (INSTR_GETI1(final) == INPUT_ARG);
+					if(realargc != argc) {
+						fprintf(stderr, "Warning: argc mismatch!\n");
+					}
 					
 					if(argc >= 1) {
 						if(patch0 >= 0) {
 							patch16(patch0);
+							fprintf(stderr, ",*%d", patch0);
 						} else {
 							emit16(arg0);
+							fprintf(stderr, ",%d", arg0);
 						}
 					}
 					if(argc >= 2) {
 						if(patch1 >= 0) {
 							patch16(patch1);
+							fprintf(stderr, ",*%d", patch1);
 						} else {
 							emit16(arg1);
+							fprintf(stderr, ",%d", arg1);
 						}
 					}
+					
+					fprintf(stderr, "\n");
 					
 					memset(&currentInstruction, 0, sizeof currentInstruction);
 				}
