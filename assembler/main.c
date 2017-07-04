@@ -9,10 +9,14 @@ int main(int argc, char ** argv)
 {
 	FILE *input = stdin, *output = stdout;
 	int opt;
-	while ((opt = getopt(argc, argv, "?o:")) != -1) {
+	bool symtable = false;
+	while ((opt = getopt(argc, argv, "?so:")) != -1) {
 		switch (opt) {
+			case 's':
+				symtable = true;
+				break;
 			case 'o':
-				output = fopen(optarg, "r");
+				output = fopen(optarg, "w");
 				if(output == NULL) {
 					fprintf(stderr, "Output file '%s' not found!\n", optarg);
 					exit(EXIT_FAILURE);
@@ -49,6 +53,12 @@ int main(int argc, char ** argv)
 	apply_patches();
 	
 	generate_output(output);
+	
+	if(symtable) {
+		for(label_t * it = getLabelIt(); it; it = it->next) {
+			fprintf(stderr, "%s\t%04X\n", stringtable[it->name], it->address);
+		}
+	}
 	
 	return 0;
 }

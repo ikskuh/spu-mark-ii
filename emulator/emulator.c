@@ -123,10 +123,10 @@ void emu_step()
 			output = regCP + input0;
 			break;
 		case CMD_GET:
-			output = stack[regBP + input0];
+			output = stack[(uint16_t)(regBP + input0 - 2)];
 			break;
 		case CMD_SET:
-			output = stack[regBP + input0] = input1;
+			output = stack[(uint16_t)(regBP + input0 - 2)] = input1;
 			break;
 		case CMD_STOR8:
 			output = input1;

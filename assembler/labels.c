@@ -2,6 +2,8 @@
 
 static label_t * labels = NULL;
 
+label_t * getLabelIt() { return labels; }
+
 void createLabel(int name, uint16_t location)
 {
 	label_t * it = labels;

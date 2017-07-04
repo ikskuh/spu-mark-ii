@@ -3,14 +3,34 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifndef __AVR_GCC__
+#include <string.h>
+extern int _argc;
+extern char ** _argv;
+#endif
+
 #ifdef TRACE
 
 static char buffer[64];
+static bool enabled = false;
 
 char *  itoa ( int value, char * str, int base );
 
+void trace_init()
+{
+#ifdef __AVR_GCC__
+	enabled = true;
+#else
+	for(int i = 1; i < _argc; i++) {
+		enabled |= !strcmp(_argv[i], "-t");
+		enabled |= !strcmp(_argv[i], "--trace");
+	}
+#endif
+}
+
 void trace_instr(uint16_t addr, uint16_t instr, uint16_t top, int flags, bool exec)
 {
+	if(!enabled) return;
 	com_puts("TRACE: CP=");
 	com_puts(itoa(addr, buffer, 16));
 	com_puts(", INSTR=");
@@ -32,6 +52,7 @@ void trace_instr(uint16_t addr, uint16_t instr, uint16_t top, int flags, bool ex
 
 void trace_result(uint16_t result)
 {
+	if(!enabled) return;
 	com_puts(" → ");
 	com_puts(itoa(result, buffer, 16));
 	com_puts("\n\r");

@@ -6,10 +6,6 @@ FLAGS    = -g -Wall -Wextra -pedantic -O3 -I../include
 PCFLAGS  = $(FLAGS)
 AVRFLAGS = $(FLAGS) -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
 
-ifeq ($(TRACE) , 1)
-PCFLAGS += -DTRACE
-endif
-
 all: main.hex ramtest.hex simulator.exe
 
 # Set dependencies here
@@ -50,4 +46,3 @@ clean:
 
 atmega32-init:
 	avrdude -p atmega32 -P $(TTY) -c stk500v2 -U lfuse:w:0x4f:m -U hfuse:w:0xd1:m
-	

@@ -95,3 +95,4 @@ uint16_t registerString(char const * str, int len);
 // labels.c
 void createLabel(int name, uint16_t location);
 bool getLabel(int name, uint16_t * location);
+label_t * getLabelIt();

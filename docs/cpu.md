@@ -40,8 +40,8 @@ Output:
 Command:
 	000000 COPY
 	000001 CPGET
-	000010 GET
-	000011 SET
+	000010 GET (input0 = index relative to BP, 0 is stacktop)
+	000011 SET (input0 = index relative to BP, 0 is stacktop)
 	000100 STOR8
 	000101 STOR16
 	000110 SETINT  (input0 → an/aus)
