@@ -1,9 +1,15 @@
 main:
-	push main_msg
-	push main_return
-	jmp puts
-main_return:
-	pop
+
+	; push main_msg
+	; CALL(puts)
+	; pop
+	
+	out 0x00, 'S'
+	
+	setint 1
+	int 24
+	
+	out 0x00, 'E'
 	
 	rjmp -4
 

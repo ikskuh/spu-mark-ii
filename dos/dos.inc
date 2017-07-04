@@ -6,6 +6,8 @@
 # 32 "<command-line>" 2
 # 1 "<stdin>"
 ; interrupts.asm main.asm syscall.asm puts.asm
+# 1 "macros.inc" 1
+# 3 "<stdin>" 2
 # 1 "interrupts.asm" 1
 .org 0x0000
 
@@ -42,37 +44,40 @@ _interrupts:
  rjmp -4
  jmp syscall ; intr24 → syscall
 _interruptsEnd:
-# 3 "<stdin>" 2
+# 4 "<stdin>" 2
 # 1 "main.asm" 1
 main:
- push main_msg
- push main_return
- jmp puts
-main_return:
- pop
+
+ ; push main_msg
+ ; cpget 4 \ jmp puts
+ ; pop
+
+ out 0x00, 'S'
+
+ setint 1
+ int 24
+
+ out 0x00, 'E'
 
  rjmp -4
 
 main_msg:
 .asciiz "Hello, DOS!\r\n"
 .align 2
-# 4 "<stdin>" 2
+# 5 "<stdin>" 2
 # 1 "syscall.asm" 1
 syscall:
 
  push syscall_msg
- push syscall_ret
- jmp puts
-syscall_ret:
+ cpget 4 \ jmp puts
  pop ; remove arg
 
- rjmp -4
  ret
 
 syscall_msg:
-.asciiz "Syscall was invoked!"
+.asciiz "[Syscall]"
 .align 2
-# 5 "<stdin>" 2
+# 6 "<stdin>" 2
 # 1 "puts.asm" 1
 ;
 ; void puts(char const * string)
@@ -85,7 +90,7 @@ puts:
  get -1 ; 0 should be return address
 
 puts_loop:
- [i0:peek] ld8i [f:yes]
+ [i0:peek] ld8 [f:yes]
  [ex:nonzero] out 0x00
  [ex:nonzero] add 1
  [ex:nonzero] jmp puts_loop
@@ -94,4 +99,4 @@ puts_loop:
  spset
  bpset
  ret
-# 5 "<stdin>" 2
+# 6 "<stdin>" 2

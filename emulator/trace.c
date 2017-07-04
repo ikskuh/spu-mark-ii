@@ -59,4 +59,14 @@ void trace_result(uint16_t result)
 	com_getc();
 }
 
+
+void trace_intr(uint16_t intr)
+{
+	if(!enabled) return;
+	com_puts("INTERRUPT: ");
+	com_puts(itoa(intr, buffer, 16));
+	com_puts("\n\r");
+	com_getc();
+}
+
 #endif

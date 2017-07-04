@@ -37,9 +37,10 @@ static inline uint16_t emu_peek()
 
 void emu_init()
 {
-	regSP = 0;
-	regBP = 0;
-	regCP = 0;
+	regSP   = 0;
+	regBP   = 0;
+	regCP   = 0;
+	regINTR = 0;
 	regFLAG.z = 0;
 	regFLAG.n = 0;
 	regFLAG.i = 0;
@@ -55,6 +56,14 @@ static uint16_t emu_gniw()
 
 void emu_step()
 {
+	if(regFLAG.i && regINTR > 0)
+	{
+		trace_intr(regINTR);
+		emu_push(regCP);
+		regCP   = (regINTR << 2);
+		regINTR = 0;
+	}
+
 	uint16_t addr = regCP;
 	word_t iword = emu_gniw();
 	struct {
@@ -140,7 +149,7 @@ void emu_step()
 			regFLAG.i = !!input0;
 			break;
 		case CMD_INT:
-			regINTR = (input0 << 1);
+			regINTR = input0;
 			break;
 		case CMD_LOAD8:
 			output = mem_read(input0);

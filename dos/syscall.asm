@@ -1,14 +1,11 @@
 syscall:
 	
 	push syscall_msg
-	push syscall_ret
-	jmp puts
-syscall_ret:
+	CALL(puts)
 	pop ; remove arg
 	
-	rjmp -4
 	ret
 
 syscall_msg:
-.asciiz "Syscall was invoked!"
+.asciiz "[Syscall]"
 .align 2

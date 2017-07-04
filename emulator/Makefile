@@ -2,9 +2,9 @@ TTY=/dev/ttyUSB0
 MCU=atmega32
 FREQ=20000000
 
-FLAGS    = -g -Wall -Wextra -pedantic -O3 -I../include
+FLAGS    = -g -Wall -Wextra -pedantic -I../include
 PCFLAGS  = $(FLAGS)
-AVRFLAGS = $(FLAGS) -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
+AVRFLAGS = $(FLAGS) -O3 -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
 
 ifeq ($(TRACE) , 1)
 PCFLAGS += -DTRACE

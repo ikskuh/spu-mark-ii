@@ -129,6 +129,7 @@ char *string_buf_ptr;
 
 ,                               { return MKTOKEN(TOK_COMMA, 0); }
 <INITIAL>\n                     { return MKTOKEN(TOK_NEWLINE, 0); }
+<INITIAL>\\                     { return MKTOKEN(TOK_NEWLINE, 0); }
 
 ^{ID}:                          { return MKTOKEN(TOK_LABEL, registerString(yytext, strlen(yytext) - 1)); }
 {ID}                            { return MKTOKEN(TOK_IDENTIFIER, registerString(yytext, strlen(yytext))); }
@@ -418,7 +419,7 @@ void lex_assemble(FILE * infile)
 								state = 3;
 							} else if(state == 3) {
 								// argument 2
-								arg0 = _lexnum(&token, &patch1);
+								arg1 = _lexnum(&token, &patch1);
 								state = 4;
 							}
 					}
