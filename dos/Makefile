@@ -18,13 +18,10 @@ dos.inc: interrupts.asm main.asm syscall.asm puts.asm itoa.asm
 
 run: dos.hex
 	echo -e "\033[31;1mRun...\033[0m"
-	cat $< | $(SIM)
+	$(SIM) -l $<
 	
-trace: dos.hex
+debug: dos.hex
 	echo -e "\033[31;1mTrace...\033[0m"
-	cat $<
-	cat $< | xclip -in
-	gdb $(SIM) || echo "failed simulation!"
-	stty $(STTYVAL)
+	$(SIM) -d -l $<
 	
-.PHONY: run trace
+.PHONY: run debug
