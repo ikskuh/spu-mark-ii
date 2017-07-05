@@ -3,19 +3,28 @@ MCU=atmega32
 FREQ=20000000
 
 FLAGS    = -g -Wall -Wextra -pedantic -I../include
-PCFLAGS  = $(FLAGS)
+PCFLAGS  = $(FLAGS) 
 AVRFLAGS = $(FLAGS) -O3 -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
 
 ifeq ($(TRACE) , 1)
 PCFLAGS += -DTRACE
 endif
 
+ifeq ($(GNURL) , 1)
+PCFLAGS += -DGNU_READLINE -lreadline
+endif
+
 all: main.hex ramtest.hex simulator.exe
 
 # Set dependencies here
 ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
-main.elf: avr-main.o avr-usart.o avr-sram.o avr-io.o avr-emulator.o avr-ihex.o avr-trace.o
-simulator.exe: pc-main.o pc-simulator.o pc-emulator.o pc-ihex.o pc-trace.o pc-itoa.o
+main.elf: avr-main.o avr-usart.o avr-sram.o \
+	avr-io.o avr-emulator.o avr-ihex.o \
+	avr-trace.o avr-debugger.o avr-readline.o
+simulator.exe: pc-main.o pc-simulator.o \
+	pc-emulator.o pc-ihex.o pc-trace.o \
+	pc-itoa.o pc-platform-pc.o pc-debugger.o \
+	pc-readline.o
 
 %.exe:
 	gcc $(PCFLAGS) -o $@ $^

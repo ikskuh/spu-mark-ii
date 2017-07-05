@@ -20,17 +20,17 @@ word_t stack[STACKSIZE];
 
 static word_t input0, input1, output;
 
-static inline void emu_push(word_t value)
+inline void emu_push(word_t value)
 {
 	stack[regSP++] = value;
 }
 
-static inline uint16_t emu_pop()
+inline uint16_t emu_pop()
 {
 	return stack[--regSP];
 }
 
-static inline uint16_t emu_peek()
+inline uint16_t emu_peek()
 {
 	return stack[regSP - 1];
 }
