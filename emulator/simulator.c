@@ -4,25 +4,57 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <termios.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #include "io.h"
 #include "com.h"
 #include "sram.h"
-
-int _argc;
-char ** _argv;
+#include "ihex.h"
 
 // this prototype uses the define
 int main();
 
 #undef main
 
+FILE * comin, * comout;
+uint8_t * memory = NULL;
+
+extern volatile bool emuBreakToDebugger;
+
 // this is the actual main function
 int main(int argc, char ** argv)
 {
-	_argc = argc;
-	_argv = argv;
-
+	// Allocate full memory :)
+	memory = malloc(1<<16);
+	comout = stdout;
+	
+	int opt;
+	while((opt = getopt(argc, argv, "dl:")) != -1)
+	{
+		switch(opt)
+		{
+		case 'd':
+			emuBreakToDebugger = true;
+			break;
+		case 'l': {
+			FILE * f = fopen(optarg, "r");
+			if(f == NULL) {
+				fprintf(stderr, "File %s not found\n", optarg);
+				exit(EXIT_FAILURE);
+			}
+			comin = f;
+			ihex_load();
+			comin = NULL;
+			fclose(f);
+			break;
+		}
+		default:
+			fprintf(stderr, "Usage: %s [-r hexfile]\n", argv[0]);
+			exit(EXIT_FAILURE);
+		}
+	}
+	comin = stdin;
 	return sim_main();
 }
 
@@ -55,12 +87,11 @@ uint8_t io_in(uint16_t port)
 ///////////////////////////////////////////////////////////////////////////////
 // memory.c
 ///////////////////////////////////////////////////////////////////////////////
-uint8_t * memory = NULL;
+
 
 void mem_init()
 {
-	// Allocate full memory :)
-	memory = malloc(1<<16);
+	// We are already doing this in the main above
 }
 
 uint8_t mem_read(uint16_t address)
@@ -101,13 +132,13 @@ void com_init()
 
 unsigned char com_getc( void )
 {
-	return fgetc(stdin);
+	return fgetc(comin);
 }
 
 void com_putc( unsigned char data )
 {
-	fputc(data, stdout);
-	fflush(stdout);
+	fputc(data, comout);
+	fflush(comout);
 }
 
 bool com_canRead(void)

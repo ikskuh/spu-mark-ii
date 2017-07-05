@@ -23,8 +23,10 @@ int main()
 	trace_init();
 	
 	// Before execution, break into the debugger
+#if __AVR_GCC__
 	emuBreakToDebugger = true;
-	
+#endif
+
 	while(true)
 	{
 		if(emuBreakToDebugger || dbg_tick()) {

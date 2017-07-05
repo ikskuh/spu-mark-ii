@@ -20,7 +20,8 @@ all: main.hex ramtest.hex simulator.exe
 ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
 main.elf: avr-main.o avr-usart.o avr-sram.o \
 	avr-io.o avr-emulator.o avr-ihex.o \
-	avr-trace.o avr-debugger.o avr-readline.o
+	avr-trace.o avr-debugger.o avr-readline.o \
+	avr-platform-avr.o
 simulator.exe: pc-main.o pc-simulator.o \
 	pc-emulator.o pc-ihex.o pc-trace.o \
 	pc-itoa.o pc-platform-pc.o pc-debugger.o \
