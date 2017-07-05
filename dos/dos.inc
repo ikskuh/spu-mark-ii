@@ -121,6 +121,8 @@ puts_loop:
 ;
 
 
+
+
 itoa: ; ret → 0
  bpget ; bp → 1
  spget
@@ -128,6 +130,7 @@ itoa: ; ret → 0
 
  get -1 ; arg buffer → 2
  get -2 ; arg number → 3
+ get 2 ; arg buffer string start for reversing is at → 4
 
  get -3 ; push radix
  st [i1:peek] itoa_radix ; and modify code :)
@@ -144,6 +147,7 @@ itoa: ; ret → 0
  get 2
  [i0:peek] [i1:arg] st8 '-'
  add 1
+ set [i1:peek] 4
  set 2
 itoa_nonneg:
  ; endif
@@ -181,6 +185,8 @@ itoa_done_loop:
 
  ; Reverse string buffer here
 
+itoa_done:
+
  bpget
  spset
  bpset
@@ -200,4 +206,8 @@ itoa_iszero:
 itoa_symbols:
 .ascii "0123456789ABCDEF"
 .align 2
+itoa_swapbuf1:
+.dw 0
+itoa_swapbuf2:
+.dw 0
 # 7 "<stdin>" 2

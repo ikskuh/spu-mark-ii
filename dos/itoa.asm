@@ -1,8 +1,9 @@
 ;
 ; void itoa(char * buffer, int number, int radix)
 ;
-#define ITOA_BUF 2
-#define ITOA_NUM 3
+#define ITOA_BUF  2
+#define ITOA_NUM  3
+#define ITOA_SBUF 4
 
 itoa:   ; ret → 0
 	bpget ; bp  → 1
@@ -11,6 +12,7 @@ itoa:   ; ret → 0
 	
 	get -1 ; arg buffer → 2
 	get -2 ; arg number → 3
+	get ITOA_BUF ; arg buffer string start for reversing is at → 4
 	
 	get -3 ; push radix
 	st [i1:peek] itoa_radix ; and modify code :)
@@ -27,6 +29,7 @@ itoa:   ; ret → 0
 	get ITOA_BUF
 	[i0:peek] [i1:arg] st8 '-'
 	add 1
+	set [i1:peek] ITOA_SBUF
 	set ITOA_BUF
 itoa_nonneg:
 	; endif
@@ -63,6 +66,8 @@ itoa_done_loop:
 	[i0:pop] [i1:arg] st8 0x00
 	
 	; Reverse string buffer here
+	
+itoa_done:
 
 	bpget
 	spset
@@ -83,3 +88,7 @@ itoa_iszero:
 itoa_symbols:
 .ascii "0123456789ABCDEF"
 .align 2
+itoa_swapbuf1:
+.dw 0
+itoa_swapbuf2:
+.dw 0

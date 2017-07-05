@@ -64,7 +64,9 @@ void emu_step()
 		regINTR = 0;
 	}
 
+#if TRACE
 	uint16_t addr = regCP;
+#endif
 	word_t iword = emu_gniw();
 	struct {
 		unsigned int exec   ;

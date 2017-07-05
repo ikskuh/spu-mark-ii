@@ -3,7 +3,7 @@ MCU=atmega32
 FREQ=20000000
 
 FLAGS    = -g -Wall -Wextra -pedantic -I../include
-PCFLAGS  = $(FLAGS) 
+PCFLAGS  = $(FLAGS) -Dmain=sim_main
 AVRFLAGS = $(FLAGS) -O3 -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL
 
 ifeq ($(TRACE) , 1)

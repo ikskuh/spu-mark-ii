@@ -12,18 +12,8 @@
 
 volatile bool emuBreakToDebugger = false;
 
-#ifdef __AVR_GCC__
 int main()
 {
-#else
-int _argc;
-char ** _argv;
-
-int main(int argc, char ** argv)
-{
-	_argc = argc;
-	_argv = argv;
-#endif
 	platform_init();
 	mem_init();
 	emu_init();

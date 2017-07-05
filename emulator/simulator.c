@@ -9,6 +9,23 @@
 #include "com.h"
 #include "sram.h"
 
+int _argc;
+char ** _argv;
+
+// this prototype uses the define
+int main();
+
+#undef main
+
+// this is the actual main function
+int main(int argc, char ** argv)
+{
+	_argc = argc;
+	_argv = argv;
+
+	return sim_main();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // io.c
 ///////////////////////////////////////////////////////////////////////////////
