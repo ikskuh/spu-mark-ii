@@ -71,7 +71,7 @@ main:
 
  out 0x00, 'E'
 
- rjmp -4
+ rjmp -8
 
 main_msg:
 .asciiz "Hello, DOS!\r\n"

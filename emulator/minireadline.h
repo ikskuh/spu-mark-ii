@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __AVR_GCC__
+#ifdef PLATFORM_AVR
 
 char * readline(char const * prompt);
 #define READLINE(prompt) readline(prompt)

@@ -14,7 +14,7 @@ char *  itoa ( int value, char * str, int base );
 static char buffer[64];
 static volatile bool quit = false;
 
-#ifndef __AVR_GCC__
+#ifndef PLATFORM_AVR
 static void cmd_quit(int * args);
 #endif
 
@@ -43,7 +43,7 @@ struct pattern
 
 static struct pattern commands[] = 
 {
-#ifndef __AVR_GCC__
+#ifndef PLATFORM_AVR
 	// PC commands
 	{ "q",    0, cmd_quit,       "Stops the simulation."},
 #endif
@@ -271,7 +271,7 @@ static void cmd_help(int * args) {
 }
 
 
-#ifndef __AVR_GCC__
+#ifndef PLATFORM_AVR
 
 static void cmd_quit(int * args) {
 	(void)args;

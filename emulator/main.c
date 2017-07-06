@@ -7,6 +7,7 @@
 #include "emulator.h"
 #include "spu-2.h"
 #include "trace.h"
+#include "com.h"
 #include "debugger.h"
 #include "platform.h"
 
@@ -23,7 +24,7 @@ int main()
 	trace_init();
 	
 	// Before execution, break into the debugger
-#if __AVR_GCC__
+#if PLATFORM_AVR
 	emuBreakToDebugger = true;
 #endif
 

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifndef __AVR_GCC__
+#ifndef PLATFORM_AVR
 #include <string.h>
 extern int _argc;
 extern char ** _argv;
@@ -18,7 +18,7 @@ char *  itoa ( int value, char * str, int base );
 
 void trace_init()
 {
-#ifdef __AVR_GCC__
+#ifdef PLATFORM_AVR
 	enabled = true;
 #else
 	for(int i = 1; i < _argc; i++) {
