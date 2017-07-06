@@ -1,6 +1,7 @@
 #include "emulator.h"
 #include "sram.h"
 #include "io.h"
+#include "com.h"
 #include "spu-2.h"
 #include "trace.h"
 
@@ -11,29 +12,14 @@
 word_t regSP, regBP, regCP, regINTR;
 
 struct {
-	int z : 1;
-	int n : 1;
-	int i : 1;
+	unsigned int z : 1;
+	unsigned int n : 1;
+	unsigned int i : 1;
 } regFLAG;
 
 word_t stack[STACKSIZE];
 
 static word_t input0, input1, output;
-
-inline void emu_push(word_t value)
-{
-	stack[regSP++] = value;
-}
-
-inline uint16_t emu_pop()
-{
-	return stack[--regSP];
-}
-
-inline uint16_t emu_peek()
-{
-	return stack[regSP - 1];
-}
 
 void emu_init()
 {
@@ -47,7 +33,7 @@ void emu_init()
 }
 
 // GetNextInstructionWord
-static uint16_t emu_gniw()
+static inline uint16_t emu_gniw()
 {
 	word_t iword = mem_read16(regCP & 0xFFFE);
 	regCP += 2;
@@ -69,12 +55,12 @@ void emu_step()
 #endif
 	word_t iword = emu_gniw();
 	struct {
-		unsigned int exec   ;
-		unsigned int flags  ;
-		unsigned int input0 ;
-		unsigned int input1 ;
-		unsigned int output ;
-		unsigned int command;
+		uint8_t exec   ;
+		uint8_t flags  ;
+		uint8_t input0 ;
+		uint8_t input1 ;
+		uint8_t output ;
+		uint8_t command;
 	} i = {
 		INSTR_GETEXEC(iword),
 		INSTR_GETFLAG(iword),

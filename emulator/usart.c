@@ -72,7 +72,8 @@ unsigned char com_getc( void )
 	return rxbuffer[(rx_read++) % sizeof(rxbuffer)];
 #else
 	while((UCSRA & (1<<RXC)) == 0);
-	return UDR;
+	unsigned char c = UDR;
+	return c;
 #endif
 }
 

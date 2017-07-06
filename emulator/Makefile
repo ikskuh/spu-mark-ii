@@ -4,7 +4,7 @@ FREQ=20000000
 
 FLAGS    = -g -Wall -Wextra -pedantic -I../include
 PCFLAGS  = $(FLAGS) -Dmain=sim_main -DPLATFORM_PC
-AVRFLAGS = $(FLAGS) -O3 -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL  -DPLATFORM_AVR
+AVRFLAGS = $(FLAGS) -Os -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL  -DPLATFORM_AVR
 
 ifeq ($(TRACE) , 1)
 PCFLAGS += -DTRACE

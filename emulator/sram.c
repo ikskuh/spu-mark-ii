@@ -26,7 +26,7 @@ void mem_init()
 	PORTD |= SRAM_FF | SRAM_WE | SRAM_OE;
 }
 
-#define mem_sleep() _delay_us(0.8)
+#define mem_sleep() _delay_us(0.6)
 
 static inline void mem_setaddr(uint16_t addr)
 {
