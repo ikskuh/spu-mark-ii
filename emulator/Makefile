@@ -18,6 +18,7 @@ all: main.hex ramtest.hex simulator.exe
 
 # Set dependencies here
 ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
+devtest.elf: avr-devtest.o avr-usart.o
 main.elf: avr-main.o avr-usart.o avr-sram.o \
 	avr-io.o avr-emulator.o avr-ihex.o \
 	avr-trace.o avr-debugger.o avr-readline.o \
