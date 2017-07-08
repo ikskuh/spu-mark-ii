@@ -22,3 +22,14 @@ void command_register(struct cmd * cmd);
 	static void __attribute__((constructor)) _init_##Name() { \
 		command_register(&_command_##Name); \
 	}
+
+
+#define CONSOLECOMMAND(Name, Len, Desc) \
+	static void _cmd_##Name(int * args); \
+	static struct cmd _cmdreg_##Name = { \
+		#Name, Desc, Len, &_cmd_##Name, NULL \
+	}; \
+	static void __attribute__((constructor)) _init_##Name() { \
+		command_register(&_cmdreg_##Name); \
+	} \
+	static void _cmd_##Name(int * args)

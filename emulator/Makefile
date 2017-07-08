@@ -19,13 +19,17 @@ all: main.hex ramtest.hex simulator.exe
 # Set dependencies here
 ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
 devtest.elf: avr-devtest.o avr-usart.o \
-	avr-sram.o \
+	avr-sram.o avr-com.o \
 	avr-commandline.o avr-readline.o \
-	avr-test-ram.o 
+	avr-test-ram.o \
+	avr-cmd-spi.o avr-spi.o \
+	avr-cmd-i2c.o avr-i2csoft.o
 main.elf: avr-main.o avr-usart.o avr-sram.o \
 	avr-io.o avr-emulator.o avr-ihex.o \
 	avr-trace.o avr-debugger.o avr-readline.o \
 	avr-platform-avr.o
+display.elf: avr-display-driver.o avr-usart.o \
+	avr-spi.o
 simulator.exe: pc-main.o pc-simulator.o \
 	pc-emulator.o pc-ihex.o pc-trace.o \
 	pc-itoa.o pc-platform-pc.o pc-debugger.o \

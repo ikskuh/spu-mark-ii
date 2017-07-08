@@ -13,6 +13,8 @@ void com_putc( unsigned char data );
 bool com_canRead(void);
 bool com_canWrite(void);
 
+void com_putn(int value, int base);
+
 static inline void com_write(void const * data, size_t len)
 {
 	unsigned char const * buffer = data;

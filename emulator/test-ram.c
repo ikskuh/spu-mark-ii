@@ -1,7 +1,8 @@
 #include "commandline.h"
 #include "com.h"
-
 #include "sram.h"
+
+#include <stdlib.h>
 
 static void command(int * args)
 {
