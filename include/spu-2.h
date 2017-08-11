@@ -1,5 +1,13 @@
 #pragma once
 
+#include <stdint.h>
+
+#define SPU_VERSION_MAJOR 2
+#define SPU_VERSION_MINOR 1
+
+typedef uint16_t word_t;
+typedef uint8_t byte_t;
+
 #define INSTR_ENCODE(ex, i0, i1, fl, ou, cm) 0 \
 	| ((ex & 07) << 0) \
 	| ((fl & 01) << 3) \
@@ -52,8 +60,7 @@
 #define CMD_INT     7
 #define CMD_LOAD8   8
 #define CMD_LOAD16  9
-#define CMD_INPUT  10
-#define CMD_OUTPUT 11
+#define CMD_MAPMMU 10
 #define CMD_BPGET  12
 #define CMD_BPSET  13
 #define CMD_SPGET  14
@@ -70,7 +77,7 @@
 #define CMD_NEG    25
 #define CMD_ROL    26
 #define CMD_ROR    27
-#define CMD_ASL    28
+#define CMD_BSWAP  28
 #define CMD_ASR    29
 #define CMD_LSL    30
 #define CMD_LSR    31

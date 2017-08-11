@@ -1,8 +1,8 @@
 #include "debugger.h"
-#include "emulator.h"
+#include "cpu.h"
 #include "com.h"
 #include "ihex.h"
-#include "sram.h"
+#include "mmu.h"
 #include "minireadline.h"
 
 #include <ctype.h>
@@ -11,7 +11,6 @@
 
 char *  itoa ( int value, char * str, int base );
 
-static char buffer[64];
 static volatile bool quit = false;
 
 #ifndef PLATFORM_AVR
@@ -32,6 +31,9 @@ static void cmd_pop(int * args);
 static void cmd_info(int * args);
 static void cmd_reset(int * args);
 static void cmd_help(int * args);
+
+static void cmd_busread(int * args);
+static void cmd_buswrite(int * args);
 
 struct pattern
 {
@@ -59,6 +61,9 @@ static struct pattern commands[] =
 	{ "wb",   2, cmd_write8,     "Writes a byte into memory." },
 	{ "ww",   2, cmd_write16,    "Writes a word into memory." },
 	
+	{ "br",   1, cmd_busread,    "Reads a byte from the bus." },
+	{ "bw",   2, cmd_buswrite,    "Writes a byte to the bus." },
+	
 	{ "bp",   1, cmd_breakpoint, "Enables/disables a breakpoint." },
 	
 	{ "jp",   1, cmd_jump,       "Jumps to the first argument." },
@@ -74,10 +79,12 @@ static struct pattern commands[] =
 static void cmd_info(int * args)
 {
 	(void)args;
-	com_puts(  "SP="); com_puts(itoa(regSP, buffer, 10));
-	com_puts("\tBP="); com_puts(itoa(regBP, buffer, 10));
-	com_puts("\tCP="); com_puts(itoa(regCP, buffer, 16));
+	com_puts(  "SP="); com_putn(regSP, 16);
+	com_puts("\tBP="); com_putn(regBP, 16);
+	com_puts("\tCP="); com_putn(regIP, 16);
 	com_puts("\n\r[");
+	com_puts(" ???");
+	/*
 	for(int i = 0; i < regSP; i++) {
 		com_puts(" ");
 		if(i == regBP) {
@@ -85,6 +92,7 @@ static void cmd_info(int * args)
 		}
 		com_puts(itoa(stack[i], buffer, 10));
 	}
+	*/
 	com_puts(" ]\n\r");
 }
 
@@ -93,7 +101,7 @@ static uint16_t breakpoints[8];
 bool dbg_tick()
 {
 	for(int i = 0; i < 8; i++) {
-		if(regCP == breakpoints[i]) {
+		if(regIP == breakpoints[i]) {
 			return true;
 		}
 	}
@@ -150,7 +158,7 @@ void dbg_enter()
 				com_puts("Command ");
 				com_puts(cmd);
 				com_puts(" takes ");
-				com_puts(itoa(commands[sel].argc, buffer, 10));
+				com_putn(commands[sel].argc, 10);
 				com_puts(" arguments!\n\r");
 			} else {
 				commands[sel].execute(arguments);
@@ -178,7 +186,7 @@ static void cmd_run(int * args) {
 
 static void cmd_step(int * args) {
 	(void)args;
-	emu_step();
+	cpu_step();
 	cmd_info(NULL);
 }
 
@@ -188,25 +196,25 @@ static void cmd_load(int * args) {
 }
 
 static void cmd_read8(int * args) {
-	int val = mem_read(args[0]);
+	int val = mmu_read8(args[0]);
 	com_putc('$');
-	com_puts(itoa(val, buffer, 16));
+	com_putn(val, 16);
 	com_puts("\n\r");
 }
 
 static void cmd_read16(int * args) {
-	int val = mem_read16(args[0]);
+	int val = mmu_read16(args[0]);
 	com_putc('$');
-	com_puts(itoa(val, buffer, 16));
+	com_putn(val, 16);
 	com_puts("\n\r");
 }
 
 static void cmd_write8(int * args) {
-	mem_write(args[0], args[1]);
+	mmu_write8(args[0], args[1]);
 }
 
 static void cmd_write16(int * args) {
-	mem_write16(args[0], args[1]);
+	mmu_write16(args[0], args[1]);
 }
 
 static void cmd_breakpoint(int * args) {
@@ -215,7 +223,7 @@ static void cmd_breakpoint(int * args) {
 	for(int i = 0; i < 8; i++) {
 		if(breakpoints[i] == bp) {
 			breakpoints[i] = 0xFFFF;
-			com_puts(itoa(i, buffer, 10));
+			com_putn(i, 10);
 			com_puts(" disabled!\n\r");
 			return;
 		}
@@ -223,7 +231,7 @@ static void cmd_breakpoint(int * args) {
 	for(int i = 0; i < 8; i++) {
 		if(breakpoints[i] == 0xFFFF) {
 			breakpoints[i] = bp;
-			com_puts(itoa(i, buffer, 10));
+			com_putn(i, 10);
 			com_puts(" enabled!\n\r");
 			return;
 		}
@@ -232,30 +240,22 @@ static void cmd_breakpoint(int * args) {
 }
 
 static void cmd_jump(int * args) {
-	regCP = args[0] & 0xFFFE;
+	regIP = args[0] & 0xFFFE;
 }
 
 static void cmd_push(int * args) {
-	if(regSP >= STACKSIZE) {
-		com_puts("Stack full!\n\r");
-	} else {
-		emu_push(args[0]);
-	}
+	cpu_push(args[0]);
 }
 static void cmd_pop(int * args) {
 	(void)args;
-	if(regSP == 0) {
-		com_puts("Stack empty!\n\r");
-	} else {
-		int val = emu_pop();
-		com_puts(itoa(val, buffer, 10));
-		com_puts("\n\r");
-	}
+	int val = cpu_pop();
+	com_putn(val, 10);
+	com_puts("\n\r");
 }
 
 static void cmd_reset(int * args) {
 	(void)args;
-	emu_init();
+	cpu_init();
 	cmd_info(NULL);
 }
 
@@ -270,6 +270,18 @@ static void cmd_help(int * args) {
 	}
 }
 
+static void cmd_busread(int * args)
+{
+	int val = bus_read(args[0]);
+	com_putc('$');
+	com_putn(val, 16);
+	com_puts("\n\r");
+}
+
+static void cmd_buswrite(int * args)
+{
+	bus_write(args[0], args[1]);
+}
 
 #ifndef PLATFORM_AVR
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "emulator.h"
+#include "cpu.h"
 #include <spu-2.h>
 #include <stdbool.h>
 

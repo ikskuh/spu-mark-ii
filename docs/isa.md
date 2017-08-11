@@ -1,8 +1,27 @@
-exec           := (Y, >0, <0, >=0, <=0, ==0, !=0) → 3 bit
-input0, input1 := (0, arg, pop, peek) → 4 bit
-flagmod        := (yes, no) → 1 bit
-output         := (discard, push, jump, reljump) → 2 bit
-command        := (copy, store, load, get, set, bpget, bpset, cpget, math, spget, spset, io, int, sei, cli) → 6 bit
+# SPU Mark II - Architecture
+
+## Overview
+
+- RISC
+- Stack Based
+- 16 Bit
+- MMU
+- Memory Mapped I/O only
+
+## Purpose Of This Document
+
+## Table Of Contents
+
+## Registers
+
+### Stack Pointer
+
+### Base Pointer
+
+### Instruction ~~Code~~ Pointer
+Entry Point: 0x0000
+
+## Instruction Encoding
 
 16 Bit:
 0 1 2 3 4 5 6 7 8 9 A B C D E F
@@ -15,6 +34,30 @@ E E E F I I i i O O C C C C C C
   [8:9] → Output
 [10:15] → Command
 
+### Argument Input
+
+Input0/1:
+	00 Zero
+	01 Argument
+	10 Peek
+	11 Pop
+
+### Result Output
+
+Output:
+	00 Discard
+	01 Push
+	10 Jump
+	11 Jump Relative
+
+### Flag Modification
+
+Modify:
+	0 no
+	1 yes
+
+### Conditional Execution
+
 Exec:
 	000 always
 	001 =0
@@ -25,18 +68,7 @@ Exec:
 	110 ≤0
 	111 never
 
-Input0/1:
-	00 Zero
-	01 Argument
-	10 Peek
-	11 Pop
-
-Output:
-	00 Discard
-	01 Push
-	10 Jump
-	11 Jump Relative
-
+### Commands
 Command:
 	000000 COPY
 	000001 CPGET
@@ -48,8 +80,8 @@ Command:
 	000111 INT     (input0 = #intr)
 	001000 LOAD8
 	001001 LOAD16
-	001010 Input  (i0 = port)
-	001011 Output (i0 = port, i1 = value)
+	001010 MAPMMU (input0 = bank, input1 = value)
+	001011 ???
 	001100 BPGET
 	001101 BPSET
 	001110 SPGET
@@ -66,19 +98,20 @@ Command:
 	011001 NEG
 	011010 ROL
 	011011 ROR
-	011100 ASL → REMOVE, BECAUSE IT IS LSL
+	011100 BSWAP (output=byteSwap(input0))
 	011101 ASR
 	011110 LSL
 	011111 LSR
 	1***** ???
 
-Execute-Cycle:
+## Fetch-Execute-Cycle
 
+Execute-Cycle:
 - Fetch Instruction
 - Increment CP
 - Check Execution
 	- yes: continue
-	- no: next
+	- no: next, increment CP for i0, i1
 - Gather Input 0
 - Gather Input 1
 - Execute CMD
@@ -90,3 +123,18 @@ Execute-Cycle:
 	- discard: nothing
 	- jmp: jump to result
 	- rjmp: jump to CP+result
+
+## Memory Access
+
+- 16 pages with 4 kB
+- Each page has access bits
+- Each page can map to an arbitrary 12 bit aligned address
+
+## Task Switching
+
+- 256 Tasks
+- Switch Tasks
+
+## Interrupts
+
+## I/O

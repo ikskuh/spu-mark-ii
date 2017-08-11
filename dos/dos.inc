@@ -47,7 +47,6 @@ _interruptsEnd:
 # 4 "<stdin>" 2
 # 1 "main.asm" 1
 main:
-
  push 16
  push 1337
  push main_buf
@@ -71,7 +70,7 @@ main:
 
  out 0x00, 'E'
 
- rjmp -8
+ rjmp -4
 
 main_msg:
 .asciiz "Hello, DOS!\r\n"

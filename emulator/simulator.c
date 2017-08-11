@@ -6,11 +6,11 @@
 #include <termios.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
 
-#include "io.h"
 #include "com.h"
-#include "sram.h"
 #include "ihex.h"
+#include "platform.h"
 
 // this prototype uses the define
 int main();
@@ -18,15 +18,21 @@ int main();
 #undef main
 
 FILE * comin, * comout;
-uint8_t * memory = NULL;
 
 extern volatile bool emuBreakToDebugger;
 
-// this is the actual main function
-int main(int argc, char ** argv)
+static void sigDebug(int sigNum)
 {
-	// Allocate full memory :)
-	memory = malloc(1<<16);
+	(void)sigNum;
+	emuBreakToDebugger = true;
+	
+	signal(SIGINT, sigDebug);
+}
+
+// this is the actual main function
+void platform_init(PLATFORM_MAIN)
+{
+	signal(SIGINT, sigDebug);
 	comout = stdout;
 	
 	int opt;
@@ -50,60 +56,12 @@ int main(int argc, char ** argv)
 			break;
 		}
 		default:
-			fprintf(stderr, "Usage: %s [-r hexfile]\n", argv[0]);
+			fprintf(stderr, "Usage: %s [-d] [-l hexfile]\n", argv[0]);
 			exit(EXIT_FAILURE);
 		}
 	}
 	comin = stdin;
-	return sim_main();
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// io.c
-///////////////////////////////////////////////////////////////////////////////
-
-void io_init()
-{
-	com_init();
-}
-
-void io_out(uint16_t port, uint8_t value)
-{
-	switch(port)
-	{
-		case 0: com_putc(value); break;
-	}
-}
-
-uint8_t io_in(uint16_t port)
-{
-	switch(port)
-	{
-		case 0: return com_getc();
-		default: return -1;
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// memory.c
-///////////////////////////////////////////////////////////////////////////////
-
-
-void mem_init()
-{
-	// We are already doing this in the main above
-}
-
-uint8_t mem_read(uint16_t address)
-{
-	return memory[address];
-}
-
-void mem_write(uint16_t address, uint8_t value)
-{
-	memory[address] = value;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // com.c
 ///////////////////////////////////////////////////////////////////////////////
@@ -125,7 +83,7 @@ void com_init()
 	newt.c_iflag &= ~(INLCR | ICRNL);
 	newt.c_oflag &= ~(OCRNL | ONLCR);
 	newt.c_lflag &= ~(ICANON | ECHO);
-	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+	//tcsetattr( STDIN_FILENO, TCSANOW, &newt);
 
 	atexit(com_shutdown);
 }

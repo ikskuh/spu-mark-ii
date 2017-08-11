@@ -1,32 +1,26 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "sram.h"
-#include "io.h"
-#include "ihex.h"
-#include "emulator.h"
-#include "spu-2.h"
-#include "trace.h"
+#include <spu-2.h>
+#include "cpu.h"
+#include "bus.h"
+#include "mmu.h"
+
 #include "com.h"
 #include "debugger.h"
 #include "platform.h"
 
 volatile bool emuBreakToDebugger = false;
 
-int main()
+int main(PLATFORM_MAIN)
 {
-	platform_init();
-	mem_init();
-	emu_init();
-	io_init();
+	bus_init();
+	mmu_init();
+	cpu_init();
+	com_init();
 	dbg_init();
 	
-	trace_init();
-	
-	// Before execution, break into the debugger
-#if PLATFORM_AVR
-	emuBreakToDebugger = true;
-#endif
+	platform_init(PLATFORM_ARGS);
 
 	while(true)
 	{
@@ -34,7 +28,7 @@ int main()
 			dbg_enter();
 			emuBreakToDebugger = false;
 		}
-		emu_step();
+		cpu_step();
 	}
 	
 	return 0;

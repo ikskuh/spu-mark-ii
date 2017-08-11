@@ -1,71 +1,46 @@
-TTY=/dev/ttyUSB0
-MCU=atmega32
-FREQ=20000000
+FLAGS    = -std=c11 -g -Wall -Wextra -pedantic -I../include
+PCFLAGS  = $(FLAGS) -DPLATFORM_PC -DGNU_READLINE -lreadline
+AS       = ../assembler/assembler
 
-FLAGS    = -g -Wall -Wextra -pedantic -I../include
-PCFLAGS  = $(FLAGS) -Dmain=sim_main -DPLATFORM_PC
-AVRFLAGS = $(FLAGS) -Os -mmcu=$(MCU) -DF_CPU=$(FREQ)ULL  -DPLATFORM_AVR
-
-ifeq ($(TRACE) , 1)
-PCFLAGS += -DTRACE
-endif
-
-ifeq ($(GNURL) , 1)
-PCFLAGS += -DGNU_READLINE -lreadline
-endif
-
-all: main.hex ramtest.hex simulator.exe
+all: simulator.exe scratchpad.hex
 
 # Set dependencies here
-ramtest.elf: avr-ramtest.o avr-usart.o avr-sram.o
-devtest.elf: avr-devtest.o avr-usart.o \
-	avr-sram.o avr-com.o \
-	avr-commandline.o avr-readline.o \
-	avr-test-ram.o \
-	avr-cmd-spi.o avr-spi.o \
-	avr-cmd-i2c.o avr-i2csoft.o
-main.elf: avr-main.o avr-usart.o avr-sram.o \
-	avr-io.o avr-emulator.o avr-ihex.o \
-	avr-trace.o avr-debugger.o avr-readline.o \
-	avr-platform-avr.o
-display.elf: avr-display-driver.o avr-usart.o \
-	avr-spi.o
-simulator.exe: pc-main.o pc-simulator.o \
-	pc-emulator.o pc-ihex.o pc-trace.o \
-	pc-itoa.o pc-platform-pc.o pc-debugger.o \
-	pc-readline.o
+simulator.exe: main.o simulator.o \
+	com.o ihex.o debugger.o \
+	cpu.o mmu.o bus.o \
+	devices/ram.o \
+	devices/serial.o \
+	devices/rom.o bootrom.o
+
+%.o: %.rom stub.o
+	objcopy \
+		-I binary $< \
+		-O $(shell objdump -f stub.o | grep format | sed "s/.*\s//") $@ \
+		-B $(shell objdump -f stub.o | grep arch | sed -E "s/.*:\s((-|[A-Za-z0-9:_])+).*/\1/") \
+		--redefine-sym _binary_$(subst .,_,$<)_start=$(basename $@)_start \
+		--redefine-sym _binary_$(subst .,_,$<)_end=$(basename $@)_end \
+		--redefine-sym _binary_$(subst .,_,$<)_size=$(basename $@)_size
 
 %.exe:
 	gcc $(PCFLAGS) -o $@ $^
 
-%.hex: %.elf
-	avr-objcopy $< -O ihex $@
+devices/%.o: devices/%.c
+	gcc $(PCFLAGS) -c -o $@ $<
 
-%.elf:
-	avr-gcc $(AVRFLAGS) -o $@ $^
-	avr-size -C --mcu=$(MCU) $@
+%.o: %.c
+	gcc $(PCFLAGS) -c -o $@ $<
 
-avr-%.o: %.c
-	avr-gcc $(AVRFLAGS) -std=c11 -c -o $@ $<
+%.hex: %.asm
+	$(AS) -o $@ $<
 
-avr-%.o: %.cpp
-	avr-g++ $(AVRFLAGS) -std=c++11 -c -o $@ $<
+%.rom: %.hex
+	objcopy -I ihex -O binary $< $@
 
-pc-%.o: %.c
-	gcc $(PCFLAGS) -std=c11 -c -o $@ $<
-	
-%\:flash: %.hex
-	avrdude -p $(MCU) -c stk500v2 -P $(TTY) -e -U flash:w:$<
-	
-.PHONY: atmega32-init clean clean-all
+.PHONY: clean clean-all
 .SUFFIXES:
 
 clean-all: clean
-	rm *.hex *.elf *.exe
+	rm *.exe
 	
 clean:
 	rm *.o
-
-atmega32-init:
-	avrdude -p atmega32 -P $(TTY) -c stk500v2 -U lfuse:w:0x4f:m -U hfuse:w:0xd1:m
-	

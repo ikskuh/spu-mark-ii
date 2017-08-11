@@ -15,7 +15,7 @@ char * readline(char const * prompt);
 #include <readline/history.h>
 
 #define READLINE(prompt) readline(prompt)
-#define CLEARLINE(result) free(result)
+#define CLEARLINE(result) do { if(result) free(result); } while(false)
 
 #else
 

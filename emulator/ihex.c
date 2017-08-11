@@ -1,6 +1,6 @@
 #include "ihex.h"
 #include "com.h"
-#include "sram.h"
+#include "bus.h"
 
 #include <string.h>
 
@@ -75,7 +75,7 @@ void ihex_load()
 			// data segment
 			for(int i = 0; i < len; i++) {
 				uint8_t data = readbyte();
-				mem_write(offset++, data);
+				bus_write(offset++, data);
 				checksum += data;
 			}
 		}
