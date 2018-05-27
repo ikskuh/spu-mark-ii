@@ -1,8 +1,16 @@
+<meta charset="UTF-8" />
+<style type="text/css">
+table, td, th {
+	padding: 0.25em;
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+</style>
 # SPU Mark II - Architecture
 
 ## Overview
 
-- RISC
+- RISC (?)
 - Stack Based
 - 16 Bit Data
 - No special I/O commands
@@ -12,6 +20,9 @@
 ## Table Of Contents
 
 ## Registers
+
+> TODO: [15:1] is useful, [0:0] is kinda useless, so maybe find a better use for it?
+> Idea: Indirection bit
 
 ### Stack Pointer
 16 bit register pointing to the stack top
@@ -51,14 +62,14 @@ behaviour.
 
 | Value | Enumeration | Description                                                              |
 |-------|-------------|--------------------------------------------------------------------------|
-| `000` | Always      | The command is always executed                                           |
-| `001` | =0          | The command is executed when result is zero (`Z=1`)                      |
-| `010` | ≠0          | The command is executed when result is not zero (`Z=0`)                  |
-| `011` | >0          | The command is executed when result is positive (`Z=0` and `N=0`)        |
-| `100` | <0          | The command is executed when result is less than zero (`N=1`)            |
-| `101` | ≥0          | The command is executed when result is zero or positive (`Z=1` or `N=0`) |
-| `110` | ≤0          | The command is executed when result is zero or negative (`Z=1` or `N=1`) |
-| `111` | Always      | The command is never executed                                            |
+| `000` (0₁₀) | Always      | The command is always executed                                           |
+| `001` (1₁₀) | =0          | The command is executed when result is zero (`Z=1`)                      |
+| `010` (2₁₀) | ≠0          | The command is executed when result is not zero (`Z=0`)                  |
+| `011` (3₁₀) | >0          | The command is executed when result is positive (`Z=0` and `N=0`)        |
+| `100` (4₁₀) | <0          | The command is executed when result is less than zero (`N=1`)            |
+| `101` (5₁₀) | ≥0          | The command is executed when result is zero or positive (`Z=1` or `N=0`) |
+| `110` (6₁₀) | ≤0          | The command is executed when result is zero or negative (`Z=1` or `N=1`) |
+| `111` (7₁₀) | Never       | The command is never executed                                            |
 
 This field determines when the command is executed or ignored. The execution is dependent on the
 current state of the flags.
@@ -67,12 +78,12 @@ This allows conditional execution of all possible opcodes.
 
 ### Argument Input 0 and 1
 
-| Value | Enumeration | Description                                              |
-|-------|-------------|----------------------------------------------------------|
-| `00`  | Zero        | The input register will be zero.                         |
-| `01`  | Argument    | The input registers value is located after this command. |
-| `10`  | Peek        | The input register will be the stack top.                |
-| `11`  | Pop         | The input register will be popped from the stack.        |
+| Value       | Enumeration | Description                                              |
+|-------------|-------------|----------------------------------------------------------|
+| `00`₂ (0₁₀) | Zero        | The input register will be zero.                         |
+| `01`₂ (1₁₀) | Argument    | The input registers value is located after this command. |
+| `10`₂ (2₁₀) | Peek        | The input register will be the stack top.                |
+| `11`₂ (3₁₀) | Pop         | The input register will be popped from the stack.        |
 
 When fetching command arguments, the bits `[5:4]` and `[7:6]` determine what value this
 argument has.
@@ -83,10 +94,10 @@ take the argument from the stack top and decreases the stack pointer.
 
 ### Flag Modification
 
-| Value  | Enumeration | Description                                            |
-|--------|-------------|--------------------------------------------------------|
-| `0`    | No          | The flags won't be modified.                           |
-| `1`    | Yes         | The flags will be set according to the command output. |
+| Value      | Enumeration | Description                                            |
+|------------|-------------|--------------------------------------------------------|
+| `0`₂ (0₁₀) | No          | The flags won't be modified.                           |
+| `1`₂ (1₁₀) | Yes         | The flags will be set according to the command output. |
 
 When the flag modification is enabled, the current flags will be overwritten by this command.
 Otherwise the flags stay as they were before the instruction.
@@ -101,57 +112,57 @@ The flags are modified according to this table:
 
 ### Result Output
 
-| Value | Enumeration   | Description                                                  |
-|-------|---------------|--------------------------------------------------------------|
-| `00`  | Discard       | The command output will be ignored.                          |
-| `01`  | Push          | The command output will be pushed to the stack.              |
-| `10`  | Jump          | The instruction pointer will be set to the command output.   |
-| `11`  | Jump Relative | The command output will be added to the instruction pointer. |
+| Value       | Enumeration   | Description                                                  |
+|-------------|---------------|--------------------------------------------------------------|
+| `00`₂ (0₁₀) | Discard       | The command output will be ignored.                          |
+| `01`₂ (1₁₀) | Push          | The command output will be pushed to the stack.              |
+| `10`₂ (2₁₀) | Jump          | The instruction pointer will be set to the command output.   |
+| `11`₂ (3₁₀) | Jump Relative | The command output will be added to the instruction pointer. |
 
 Each command may output a value which can be processed in various ways. The output could
 be pushed to the stack, the command could be made into a jump or the output could be ignored.
 
 ### Commands
 
-| Value    | Name    | Short Description
-|----------|---------|------------------------|
-| `000000` | COPY    | Copies input0 to output.
-| `000001` | IPGET   | Gets the instruction pointer to the next instruction
-| `000010` | GET     | Gets a value from the tack. (input0 = index relative to BP, 0 is stacktop)
-| `000011` | SET     | Sets a value on the stack (input0 = index relative to BP, 0 is stacktop)
-| `000100` | STORE8  | Stores a byte in memory 
-| `000101` | STORE16 | Stores a word in memory
-| `000110` | LOAD8   | Loads a byte from memory
-| `000111` | LOAD16  | Loads a word from memory
-| `001000` | ???     |
-| `001001` | ???     |
-| `001010` | ???     |
-| `001011` | ???     |
-| `001100` | BPGET   | Gets the base pointer
-| `001101` | BPSET   | Sets the base pointer
-| `001110` | SPGET   | Gets the stack pointer
-| `001111` | SPSET   | Sets the stack pointer
-| `010000` | ADD     | `input0 + input1`
-| `010001` | SUB     | `input0 - input1`
-| `010010` | MUL     | `input0 * input1`
-| `010011` | DIV     | `input0 / input1`
-| `010100` | MOD     | `input0 % input1`
-| `010101` | AND     | `input0 & input1`
-| `010110` | OR      | `input0 | input1`
-| `010111` | XOR     | `input0 ^ input1`
-| `011000` | NOT     | `~input0`
-| `011001` | NEG     | `-input0`
-| `011010` | ROL     | rotates input0 to the left
-| `011011` | ROR     | rotates input0 to the right
-| `011100` | BSWAP   | swaps the bytes of input0 (output=byteSwap(input0))
-| `011101` | ASR     | arithmetic shift right of input0
-| `011110` | LSL     | logical shift left of input0
-| `011111` | LSR     | logical shift right of input0
-| `1*****` | ???     | *yet to determine what to do with this bit*
+| Value            | Name    | Short Description
+|------------------|---------|------------------------|
+| `000000`₂  (0₁₀) | COPY    | Copies input0 to output.
+| `000001`₂  (1₁₀) | IPGET   | Gets the instruction pointer to the next instruction
+| `000010`₂  (2₁₀) | GET     | Gets a value from the stack. (input0 = index relative to BP, 0 is stacktop)
+| `000011`₂  (3₁₀) | SET     | Sets a value on the stack (input0 = index relative to BP, 0 is stacktop)
+| `000100`₂  (4₁₀) | STORE8  | Stores a byte in memory 
+| `000101`₂  (5₁₀) | STORE16 | Stores a word in memory
+| `000110`₂  (6₁₀) | LOAD8   | Loads a byte from memory
+| `000111`₂  (7₁₀) | LOAD16  | Loads a word from memory
+| `001000`₂  (8₁₀) | ???     |
+| `001001`₂  (9₁₀) | ???     |
+| `001010`₂ (10₁₀) | ???     |
+| `001011`₂ (11₁₀) | ???     |
+| `001100`₂ (12₁₀) | BPGET   | Gets the base pointer
+| `001101`₂ (13₁₀) | BPSET   | Sets the base pointer
+| `001110`₂ (14₁₀) | SPGET   | Gets the stack pointer
+| `001111`₂ (15₁₀) | SPSET   | Sets the stack pointer
+| `010000`₂ (16₁₀) | ADD     | `input0 + input1`
+| `010001`₂ (17₁₀) | SUB     | `input0 - input1`
+| `010010`₂ (18₁₀) | MUL     | `input0 * input1`
+| `010011`₂ (19₁₀) | DIV     | `input0 / input1`
+| `010100`₂ (20₁₀) | MOD     | `input0 % input1`
+| `010101`₂ (21₁₀) | AND     | `input0 & input1`
+| `010110`₂ (22₁₀) | OR      | `input0 | input1`
+| `010111`₂ (23₁₀) | XOR     | `input0 ^ input1`
+| `011000`₂ (24₁₀) | NOT     | `~input0`
+| `011001`₂ (25₁₀) | NEG     | `-input0`
+| `011010`₂ (26₁₀) | ROL     | rotates input0 to the left
+| `011011`₂ (27₁₀) | ROR     | rotates input0 to the right
+| `011100`₂ (28₁₀) | BSWAP   | swaps the bytes of input0 (output=byteSwap(input0))
+| `011101`₂ (29₁₀) | ASR     | arithmetic shift right of input0
+| `011110`₂ (30₁₀) | LSL     | logical shift left of input0
+| `011111`₂ (31₁₀) | LSR     | logical shift right of input0
+| `1*****`₂ | ???     | *yet to determine what to do with this bit*
 
 ## Fetch-Execute-Cycle
 
-Execute-Cycle:
+```
 - Fetch Instruction
 - Increment IP
 - Check Execution
@@ -168,13 +179,11 @@ Execute-Cycle:
 	- discard: nothing
 	- jmp: jump to result
 	- rjmp: jump to IP+result
+```
 
 ## Memory Access
 
 Only 2-aligned access to memory is possible with code or data.
-Only exception are the `STOR8` and `LOAD8` commands which allow unaligned memory access.
+Only exception are the `STORE8` and `LOADE8` commands which allow unaligned memory access.
 
-When accessing memory with alignment, the least significant address bit is ignored, so the 
-address `0x0001` will be interpreted as `0x0000`.
-
-## Interrupts
+When accessing memory with alignment, the least significant address bit is reserved and must be `0`.
