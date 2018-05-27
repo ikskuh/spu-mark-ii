@@ -4,9 +4,8 @@
 
 - RISC
 - Stack Based
-- 16 Bit
-- MMU
-- Memory Mapped I/O only
+- 16 Bit Data
+- No special I/O commands
 
 ## Purpose Of This Document
 
@@ -15,58 +14,102 @@
 ## Registers
 
 ### Stack Pointer
+16 bit register pointing to the stack top
 
 ### Base Pointer
+16 bit register pointing to the current stack frame.
 
 ### Instruction ~~Code~~ Pointer
+16 bit register pointing to the instruction to be executed next.
+
 Entry Point: 0x0000
+
+### Flags
+3 bit register saving non-word CPU state
+
+| Bit Range | Name  | Description        |
+|-----------|-------|--------------------|
+| `[0:0]`   | **Z** | Zero Flag          |
+| `[1:1]`   | **N** | Negative Flag      |
+| `[2:2]`   | **I** | Interrupts Enabled |
 
 ## Instruction Encoding
 
-16 Bit:
-0 1 2 3 4 5 6 7 8 9 A B C D E F
-E E E F I I i i O O C C C C C C
+The instructions are coded in different sections, each describing a part of the instructions
+behaviour. 
 
-  [0:2] → Exec
-	[3:3] → Mod Flags
-  [4:5] → Input 0
-  [6:7] → Input 1
-  [8:9] → Output
-[10:15] → Command
-
-### Argument Input
-
-Input0/1:
-	00 Zero
-	01 Argument
-	10 Peek
-	11 Pop
-
-### Result Output
-
-Output:
-	00 Discard
-	01 Push
-	10 Jump
-	11 Jump Relative
-
-### Flag Modification
-
-Modify:
-	0 no
-	1 yes
+| Bit Range | Description                        |
+|-----------|------------------------------------|
+| `[2:0]`   | Execution Conditional              |
+| `[3:3]`   | Flag Modification Behaviour        |
+| `[5:4]`   | Input 0 Behaviour                  |
+| `[7:6]`   | Input 1 Behaviour                  |
+| `[9:8]`   | Output Behaviour                   |
+| `[15:10]` | Command                            |
 
 ### Conditional Execution
 
-Exec:
-	000 always
-	001 =0
-	010 ≠0
-	011 >0
-	100 <0
-	101 ≥0
-	110 ≤0
-	111 never
+| Value | Enumeration | Description                                                              |
+|-------|-------------|--------------------------------------------------------------------------|
+| `000` | Always      | The command is always executed                                           |
+| `001` | =0          | The command is executed when result is zero (`Z=1`)                      |
+| `010` | ≠0          | The command is executed when result is not zero (`Z=0`)                  |
+| `011` | >0          | The command is executed when result is positive (`Z=0` and `N=0`)        |
+| `100` | <0          | The command is executed when result is less than zero (`N=1`)            |
+| `101` | ≥0          | The command is executed when result is zero or positive (`Z=1` or `N=0`) |
+| `110` | ≤0          | The command is executed when result is zero or negative (`Z=1` or `N=1`) |
+| `111` | Always      | The command is never executed                                            |
+
+This field determines when the command is executed or ignored. The execution is dependent on the
+current state of the flags.
+
+This allows conditional execution of all possible opcodes.
+
+### Flag Modification
+
+| Value  | Enumeration | Description                                            |
+|--------|-------------|--------------------------------------------------------|
+| `0`    | No          | The flags won't be modified.                           |
+| `1`    | Yes         | The flags will be set according to the command output. |
+
+When the flag modification is enabled, the current flags will be overwritten by this command.
+Otherwise the flags stay as they were before the instruction.
+
+The flags are modified according to this table:
+
+| Flag  | Condition          |
+|-------|--------------------|
+| **Z** | `output[15:0] = 0` |
+| **N** | `output[15] = 1`   |
+| **I** | unchanged          |
+
+### Argument Input 0 and 1
+
+| Value | Enumeration | Description                                              |
+|-------|-------------|----------------------------------------------------------|
+| `00`  | Zero        | The input register will be zero.                         |
+| `01`  | Argument    | The input registers value is located after this command. |
+| `10`  | Peek        | The input register will be the stack top.                |
+| `11`  | Pop         | The input register will be popped from the stack.        |
+
+When fetching command arguments, the bits `[5:4]` and `[7:6]` determine what value this
+argument has.
+*Zero* means that the argument will be zeroize, *Argument* means that it will be fetched
+from the instruction pointer (it is located behind the opcode in memory).
+*Peek* will take the argument from the stack top, but won't change the stack and *Pop* will
+take the argument from the stack top and decreases the stack pointer.
+
+### Result Output
+
+| Value | Enumeration   | Description                                                  |
+|-------|---------------|--------------------------------------------------------------|
+| `00`  | Discard       | The command output will be ignored.                          |
+| `01`  | Push          | The command output will be pushed to the stack.              |
+| `10`  | Jump          | The instruction pointer will be set to the command output.   |
+| `11`  | Jump Relative | The command output will be added to the instruction pointer. |
+
+Each command may output a value which can be processed in various ways. The output could
+be pushed to the stack, the command could be made into a jump or the output could be ignored.
 
 ### Commands
 Command:
@@ -80,7 +123,7 @@ Command:
 	000111 INT     (input0 = #intr)
 	001000 LOAD8
 	001001 LOAD16
-	001010 MAPMMU (input0 = bank, input1 = value)
+	001010 ???
 	001011 ???
 	001100 BPGET
 	001101 BPSET
@@ -108,10 +151,10 @@ Command:
 
 Execute-Cycle:
 - Fetch Instruction
-- Increment CP
+- Increment IP
 - Check Execution
 	- yes: continue
-	- no: next, increment CP for i0, i1
+	- no: next, increment IP for i0, i1
 - Gather Input 0
 - Gather Input 1
 - Execute CMD
@@ -122,19 +165,14 @@ Execute-Cycle:
 	- push: push result
 	- discard: nothing
 	- jmp: jump to result
-	- rjmp: jump to CP+result
+	- rjmp: jump to IP+result
 
 ## Memory Access
 
-- 16 pages with 4 kB
-- Each page has access bits
-- Each page can map to an arbitrary 12 bit aligned address
+Only 2-aligned access to memory is possible with code or data.
+Only exception are the `STOR8` and `LOAD8` commands which allow unaligned memory access.
 
-## Task Switching
-
-- 256 Tasks
-- Switch Tasks
+When accessing memory with alignment, the least significant address bit is ignored, so the 
+address `0x0001` will be interpreted as `0x0000`.
 
 ## Interrupts
-
-## I/O
