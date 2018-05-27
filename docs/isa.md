@@ -41,9 +41,9 @@ behaviour.
 | Bit Range | Description                        |
 |-----------|------------------------------------|
 | `[2:0]`   | Execution Conditional              |
-| `[3:3]`   | Flag Modification Behaviour        |
-| `[5:4]`   | Input 0 Behaviour                  |
-| `[7:6]`   | Input 1 Behaviour                  |
+| `[4:3]`   | Input 0 Behaviour                  |
+| `[6:5]`   | Input 1 Behaviour                  |
+| `[7:7]`   | Flag Modification Behaviour        |
 | `[9:8]`   | Output Behaviour                   |
 | `[15:10]` | Command                            |
 
@@ -65,6 +65,22 @@ current state of the flags.
 
 This allows conditional execution of all possible opcodes.
 
+### Argument Input 0 and 1
+
+| Value | Enumeration | Description                                              |
+|-------|-------------|----------------------------------------------------------|
+| `00`  | Zero        | The input register will be zero.                         |
+| `01`  | Argument    | The input registers value is located after this command. |
+| `10`  | Peek        | The input register will be the stack top.                |
+| `11`  | Pop         | The input register will be popped from the stack.        |
+
+When fetching command arguments, the bits `[5:4]` and `[7:6]` determine what value this
+argument has.
+*Zero* means that the argument will be zeroize, *Argument* means that it will be fetched
+from the instruction pointer (it is located behind the opcode in memory).
+*Peek* will take the argument from the stack top, but won't change the stack and *Pop* will
+take the argument from the stack top and decreases the stack pointer.
+
 ### Flag Modification
 
 | Value  | Enumeration | Description                                            |
@@ -83,22 +99,6 @@ The flags are modified according to this table:
 | **N** | `output[15] = 1`   |
 | **I** | unchanged          |
 
-### Argument Input 0 and 1
-
-| Value | Enumeration | Description                                              |
-|-------|-------------|----------------------------------------------------------|
-| `00`  | Zero        | The input register will be zero.                         |
-| `01`  | Argument    | The input registers value is located after this command. |
-| `10`  | Peek        | The input register will be the stack top.                |
-| `11`  | Pop         | The input register will be popped from the stack.        |
-
-When fetching command arguments, the bits `[5:4]` and `[7:6]` determine what value this
-argument has.
-*Zero* means that the argument will be zeroize, *Argument* means that it will be fetched
-from the instruction pointer (it is located behind the opcode in memory).
-*Peek* will take the argument from the stack top, but won't change the stack and *Pop* will
-take the argument from the stack top and decreases the stack pointer.
-
 ### Result Output
 
 | Value | Enumeration   | Description                                                  |
@@ -112,40 +112,42 @@ Each command may output a value which can be processed in various ways. The outp
 be pushed to the stack, the command could be made into a jump or the output could be ignored.
 
 ### Commands
-Command:
-	000000 COPY
-	000001 CPGET
-	000010 GET (input0 = index relative to BP, 0 is stacktop)
-	000011 SET (input0 = index relative to BP, 0 is stacktop)
-	000100 STOR8
-	000101 STOR16
-	000110 SETINT  (input0 → an/aus)
-	000111 INT     (input0 = #intr)
-	001000 LOAD8
-	001001 LOAD16
-	001010 ???
-	001011 ???
-	001100 BPGET
-	001101 BPSET
-	001110 SPGET
-	001111 SPSET
-	010000 ADD
-	010001 SUB
-	010010 MUL
-	010011 DIV
-	010100 MOD
-	010101 AND
-	010110 OR
-	010111 XOR
-	011000 NOT
-	011001 NEG
-	011010 ROL
-	011011 ROR
-	011100 BSWAP (output=byteSwap(input0))
-	011101 ASR
-	011110 LSL
-	011111 LSR
-	1***** ???
+
+| Value    | Name    | Short Description
+|----------|---------|------------------------|
+| `000000` | COPY    | Copies input0 to output.
+| `000001` | IPGET   | Gets the instruction pointer to the next instruction
+| `000010` | GET     | Gets a value from the tack. (input0 = index relative to BP, 0 is stacktop)
+| `000011` | SET     | Sets a value on the stack (input0 = index relative to BP, 0 is stacktop)
+| `000100` | STORE8  | Stores a byte in memory 
+| `000101` | STORE16 | Stores a word in memory
+| `000110` | LOAD8   | Loads a byte from memory
+| `000111` | LOAD16  | Loads a word from memory
+| `001000` | ???     |
+| `001001` | ???     |
+| `001010` | ???     |
+| `001011` | ???     |
+| `001100` | BPGET   | Gets the base pointer
+| `001101` | BPSET   | Sets the base pointer
+| `001110` | SPGET   | Gets the stack pointer
+| `001111` | SPSET   | Sets the stack pointer
+| `010000` | ADD     | `input0 + input1`
+| `010001` | SUB     | `input0 - input1`
+| `010010` | MUL     | `input0 * input1`
+| `010011` | DIV     | `input0 / input1`
+| `010100` | MOD     | `input0 % input1`
+| `010101` | AND     | `input0 & input1`
+| `010110` | OR      | `input0 | input1`
+| `010111` | XOR     | `input0 ^ input1`
+| `011000` | NOT     | `~input0`
+| `011001` | NEG     | `-input0`
+| `011010` | ROL     | rotates input0 to the left
+| `011011` | ROR     | rotates input0 to the right
+| `011100` | BSWAP   | swaps the bytes of input0 (output=byteSwap(input0))
+| `011101` | ASR     | arithmetic shift right of input0
+| `011110` | LSL     | logical shift left of input0
+| `011111` | LSR     | logical shift right of input0
+| `1*****` | ???     | *yet to determine what to do with this bit*
 
 ## Fetch-Execute-Cycle
 
