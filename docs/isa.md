@@ -49,14 +49,15 @@ Entry Point: 0x0000
 The instructions are coded in different sections, each describing a part of the instructions
 behaviour. 
 
-| Bit Range | Description                        |
-|-----------|------------------------------------|
-| `[2:0]`   | Execution Conditional              |
-| `[4:3]`   | Input 0 Behaviour                  |
-| `[6:5]`   | Input 1 Behaviour                  |
-| `[7:7]`   | Flag Modification Behaviour        |
-| `[9:8]`   | Output Behaviour                   |
-| `[15:10]` | Command                            |
+| Bit Range | Description                           |
+|-----------|---------------------------------------|
+| `[2:0]`   | Execution Conditional                 |
+| `[4:3]`   | Input 0 Behaviour                     |
+| `[6:5]`   | Input 1 Behaviour                     |
+| `[7:7]`   | Flag Modification Behaviour           |
+| `[9:8]`   | Output Behaviour                      |
+| `[14:10]` | Command                               |
+| `[15:15]` | Reserved for future use (must be `0`) |
 
 ### Conditional Execution
 
@@ -106,8 +107,8 @@ The flags are modified according to this table:
 
 | Flag  | Condition          |
 |-------|--------------------|
-| **Z** | `output[15:0] = 0` |
-| **N** | `output[15] = 1`   |
+| **Z** | `output[15:0] = 0` |
+| **N** | `output[15] = 1`   |
 | **I** | unchanged          |
 
 ### Result Output
@@ -124,41 +125,40 @@ be pushed to the stack, the command could be made into a jump or the output coul
 
 ### Commands
 
-| Value            | Name    | Short Description
-|------------------|---------|------------------------|
-| `000000`₂  (0₁₀) | COPY    | Copies input0 to output.
-| `000001`₂  (1₁₀) | IPGET   | Gets the instruction pointer to the next instruction
-| `000010`₂  (2₁₀) | GET     | Gets a value from the stack. (input0 = index relative to BP, 0 is stacktop)
-| `000011`₂  (3₁₀) | SET     | Sets a value on the stack (input0 = index relative to BP, 0 is stacktop)
-| `000100`₂  (4₁₀) | STORE8  | Stores a byte in memory 
-| `000101`₂  (5₁₀) | STORE16 | Stores a word in memory
-| `000110`₂  (6₁₀) | LOAD8   | Loads a byte from memory
-| `000111`₂  (7₁₀) | LOAD16  | Loads a word from memory
-| `001000`₂  (8₁₀) | ???     |
-| `001001`₂  (9₁₀) | ???     |
-| `001010`₂ (10₁₀) | ???     |
-| `001011`₂ (11₁₀) | ???     |
-| `001100`₂ (12₁₀) | BPGET   | Gets the base pointer
-| `001101`₂ (13₁₀) | BPSET   | Sets the base pointer
-| `001110`₂ (14₁₀) | SPGET   | Gets the stack pointer
-| `001111`₂ (15₁₀) | SPSET   | Sets the stack pointer
-| `010000`₂ (16₁₀) | ADD     | `input0 + input1`
-| `010001`₂ (17₁₀) | SUB     | `input0 - input1`
-| `010010`₂ (18₁₀) | MUL     | `input0 * input1`
-| `010011`₂ (19₁₀) | DIV     | `input0 / input1`
-| `010100`₂ (20₁₀) | MOD     | `input0 % input1`
-| `010101`₂ (21₁₀) | AND     | `input0 & input1`
-| `010110`₂ (22₁₀) | OR      | `input0 | input1`
-| `010111`₂ (23₁₀) | XOR     | `input0 ^ input1`
-| `011000`₂ (24₁₀) | NOT     | `~input0`
-| `011001`₂ (25₁₀) | NEG     | `-input0`
-| `011010`₂ (26₁₀) | ROL     | rotates input0 to the left
-| `011011`₂ (27₁₀) | ROR     | rotates input0 to the right
-| `011100`₂ (28₁₀) | BSWAP   | swaps the bytes of input0 (output=byteSwap(input0))
-| `011101`₂ (29₁₀) | ASR     | arithmetic shift right of input0
-| `011110`₂ (30₁₀) | LSL     | logical shift left of input0
-| `011111`₂ (31₁₀) | LSR     | logical shift right of input0
-| `1*****`₂ | ???     | *yet to determine what to do with this bit*
+| Value           | Name    | Short Description      | Pseudo-Code |
+|-----------------|---------|------------------------|-------------|
+| `00000`₂  (0₁₀) | COPY    | Copies `input0` to `output`. | `output = input0` |
+| `00001`₂  (1₁₀) | IPGET   | Gets a pointer to the next instruction after the current opcode. | `output = IP + 2 * input0`
+| `00010`₂  (2₁₀) | GET     | Gets a value from the stack.                                     | `output = MEM16[BP + 2 * input0]`
+| `00011`₂  (3₁₀) | SET     | Sets a value on the stack                                        | `output = input1; MEM16[BP + 2 * input0] = input1`
+| `00100`₂  (4₁₀) | STORE8  | Stores a byte in memory                                          | `output = input1; MEM8[input0] = input1`
+| `00101`₂  (5₁₀) | STORE16 | Stores a word in memory                                          | `output = input1; MEM16[input0] = input1`
+| `00110`₂  (6₁₀) | LOAD8   | Loads a byte from memory                                         | `output = MEM8[input0]`
+| `00111`₂  (7₁₀) | LOAD16  | Loads a word from memory                                         | `output = MEM8[input0]`
+| `01000`₂  (8₁₀) | ???     |                                                                  |
+| `01001`₂  (9₁₀) | ???     |                                                                  |
+| `01010`₂ (10₁₀) | ???     |                                                                  |
+| `01011`₂ (11₁₀) | ???     |                                                                  |
+| `01100`₂ (12₁₀) | BPGET   | Gets the base pointer                                            | `output = BP`
+| `01101`₂ (13₁₀) | BPSET   | Sets the base pointer                                            | `output = BP = input0`
+| `01110`₂ (14₁₀) | SPGET   | Gets the stack pointer                                           | `output = SP`
+| `01111`₂ (15₁₀) | SPSET   | Sets the stack pointer                                           | `output = SP = input0`
+| `10000`₂ (16₁₀) | ADD     | Adds the two inputs                                              | `output = input0 + input1`
+| `10001`₂ (17₁₀) | SUB     | Subtracts `input1` from `input0`                                 | `output = input0 - input1`
+| `10010`₂ (18₁₀) | MUL     | Multiplies `input0` and `input1`                                 | `output = input0 * input1`
+| `10011`₂ (19₁₀) | DIV     | Divides `input0` by `input1`                                     | `output = input0 / input1`
+| `10100`₂ (20₁₀) | MOD     | Divides `input0` by `input1` and returns the remainder.          | `output = input0 % input1`
+| `10101`₂ (21₁₀) | AND     | Combines the bits in `input0` and `input1` with AND              | `output = input0 & input1`
+| `10110`₂ (22₁₀) | OR      | Combines the bits in `input0` and `input1` with inclusive OR     | `output = input0 | input1`
+| `10111`₂ (23₁₀) | XOR     | Combines the bits in `input0` and `input1` with exclusive OR     | `output = input0 ^ input1`
+| `11000`₂ (24₁₀) | NOT     | Inverts all bits in `input0`                                     | `output = ~input0`
+| `11001`₂ (25₁₀) | NEG     | Returns the negative of `input0`.                                | `output = -input0`
+| `11010`₂ (26₁₀) | ROL     | Rotates `input0` to the left                                     | `output = concat(input0[14:0], input0[15])`
+| `11011`₂ (27₁₀) | ROR     | Rotates `input0` to the right                                    | `output = concat(input0[0], input0[15:1])`
+| `11100`₂ (28₁₀) | BSWAP   | Swaps the bytes of `input0`                                      | `output = concat(input0[7:0], input0[15:8])`
+| `11101`₂ (29₁₀) | ASR     | Arithmetic shift right of `input0`                               | `output = concat(input0[15], input0[15:1])`
+| `11110`₂ (30₁₀) | LSL     | Logical shift left of `input0`                                   | `output = concat(input0[14:0], '0')`
+| `11111`₂ (31₁₀) | LSR     | Logical shift right of `input0`                                  | `output = concat('0', input0[15:1])`
 
 ## Fetch-Execute-Cycle
 
