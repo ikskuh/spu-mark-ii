@@ -21,19 +21,35 @@ table, td, th {
 
 ## Registers
 
-> TODO: [15:1] is useful, [0:0] is kinda useless, so maybe find a better use for it?
-> Idea: Indirection bit
-
 ### Stack Pointer
 16 bit register pointing to the stack top
+
+| Bit Fields | Description               |
+|------------|---------------------------|
+| `[0:0]`    | reserved, must be zero    |
+| `[15:1]`   | aligned stack top address |
+
+Initial Value: *Undefined*
 
 ### Base Pointer
 16 bit register pointing to the current stack frame.
 
+| Bit Fields | Description                 |
+|------------|-----------------------------|
+| `[0:0]`    | reserved, must be zero      |
+| `[15:1]`   | aligned stack frame address |
+
+Initial Value: *Undefined*
+
 ### Instruction ~~Code~~ Pointer
 16 bit register pointing to the instruction to be executed next.
 
-Entry Point: 0x0000
+| Bit Fields | Description                 |
+|------------|-----------------------------|
+| `[0:0]`    | reserved, must be zero      |
+| `[15:1]`   | aligned stack frame address |
+
+Initial Value: `0000`₁₆
 
 ### Flags
 3 bit register saving non-word CPU state
@@ -44,10 +60,12 @@ Entry Point: 0x0000
 | `[1:1]`   | **N** | Negative Flag      |
 | `[2:2]`   | **I** | Interrupts Enabled |
 
+Initial Value: `0`₁₆
+
 ## Instruction Encoding
 
-The instructions are coded in different sections, each describing a part of the instructions
-behaviour. 
+Instructions use 16 bit opcodes organized in different bit fields defining the
+behaviour of the instruction.
 
 | Bit Range | Description                           |
 |-----------|---------------------------------------|
@@ -61,8 +79,13 @@ behaviour.
 
 ### Conditional Execution
 
-| Value | Enumeration | Description                                                              |
-|-------|-------------|--------------------------------------------------------------------------|
+This field determines when the command is executed or ignored. The execution is dependent on the
+current state of the flags.
+
+This allows conditional execution of all possible opcodes.
+
+| Value       | Enumeration | Description                                                              |
+|-------------|-------------|--------------------------------------------------------------------------|
 | `000` (0₁₀) | Always      | The command is always executed                                           |
 | `001` (1₁₀) | =0          | The command is executed when result is zero (`Z=1`)                      |
 | `010` (2₁₀) | ≠0          | The command is executed when result is not zero (`Z=0`)                  |
@@ -72,36 +95,36 @@ behaviour.
 | `110` (6₁₀) | ≤0          | The command is executed when result is zero or negative (`Z=1` or `N=1`) |
 | `111` (7₁₀) | Never       | The command is never executed                                            |
 
-This field determines when the command is executed or ignored. The execution is dependent on the
-current state of the flags.
-
-This allows conditional execution of all possible opcodes.
-
 ### Argument Input 0 and 1
+
+These two fields define what arguments are provided to the executed command.
 
 | Value       | Enumeration | Description                                              |
 |-------------|-------------|----------------------------------------------------------|
 | `00`₂ (0₁₀) | Zero        | The input register will be zero.                         |
-| `01`₂ (1₁₀) | Argument    | The input registers value is located after this command. |
+| `01`₂ (1₁₀) | Immediate   | The input registers value is located after this command. |
 | `10`₂ (2₁₀) | Peek        | The input register will be the stack top.                |
 | `11`₂ (3₁₀) | Pop         | The input register will be popped from the stack.        |
 
-When fetching command arguments, the bits `[5:4]` and `[7:6]` determine what value this
-argument has.
-*Zero* means that the argument will be zeroize, *Argument* means that it will be fetched
+*Zero* means that the argument will be zeroize, *Immediate* means that it will be fetched
 from the instruction pointer (it is located behind the opcode in memory).
 *Peek* will take the argument from the stack top, but won't change the stack and *Pop* will
 take the argument from the stack top and decreases the stack pointer.
 
+`input0` is fetched before `input1` so when both arguments pop a value, `input0` receives the
+stack top and `input1` receives the value one below the stack top. Likewise, when both arguments
+use the *Immediate* option, the value for `input0` must located directly after the opcode, `input1`
+directly after `input0`.
+
 ### Flag Modification
+
+When the flag modification is enabled, the current flags will be overwritten by this command.
+Otherwise the flags stay as they were before the instruction.
 
 | Value      | Enumeration | Description                                            |
 |------------|-------------|--------------------------------------------------------|
 | `0`₂ (0₁₀) | No          | The flags won't be modified.                           |
 | `1`₂ (1₁₀) | Yes         | The flags will be set according to the command output. |
-
-When the flag modification is enabled, the current flags will be overwritten by this command.
-Otherwise the flags stay as they were before the instruction.
 
 The flags are modified according to this table:
 
@@ -113,6 +136,9 @@ The flags are modified according to this table:
 
 ### Result Output
 
+Each command may output a value which can be processed in various ways. The output could
+be pushed to the stack, the command could be made into a jump or the output could be ignored.
+
 | Value       | Enumeration   | Description                                                  |
 |-------------|---------------|--------------------------------------------------------------|
 | `00`₂ (0₁₀) | Discard       | The command output will be ignored.                          |
@@ -120,14 +146,14 @@ The flags are modified according to this table:
 | `10`₂ (2₁₀) | Jump          | The instruction pointer will be set to the command output.   |
 | `11`₂ (3₁₀) | Jump Relative | The command output will be added to the instruction pointer. |
 
-Each command may output a value which can be processed in various ways. The output could
-be pushed to the stack, the command could be made into a jump or the output could be ignored.
-
 ### Commands
 
-| Value           | Name    | Short Description      | Pseudo-Code |
-|-----------------|---------|------------------------|-------------|
-| `00000`₂  (0₁₀) | COPY    | Copies `input0` to `output`. | `output = input0` |
+Commands are what define the core behaviour of the opcode. They allow arithmetics, modification of memory,
+changing system registers and so on.
+
+| Value           | Name    | Short Description                                                | Pseudo-Code
+|-----------------|---------|------------------------------------------------------------------|-------------
+| `00000`₂  (0₁₀) | COPY    | Copies `input0` to `output`.                                     | `output = input0`
 | `00001`₂  (1₁₀) | IPGET   | Gets a pointer to the next instruction after the current opcode. | `output = IP + 2 * input0`
 | `00010`₂  (2₁₀) | GET     | Gets a value from the stack.                                     | `output = MEM16[BP + 2 * input0]`
 | `00011`₂  (3₁₀) | SET     | Sets a value on the stack                                        | `output = input1; MEM16[BP + 2 * input0] = input1`
@@ -160,6 +186,13 @@ be pushed to the stack, the command could be made into a jump or the output coul
 | `11110`₂ (30₁₀) | LSL     | Logical shift left of `input0`                                   | `output = concat(input0[14:0], '0')`
 | `11111`₂ (31₁₀) | LSR     | Logical shift right of `input0`                                  | `output = concat('0', input0[15:1])`
 
+## Memory Access
+
+Only 2-aligned access to memory is possible with code or data.
+Only exception are the `STORE8` and `LOADE8` commands which allow unaligned memory access.
+
+When accessing memory with alignment, the least significant address bit is reserved and must be `0`.
+
 ## Fetch-Execute-Cycle
 
 ```
@@ -180,10 +213,3 @@ be pushed to the stack, the command could be made into a jump or the output coul
 	- jmp: jump to result
 	- rjmp: jump to IP+result
 ```
-
-## Memory Access
-
-Only 2-aligned access to memory is possible with code or data.
-Only exception are the `STORE8` and `LOADE8` commands which allow unaligned memory access.
-
-When accessing memory with alignment, the least significant address bit is reserved and must be `0`.
