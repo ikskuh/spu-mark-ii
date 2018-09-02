@@ -274,7 +274,21 @@ for those handlers are stored in the Interrupt Table at memory location `0x0000`
 Before execution of each instruction the cpu checks if any interrupt is triggered.
 The handler for the lowest interrupt triggered will then be activated.
 
+## I/Os
+
+- 16 output address lanes
+- 16 in/out data lanes
+- output WE, RE signal
+- input HOLD signal
+- input CLK signal
+- input RST signal
+- input NMI signal
+- 8 input IRQ lanes
+
 ## Changelog
+
+### v1.2
+- Adds preliminary I/O description
 
 ### v1.1
 - Adds *FR*, *BP*, *SP*, *IP* register names to register description
