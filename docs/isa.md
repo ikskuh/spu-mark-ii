@@ -10,18 +10,18 @@ table, td, th {
 
 ## Overview
 
-- RISC (?)
 - Stack Based
 - 16 Bit Data
-- No special I/O commands
+- No special I/O commands, only MMIO
 
 ## Purpose Of This Document
 
 ## Table Of Contents
+<md:toc />
 
 ## Registers
 
-### Stack Pointer
+### Stack Pointer (*SP*)
 16 bit register pointing to the stack top
 
 | Bit Fields | Description               |
@@ -31,7 +31,7 @@ table, td, th {
 
 Initial Value: *Undefined*
 
-### Base Pointer
+### Base Pointer (*BP*)
 16 bit register pointing to the current stack frame.
 
 | Bit Fields | Description                 |
@@ -41,7 +41,7 @@ Initial Value: *Undefined*
 
 Initial Value: *Undefined*
 
-### Instruction ~~Code~~ Pointer
+### Instruction Pointer (*IP*)
 16 bit register pointing to the instruction to be executed next.
 
 | Bit Fields | Description                 |
@@ -49,18 +49,29 @@ Initial Value: *Undefined*
 | `[0:0]`    | reserved, must be zero      |
 | `[15:1]`   | aligned stack frame address |
 
-Initial Value: `0000`₁₆
+Initial Value: *Undefined*
 
-### Flags
-3 bit register saving non-word CPU state
+### Flag Register (*FR*)
+16 bit register saving CPU state and interrupt system
 
-| Bit Range | Name  | Description        |
-|-----------|-------|--------------------|
-| `[0:0]`   | **Z** | Zero Flag          |
-| `[1:1]`   | **N** | Negative Flag      |
-| `[2:2]`   | **I** | Interrupts Enabled |
+| Bit Range | Name  | Description                |
+|-----------|-------|----------------------------|
+| `[0:0]`   | **Z** | Zero Flag                  |
+| `[1:1]`   | **N** | Negative Flag              |
+| `[14:2]`  | **I** | Interrupt Enabled Bitfield |
 
-Initial Value: `0`₁₆
+Initial Value: `0x0000`
+
+### Interrupt Register (*IR*)
+16 bit register marking all triggered interrupts.
+
+| Bit Range | Name    | Description                           |
+|-----------|---------|---------------------------------------|
+| `[0:0]`   | **RST** | Reset was triggered                   |
+| `[1:1]`   | **NMI** | Non-maskable interrupt triggered      |
+| `[14:2]`  |         | Maskable interrupt triggered bitfield |
+
+Initial Value: `0x0001` (Reset interrupt triggered)
 
 ## Instruction Encoding
 
@@ -163,8 +174,8 @@ changing system registers and so on.
 | `00111`₂  (7₁₀) | LOAD16  | Loads a word from memory                                         | `output = MEM8[input0]`
 | `01000`₂  (8₁₀) | ???     |                                                                  |
 | `01001`₂  (9₁₀) | ???     |                                                                  |
-| `01010`₂ (10₁₀) | ???     |                                                                  |
-| `01011`₂ (11₁₀) | ???     |                                                                  |
+| `01010`₂ (10₁₀) | FRGET   | Gets the flag register                                           | `output = FL`
+| `01011`₂ (11₁₀) | FRSET   | Sets the flag register                                           | `output = FL = input0`
 | `01100`₂ (12₁₀) | BPGET   | Gets the base pointer                                            | `output = BP`
 | `01101`₂ (13₁₀) | BPSET   | Sets the base pointer                                            | `output = BP = input0`
 | `01110`₂ (14₁₀) | SPGET   | Gets the stack pointer                                           | `output = SP`
@@ -196,6 +207,13 @@ When accessing memory with alignment, the least significant address bit is reser
 ## Fetch-Execute-Cycle
 
 ```
+- If RST interrupt is triggered
+	- Set IP to the Routine Pointer for interrupt 0.
+	- Clear the Interrupt Register and Flag Register
+- Else if any other interrupt triggered
+	- Push current IP
+	- Set IP to lowest interrupt triggered entrypoint stored at the Routine Pointer
+	- Clear interrupt triggered bit and mask the interrupt in the flag register
 - Fetch Instruction
 - Increment IP
 - Check Execution
@@ -213,3 +231,55 @@ When accessing memory with alignment, the least significant address bit is reser
 	- jmp: jump to result
 	- rjmp: jump to IP+result
 ```
+
+## Interrupt handling
+The SPU Mark II provides 16 possible interrupts, two unmasked and 14 masked
+interrupts.
+
+When an interrupt is triggered the CPU pushes the current instruction pointer
+to the stack and fetches the new Instruction Pointer from the interrupt table.
+Then the flag in the Interrupt Register is cleared as well as the mask bit
+in the Flag Register (if applicable).
+
+The reset interrupt is a special interrupt that does not push the return address
+to the stack. It also resets the Interrupt Register and the Flag Register.
+
+### Masking
+If an interrupt is masked via the Flag Register (Bit=0) it won't be triggered
+(the Interrupt Register bit can't be set).
+
+### Interrupt Table
+It is possible to assign each interrupt another handler address. The entry points
+for those handlers are stored in the Interrupt Table at memory location `0x0000`:
+
+| `#` | Interrupt | Routine Pointer |
+|-----|-----------|-----------------|
+|  0  | Reset     | `0x00`          |
+|  1  | NMI       | `0x02`          |
+|  2  | BUS       | `0x04`          |
+|  3  | ARITH     | `0x06`          |
+|  4  | RESERVED  | `0x08`          |
+|  5  | RESERVED  | `0x0A`          |
+|  7  | RESERVED  | `0x0C`          |
+|  8  | IRQ 0     | `0x0E`          |
+|  9  | IRQ 1     | `0x10`          |
+| 10  | IRQ 2     | `0x12`          |
+| 11  | IRQ 3     | `0x14`          |
+| 12  | IRQ 4     | `0x16`          |
+| 13  | IRQ 5     | `0x18`          |
+| 14  | IRQ 6     | `0x1A`          |
+| 15  | IRQ 7     | `0x1C`          |
+
+### Priorities
+Before execution of each instruction the cpu checks if any interrupt is triggered.
+The handler for the lowest interrupt triggered will then be activated.
+
+## Changelog
+
+### v1.1
+- Adds *FR*, *BP*, *SP*, *IP* register names to register description
+- Adds `FRGET`, `FRSET` instruction
+- Introduces interrupt handling description
+
+### v1.0
+- Initial version

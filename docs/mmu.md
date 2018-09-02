@@ -11,7 +11,7 @@ table, td, th {
 - 16 bit virtual addresses
 - 24 bit physical addresses
 - 256 MMU / interrupt contexts (cpu state + mmu config)
-- 16 banks a 4096 byte -> 16 kB address space
+- 16 banks a 4096 byte -> 64 kB address space
 - Provides interrupt handling
 
 Context:
