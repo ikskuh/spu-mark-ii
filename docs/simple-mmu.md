@@ -3,35 +3,26 @@
 ## Overview
 - 16 bit virtual addresses
 - 24 bit physical addresses
-- 256 MMU / interrupt contexts (cpu state + mmu config)
 - 16 banks a 4096 byte -> 64 kB address space
-- Provides interrupt handling
 
 ## Function
-The MMU translates virtual addresses in a physical addresses by utilizing
-16 pages.
+The MMU translates virtual addresses in a physical addresses by utilizing 16 pages.
 
 Each page contains 4096 bytes of memory which can be write-protected.
 
-The physical address for a memory access is created by looking up the
-upper 12 bit in the page descriptor and taking the lower 12 bit of the
-virtual address:
+The physical address for a memory access is created by looking up the upper 12 bit in the page descriptor and taking the lower 12 bit of the virtual address:
 
 ```
 physical[23:12] := mmuConfig[virt[15..12]][15..4]
 physical[11:0]  := virt[11..0]
 ```
 
-When a non-enabled page is accessed, the MMU raises a fault signal and
-sets the corresponding bit in the Page Fault Register.
+When a non-enabled page is accessed, the MMU raises a fault signal and sets the corresponding bit in the Page Fault Register.
 
-When a non-writeable page is beeing written, the MMU raises a fault signal
-and sets the corresponding bit in the Write Fault Register.
+When a non-writeable page is beeing written, the MMU raises a fault signal and sets the corresponding bit in the Write Fault Register.
 
 ## Configuration
-The MMU configuration is mapped into the physical address
-space at a system-defined location and has the
-following layout:
+The MMU configuration is mapped into the physical address space at a system-defined location and has the following layout:
 
 | Offset  | Size | Access | Description           |
 |---------|------|--------|-----------------------|
@@ -54,8 +45,7 @@ following layout:
 | `0x020` |    2 | RO     | Page Fault Register   |
 | `0x020` |    2 | RO     | Write Fault Register  |
 
-Each page descriptor is 16 bit wide and organized in
-the following manner:
+Each page descriptor is 16 bit wide and organized in the following manner:
 
 | Bit Range | Description                           |
 |-----------|---------------------------------------|
@@ -64,15 +54,11 @@ the following manner:
 | `[3:2]`   | reserved, must be `0`                 |
 | `[15:4]`  | Upper 12 bits of the physical address |
 
-The Page Fault Register contains a bit for each page
-that flags if there was an access fault (page not mapped).
+The Page Fault Register contains a bit for each page that flags if there was an access fault (page not mapped).
 
-The Write Fault Register contains a bit for each page
-that flags if there was a write fault (page was written,
-but write protected).
+The Write Fault Register contains a bit for each page that flags if there was a write fault (page was written, but write protected).
 
-Each Page Fault Register and Write Fault Register are beeing
-cleared to 0 after a read operation.
+Each Page Fault Register and Write Fault Register are beeing cleared to 0 after a read operation.
 
 ## I/Os
 
