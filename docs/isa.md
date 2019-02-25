@@ -18,16 +18,21 @@ table, td, th {
 
 > TODO: Document the idea of the CPU
 
-> TODO: What means Annotation `[15:0]` (Bit Order)
+> TODO: What means Annotation `[0]` or  `[15:0]` (Bit Order)
 
 > TODO: Word Encoding = "Little Endian", so bits 0...7 is actually "lower" byte
+
+## TODO
+
+- Further define `HOLD` line
+- Consider "prefetch-queue" for instructions
 
 ## Purpose Of This Document
 
 > TODO: Write the intro
 
 ## Table Of Contents
-<md:toc />
+[TOC]
 
 ## CPU Registers
 
@@ -35,8 +40,8 @@ table, td, th {
 16 bit register pointing to the stack top
 
 | Bit Fields | Description               |
-|------------|---------------------------|
-| `[0:0]`    | reserved, must be zero    |
+| ---------- | ------------------------- |
+| `[0]`      | reserved, must be zero    |
 | `[15:1]`   | aligned stack top address |
 
 Initial Value: *Undefined*
@@ -45,8 +50,8 @@ Initial Value: *Undefined*
 16 bit register pointing to the current stack frame.
 
 | Bit Fields | Description                 |
-|------------|-----------------------------|
-| `[0:0]`    | reserved, must be zero      |
+| ---------- | --------------------------- |
+| `[0]`      | reserved, must be zero      |
 | `[15:1]`   | aligned stack frame address |
 
 Initial Value: *Undefined*
@@ -55,8 +60,8 @@ Initial Value: *Undefined*
 16 bit register pointing to the instruction to be executed next.
 
 | Bit Fields | Description                 |
-|------------|-----------------------------|
-| `[0:0]`    | reserved, must be zero      |
+| ---------- | --------------------------- |
+| `[0]`      | reserved, must be zero      |
 | `[15:1]`   | aligned stack frame address |
 
 Initial Value: *Undefined*
@@ -64,24 +69,26 @@ Initial Value: *Undefined*
 ### Flag Register (*FR*)
 16 bit register saving CPU state and interrupt system
 
-| Bit Range | Name  | Description                                      |
-| --------- | ----- | ------------------------------------------------ |
-| `[0:0]`   | **Z** | Zero Flag                                        |
-| `[1:1]`   | **N** | Negative Flag                                    |
-| `[7:2]`   | **I** | Interrupt Enabled Bitfield for interrupts 2 to 7 |
-| `[15:8]`  | -     | Reserved, must be *0*.                           |
+| Bit Range | Name       | Description                                      |
+| --------- | ---------- | ------------------------------------------------ |
+| `[0]`     | **Z**      | Zero Flag                                        |
+| `[1]`     | **N**      | Negative Flag                                    |
+| `[5:2]`   | **I[3:0]** | Interrupt Enabled bitfield for interrupts 4 to 7 |
+| `[15:6]`  | -          | Reserved, must be *0*.                           |
 
 Initial Value: `0x0000`
 
 ### Interrupt Register (*IR*)
-16 bit register marking all triggered interrupts.
+16 bit register storing internal interrupt information.
 
-| Bit Range | Name    | Description                            |
-| --------- | ------- | -------------------------------------- |
-| `[0:0]`   | **RST** | Reset was triggered                    |
-| `[1:1]`   | **NMI** | Non-maskable interrupt triggered       |
-| `[7:2]`   | …       | Maskable interrupts triggered bitfield |
-| `[15:8]`  | -       | Reserved (must be 0)                   |
+| Bit Range | Name    | Description                             |
+| --------- | ------- | --------------------------------------- |
+| `[0]`     | **RST** | Reset was triggered                     |
+| `[1]`     | **NMI** | Non-maskable interrupt triggered        |
+| `[2]`     | **BUS** | Bus error triggered                     |
+| `[3]`     |         | Reserved, must be *0*                   |
+| `[7:4]`   | …       | Interrupt **I[3:0]** triggered bitfield |
+| `[15:8]`  | -       | Reserved (must be 0)                    |
 
 Initial Value: `0x0001` (Reset interrupt triggered)
 
@@ -90,11 +97,11 @@ Initial Value: `0x0001` (Reset interrupt triggered)
 Instructions use 16 bit opcodes organized in different bit fields defining the behaviour of the instruction.
 
 | Bit Range | Description                           |
-|-----------|---------------------------------------|
+| --------- | ------------------------------------- |
 | `[2:0]`   | Execution Conditional                 |
 | `[4:3]`   | Input 0 Behaviour                     |
 | `[6:5]`   | Input 1 Behaviour                     |
-| `[7:7]`   | Flag Modification Behaviour           |
+| `[7]`     | Flag Modification Behaviour           |
 | `[9:8]`   | Output Behaviour                      |
 | `[14:10]` | Command                               |
 | `[15:15]` | Reserved for future use (must be `0`) |
@@ -175,8 +182,8 @@ Commands are what define the core behaviour of the opcode. They allow arithmetic
 | `00111`₂  (7₁₀) | LOAD16  | Loads a word from memory                                     | `output = MEM8[input0]`                            |
 | `01000`₂  (8₁₀) | ???     |                                                              |                                                    |
 | `01001`₂  (9₁₀) | ???     |                                                              |                                                    |
-| `01010`₂ (10₁₀) | FRGET   | Gets the flag register                                       | `output = FL`                                      |
-| `01011`₂ (11₁₀) | FRSET   | Sets the flag register                                       | `output = FL = input0`                             |
+| `01010`₂ (10₁₀) | FRGET   | Gets the flag register                                       | `output = (FL & ~input1)`                          |
+| `01011`₂ (11₁₀) | FRSET   | Sets the flag register                                       | `output = FL = (input0 & ~input1) | (FL & input1)` |
 | `01100`₂ (12₁₀) | BPGET   | Gets the base pointer                                        | `output = BP`                                      |
 | `01101`₂ (13₁₀) | BPSET   | Sets the base pointer                                        | `output = BP = input0`                             |
 | `01110`₂ (14₁₀) | SPGET   | Gets the stack pointer                                       | `output = SP`                                      |
@@ -238,14 +245,14 @@ This pseudocode documents what the CPU does in detail when execution a single in
 
 ## Interrupt handling
 
-The SPU Mark II provides 8 possible interrupts, two unmasked and six masked interrupts.
+The SPU Mark II provides 8 possible interrupts, four unmasked and four masked interrupts.
 
 When an interrupt is triggered the CPU pushes the current instruction pointer to the stack and fetches the new instruction Pointer from the interrupt table. Then the flag in the Interrupt Register is cleared as well as the mask bit in the Flag Register (if applicable).
 
 The reset interrupt is a special interrupt that does not push the return address to the stack. It also resets the Interrupt Register and the Flag Register.
 
 ### Masking
-If an interrupt is masked via the Flag Register (Bit=0) it won't be triggered (the Interrupt Register bit can't be set).
+If an interrupt is masked via the Flag Register (corresponding bit is *0*) it won't be triggered (the Interrupt Register bit can't be set).
 
 ### Interrupt Table
 It is possible to assign each interrupt another handler address. The entry points for those handlers are stored in the Interrupt Table at memory location `0x0000`:
@@ -255,10 +262,11 @@ It is possible to assign each interrupt another handler address. The entry point
 | 0    | Reset     | `0x00`          |
 | 1    | NMI       | `0x02`          |
 | 2    | BUS       | `0x04`          |
-| 3    | ARITH     | `0x06`          |
-| 4    | RESERVED  | `0x08`          |
+| 3    | RESERVED  | `0x06`          |
+| 4    | ARITH     | `0x08`          |
 | 5    | RESERVED  | `0x0A`          |
-| 7    | IRQ       | `0x0C`          |
+| 6    | RESERVED  | `0x0C`          |
+| 7    | IRQ       | `0x0E`          |
 
 #### Reset
 This interrupt resets the CPU and defines the program entry point.
@@ -267,7 +275,7 @@ This interrupt resets the CPU and defines the program entry point.
 This interrupt is the non-maskable external interrupt. If the `NMI` pin is signalled, the interrupt will be triggered.
 
 #### BUS
-This interrupt is a maskable external interrupt.
+This interrupt is a non-maskable external interrupt.
 
 The `BUS` interrupt is meant for an MMU interface and will prevent the currently executed instruction from having any side effects.
 
@@ -299,6 +307,14 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 - output TYPE signal (tells if memory access is for code or data)
 
 ## Changelog
+
+### v1.4
+
+- Reorderes IRQ table
+- FIX: Missing interrupt 6 from IRQ table
+- Adjusts **IR**, **FR**
+- Makes `BUS` nonmaskable
+- Allows **FRSET** to have a masked register access
 
 ### v1.3
 
