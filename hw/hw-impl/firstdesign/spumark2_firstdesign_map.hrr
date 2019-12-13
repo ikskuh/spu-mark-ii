@@ -1,0 +1,22 @@
+---------------------------------------------------
+Report for cell root
+   Instance path: root
+                     Cell usage:
+                                  cell	      count    Res Usage(%)
+                                  SLIC	      63.00        100.0
+                                  LUT4	      48.00        100.0
+                                 IOBUF	         15        100.0
+                                PFUREG	        100        100.0
+                                RIPPLE	         38        100.0
+SUB MODULES
+                                  cell	      count    SLC Usage(%)
+           UART_Sender(12000000,19200)	          1        51.1
+---------------------------------------------------
+Report for cell UART_Sender(12000000,19200)
+   Instance path: root/UART_Sender0
+                     Cell usage:
+                                  cell	      count    Res Usage(%)
+                                  SLIC	      32.17        51.1
+                                  LUT4	      27.00        56.2
+                                PFUREG	         48        48.0
+                                RIPPLE	         17        44.7

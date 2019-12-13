@@ -1,0 +1,5 @@
+-rem
+-distrce
+-log "spumark2_firstdesign.log"
+-o "spumark2_firstdesign.csv"
+-pr "spumark2_firstdesign.prf"

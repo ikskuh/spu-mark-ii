@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BaliProject version="3.2" title="spumark2" device="LCMXO2280C-5FT256C" default_implementation="firstdesign">
+    <Options/>
+    <Implementation title="firstdesign" dir="firstdesign" description="firstdesign" synthesis="lse" default_strategy="Strategy1">
+        <Options def_top="root"/>
+        <Source name="root.vhd" type="VHDL" type_short="VHDL">
+            <Options top_module="root"/>
+        </Source>
+        <Source name="firstdesign/firstdesign.xcf" type="Programming Project File" type_short="Programming">
+            <Options/>
+        </Source>
+        <Source name="spumark2.lpf" type="Logic Preference" type_short="LPF">
+            <Options/>
+        </Source>
+    </Implementation>
+    <Strategy name="Strategy1" file="spumark21.sty"/>
+</BaliProject>

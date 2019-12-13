@@ -1,0 +1,191 @@
+--------------------------------------------------------------------------------
+Lattice Synthesis Timing Report, Version  
+Fri Dec 13 13:30:16 2019
+
+Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
+Copyright (c) 1995 AT&T Corp.   All rights reserved.
+Copyright (c) 1995-2001 Lucent Technologies Inc.  All rights reserved.
+Copyright (c) 2001 Agere Systems   All rights reserved.
+Copyright (c) 2002-2019 Lattice Semiconductor Corporation,  All rights reserved.
+
+Report Information
+------------------
+Design:     root
+Constraint file:  
+Report level:    verbose report, limited to 3 items per constraint
+--------------------------------------------------------------------------------
+
+
+
+================================================================================
+Constraint: create_clock -period 5.000000 -name clk0 [get_nets extclk_c]
+            1891 items scored, 1891 timing errors detected.
+--------------------------------------------------------------------------------
+
+
+Error:  The following path violates requirements by 3.758ns
+
+ Logical Details:  Cell type  Pin type       Cell name  (clock net +/-)
+
+   Source:         FD1S3IX    CK             clkdiv_173__i10  (from extclk_c +)
+   Destination:    FD1P3AX    SP             cnt_172__i1  (to extclk_c +)
+
+   Delay:                   8.522ns  (33.0% logic, 67.0% route), 7 logic levels.
+
+ Constraint Details:
+
+      8.522ns data_path clkdiv_173__i10 to cnt_172__i1 violates
+      5.000ns delay constraint less
+      0.236ns LCE_S requirement (totaling 4.764ns) by 3.758ns
+
+ Path Details: clkdiv_173__i10 to cnt_172__i1
+
+   Name    Fanout   Delay (ns)          Pins               Resource(Cell.Net)
+L_CO        ---     0.367             CK to Q              clkdiv_173__i10 (from extclk_c)
+Route         2   e 0.838                                  clkdiv[10]
+LUT4        ---     0.408              C to Z              i9_4_lut
+Route         1   e 0.660                                  n24
+LUT4        ---     0.408              B to Z              i12_4_lut
+Route         1   e 0.660                                  n27
+LUT4        ---     0.408              A to Z              i1_4_lut
+Route         1   e 0.660                                  n19
+LUT4        ---     0.408              A to Z              i10_3_lut
+Route         1   e 0.660                                  n28
+LUT4        ---     0.408              C to Z              i562_4_lut
+Route         2   e 0.798                                  n913
+LUT4        ---     0.408              B to Z              i563_3_lut_rep_1
+Route        40   e 1.431                                  extclk_c_enable_11
+                  --------
+                    8.522  (33.0% logic, 67.0% route), 7 logic levels.
+
+
+Error:  The following path violates requirements by 3.758ns
+
+ Logical Details:  Cell type  Pin type       Cell name  (clock net +/-)
+
+   Source:         FD1S3IX    CK             clkdiv_173__i10  (from extclk_c +)
+   Destination:    FD1P3AX    SP             cnt_172__i2  (to extclk_c +)
+
+   Delay:                   8.522ns  (33.0% logic, 67.0% route), 7 logic levels.
+
+ Constraint Details:
+
+      8.522ns data_path clkdiv_173__i10 to cnt_172__i2 violates
+      5.000ns delay constraint less
+      0.236ns LCE_S requirement (totaling 4.764ns) by 3.758ns
+
+ Path Details: clkdiv_173__i10 to cnt_172__i2
+
+   Name    Fanout   Delay (ns)          Pins               Resource(Cell.Net)
+L_CO        ---     0.367             CK to Q              clkdiv_173__i10 (from extclk_c)
+Route         2   e 0.838                                  clkdiv[10]
+LUT4        ---     0.408              C to Z              i9_4_lut
+Route         1   e 0.660                                  n24
+LUT4        ---     0.408              B to Z              i12_4_lut
+Route         1   e 0.660                                  n27
+LUT4        ---     0.408              A to Z              i1_4_lut
+Route         1   e 0.660                                  n19
+LUT4        ---     0.408              A to Z              i10_3_lut
+Route         1   e 0.660                                  n28
+LUT4        ---     0.408              C to Z              i562_4_lut
+Route         2   e 0.798                                  n913
+LUT4        ---     0.408              B to Z              i563_3_lut_rep_1
+Route        40   e 1.431                                  extclk_c_enable_11
+                  --------
+                    8.522  (33.0% logic, 67.0% route), 7 logic levels.
+
+
+Error:  The following path violates requirements by 3.758ns
+
+ Logical Details:  Cell type  Pin type       Cell name  (clock net +/-)
+
+   Source:         FD1S3IX    CK             clkdiv_173__i10  (from extclk_c +)
+   Destination:    FD1P3AX    SP             cnt_172__i3  (to extclk_c +)
+
+   Delay:                   8.522ns  (33.0% logic, 67.0% route), 7 logic levels.
+
+ Constraint Details:
+
+      8.522ns data_path clkdiv_173__i10 to cnt_172__i3 violates
+      5.000ns delay constraint less
+      0.236ns LCE_S requirement (totaling 4.764ns) by 3.758ns
+
+ Path Details: clkdiv_173__i10 to cnt_172__i3
+
+   Name    Fanout   Delay (ns)          Pins               Resource(Cell.Net)
+L_CO        ---     0.367             CK to Q              clkdiv_173__i10 (from extclk_c)
+Route         2   e 0.838                                  clkdiv[10]
+LUT4        ---     0.408              C to Z              i9_4_lut
+Route         1   e 0.660                                  n24
+LUT4        ---     0.408              B to Z              i12_4_lut
+Route         1   e 0.660                                  n27
+LUT4        ---     0.408              A to Z              i1_4_lut
+Route         1   e 0.660                                  n19
+LUT4        ---     0.408              A to Z              i10_3_lut
+Route         1   e 0.660                                  n28
+LUT4        ---     0.408              C to Z              i562_4_lut
+Route         2   e 0.798                                  n913
+LUT4        ---     0.408              B to Z              i563_3_lut_rep_1
+Route        40   e 1.431                                  extclk_c_enable_11
+                  --------
+                    8.522  (33.0% logic, 67.0% route), 7 logic levels.
+
+Warning: 8.758 ns is the maximum delay for this constraint.
+
+
+Timing Report Summary
+--------------
+--------------------------------------------------------------------------------
+Constraint                              |   Constraint|       Actual|Levels
+--------------------------------------------------------------------------------
+                                        |             |             |
+create_clock -period 5.000000 -name     |             |             |
+clk0 [get_nets extclk_c]                |     5.000 ns|     8.758 ns|     7 *
+                                        |             |             |
+--------------------------------------------------------------------------------
+
+
+1 constraints not met.
+
+--------------------------------------------------------------------------------
+Critical Nets                           |   Loads|  Errors| % of total
+--------------------------------------------------------------------------------
+\UART_Sender0/txd_N_215                 |      17|    1114|     58.91%
+                                        |        |        |
+\UART_Sender0/n977                      |      28|     896|     47.38%
+                                        |        |        |
+n913                                    |       2|     776|     41.04%
+                                        |        |        |
+n19                                     |       1|     768|     40.61%
+                                        |        |        |
+n28                                     |       1|     768|     40.61%
+                                        |        |        |
+extclk_c_enable_11                      |      40|     648|     34.27%
+                                        |        |        |
+\UART_Sender0/n922                      |       1|     614|     32.47%
+                                        |        |        |
+n27                                     |       1|     336|     17.77%
+                                        |        |        |
+\UART_Sender0/n60                       |       1|     334|     17.66%
+                                        |        |        |
+\UART_Sender0/n58                       |       1|     268|     14.17%
+                                        |        |        |
+n24                                     |       1|     192|     10.15%
+                                        |        |        |
+n25                                     |       1|     192|     10.15%
+                                        |        |        |
+n26                                     |       1|     192|     10.15%
+                                        |        |        |
+--------------------------------------------------------------------------------
+
+
+Timing summary:
+---------------
+
+Timing errors: 1891  Score: 4120282
+
+Constraints cover  4156 paths, 246 nets, and 543 connections (95.4% coverage)
+
+
+Peak memory: 212525056 bytes, TRCE: 0 bytes, DLYMAN: 0 bytes
+CPU_TIME_REPORT: 0 secs 

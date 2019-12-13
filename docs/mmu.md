@@ -61,11 +61,11 @@ Flat copy of the register value, no adjustments.
 ### Bank configs
 
 | Bitfield Location | Description |
-|-------------------|--------------
-| `[0:0]`           | Bank enabled
-| `[1:1]`           | Bank write-protect (`0`=read-only, `1`=read-write)
-| `[3:2]`           | reserved, must be zero
-| `[15:4]`          | Physical bank address base `[23:10]`
+|-------------------|--------------|
+| `[0:0]`           | Bank enabled|
+| `[1:1]`           | Bank write-protect (`0`=read-only, `1`=read-write) |
+| `[3:2]`           | reserved, must be zero |
+| `[15:4]`          | Physical bank address base `[23:10]`|
 
 ## Context Config
 The MMU holds an array of 256 contexts addresses, each 24 bit wide.

@@ -1,0 +1,233 @@
+PAR: Place And Route Diamond (64-bit) 3.11.1.441.0.
+Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
+Copyright (c) 1995 AT&T Corp.   All rights reserved.
+Copyright (c) 1995-2001 Lucent Technologies Inc.  All rights reserved.
+Copyright (c) 2001 Agere Systems   All rights reserved.
+Copyright (c) 2002-2019 Lattice Semiconductor Corporation,  All rights reserved.
+Fri Dec 13 13:30:17 2019
+
+/usr/local/diamond/3.11_x64/ispfpga/bin/lin64/par -f spumark2_firstdesign.p2t
+spumark2_firstdesign_map.ncd spumark2_firstdesign.dir spumark2_firstdesign.prf
+-gui -msgset /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/promote.xml
+
+
+Preference file: spumark2_firstdesign.prf.
+
+Level/       Number       Worst        Timing       Worst        Timing       Run          NCD
+Cost [ncd]   Unrouted     Slack        Score        Slack(hold)  Score(hold)  Time         Status
+----------   --------     -----        ------       -----------  -----------  ----         ------
+5_1   *      0            -            -            -            -            04           Completed
+
+* : Design saved.
+
+Total (real) run time for 1-seed: 4 secs 
+
+par done!
+
+Note: user must run 'Trace' for timing closure signoff.
+
+Lattice Place and Route Report for Design "spumark2_firstdesign_map.ncd"
+Fri Dec 13 13:30:17 2019
+
+PAR: Place And Route Diamond (64-bit) 3.11.1.441.0.
+Command Line: par -w -l 5 -i 6 -t 1 -c 0 -e 0 -gui -msgset /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/promote.xml -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF spumark2_firstdesign_map.ncd spumark2_firstdesign.dir/5_1.ncd spumark2_firstdesign.prf
+Preference file: spumark2_firstdesign.prf.
+Placement level-cost: 5-1.
+Routing Iterations: 6
+
+Loading design for application par from file spumark2_firstdesign_map.ncd.
+Design name: root
+NCD version: 3.3
+Vendor:      LATTICE
+Device:      LCMXO3LF-6900C
+Package:     CABGA256
+Performance: 6
+Loading device for application par from file 'xo3c6900.nph' in environment: /usr/local/diamond/3.11_x64/ispfpga.
+Package Status:                     Final          Version 1.16.
+Performance Hardware Data Status:   Final          Version 37.4.
+License checked out.
+
+
+Ignore Preference Error(s):  True
+Device utilization summary:
+
+   PIO (prelim)   15+4(JTAG)/336     6% used
+                  15+4(JTAG)/207     9% bonded
+
+   SLICE             63/3432          1% used
+
+   GSR                1/1           100% used
+
+
+Number of Signals: 260
+Number of Connections: 479
+
+Pin Constraint Summary:
+   15 out of 15 pins locked (100% locked).
+
+The following 1 signal is selected to use the primary clock routing resources:
+    extclk_c (driver: extclk, clk load #: 56)
+
+
+The following 2 signals are selected to use the secondary clock routing resources:
+    extclk_c_enable_11 (driver: SLICE_64, clk load #: 0, sr load #: 17, ce load #: 5)
+    UART_Sender0/n977 (driver: UART_Sender0/SLICE_48, clk load #: 0, sr load #: 16, ce load #: 0)
+
+Signal extrst_c is selected as Global Set/Reset.
+Starting Placer Phase 0.
+
+Finished Placer Phase 0.  REAL time: 0 secs 
+
+Starting Placer Phase 1.
+...................
+Placer score = 27834.
+Finished Placer Phase 1.  REAL time: 3 secs 
+
+Starting Placer Phase 2.
+.
+Placer score =  27487
+Finished Placer Phase 2.  REAL time: 3 secs 
+
+
+------------------ Clock Report ------------------
+
+Global Clock Resources:
+  CLK_PIN    : 1 out of 8 (12%)
+  PLL        : 0 out of 2 (0%)
+  DCM        : 0 out of 2 (0%)
+  DCC        : 0 out of 8 (0%)
+
+Global Clocks:
+  PRIMARY "extclk_c" from comp "extclk" on CLK_PIN site "C8 (PT18A)", clk load = 56
+  SECONDARY "extclk_c_enable_11" from F0 on comp "SLICE_64" on site "R21C20B", clk load = 0, ce load = 5, sr load = 17
+  SECONDARY "UART_Sender0/n977" from F1 on comp "UART_Sender0/SLICE_48" on site "R14C20C", clk load = 0, ce load = 0, sr load = 16
+
+  PRIMARY  : 1 out of 8 (12%)
+  SECONDARY: 2 out of 8 (25%)
+
+Edge Clocks:
+  No edge clock selected.
+
+--------------- End of Clock Report ---------------
+
+
+I/O Usage Summary (final):
+   15 + 4(JTAG) out of 336 (5.7%) PIO sites used.
+   15 + 4(JTAG) out of 207 (9.2%) bonded PIO sites used.
+   Number of PIO comps: 15; differential: 0.
+   Number of Vref pins used: 0.
+
+I/O Bank Usage Summary:
++----------+---------------+------------+-----------+
+| I/O Bank | Usage         | Bank Vccio | Bank Vref |
++----------+---------------+------------+-----------+
+| 0        | 3 / 51 (  5%) | 3.3V       | -         |
+| 1        | 8 / 52 ( 15%) | 3.3V       | -         |
+| 2        | 0 / 52 (  0%) | -          | -         |
+| 3        | 4 / 16 ( 25%) | 3.3V       | -         |
+| 4        | 0 / 16 (  0%) | -          | -         |
+| 5        | 0 / 20 (  0%) | -          | -         |
++----------+---------------+------------+-----------+
+
+Total placer CPU time: 2 secs 
+
+Dumping design to file spumark2_firstdesign.dir/5_1.ncd.
+
+
+-----------------------------------------------------------------
+INFO - par: ASE feature is off due to non timing-driven settings.  
+-----------------------------------------------------------------
+
+0 connections routed; 479 unrouted.
+Starting router resource preassignment
+
+Completed router resource preassignment. Real time: 4 secs 
+
+Start NBR router at Fri Dec 13 13:30:21 CET 2019
+
+*****************************************************************
+Info: NBR allows conflicts(one node used by more than one signal)
+      in the earlier iterations. In each iteration, it tries to  
+      solve the conflicts while keeping the critical connections 
+      routed as short as possible. The routing process is said to
+      be completed when no conflicts exist and all connections   
+      are routed.                                                
+Note: NBR uses a different method to calculate timing slacks. The
+      worst slack and total negative slack may not be the same as
+      that in TRCE report. You should always run TRCE to verify  
+      your design.                                               
+*****************************************************************
+
+Start NBR special constraint process at Fri Dec 13 13:30:21 CET 2019
+
+Start NBR section for initial routing at Fri Dec 13 13:30:21 CET 2019
+Level 4, iteration 1
+11(0.00%) conflicts; 0(0.00%) untouched conn; 0 (nbr) score; real time: 4 secs 
+
+Info: Initial congestion level at 75% usage is 0
+Info: Initial congestion area  at 75% usage is 0 (0.00%)
+
+Start NBR section for normal routing at Fri Dec 13 13:30:21 CET 2019
+Level 4, iteration 1
+9(0.00%) conflicts; 0(0.00%) untouched conn; 0 (nbr) score; real time: 4 secs 
+Level 4, iteration 2
+5(0.00%) conflicts; 0(0.00%) untouched conn; 0 (nbr) score; real time: 4 secs 
+Level 4, iteration 3
+3(0.00%) conflicts; 0(0.00%) untouched conn; 0 (nbr) score; real time: 4 secs 
+Level 4, iteration 4
+0(0.00%) conflict; 0(0.00%) untouched conn; 0 (nbr) score; real time: 4 secs 
+
+Start NBR section for re-routing at Fri Dec 13 13:30:21 CET 2019
+Level 4, iteration 1
+0(0.00%) conflict; 0(0.00%) untouched conn; 0 (nbr) score; real time: 4 secs 
+
+Start NBR section for post-routing at Fri Dec 13 13:30:21 CET 2019
+
+End NBR router with 0 unrouted connection
+
+NBR Summary
+-----------
+  Number of unrouted connections : 0 (0.00%)
+  Number of connections with timing violations : 0 (0.00%)
+  Estimated worst slack<setup> : <n/a>
+  Timing score<setup> : 0
+-----------
+Notes: The timing info is calculated for SETUP only and all PAR_ADJs are ignored.
+
+
+
+Total CPU time 3 secs 
+Total REAL time: 4 secs 
+Completely routed.
+End of route.  479 routed (100.00%); 0 unrouted.
+
+Hold time timing score: 0, hold timing errors: 0
+
+Timing score: 0 
+
+Dumping design to file spumark2_firstdesign.dir/5_1.ncd.
+
+
+All signals are completely routed.
+
+
+PAR_SUMMARY::Run status = Completed
+PAR_SUMMARY::Number of unrouted conns = 0
+PAR_SUMMARY::Worst  slack<setup/<ns>> = <n/a>
+PAR_SUMMARY::Timing score<setup/<ns>> = <n/a>
+PAR_SUMMARY::Worst  slack<hold /<ns>> = <n/a>
+PAR_SUMMARY::Timing score<hold /<ns>> = <n/a>
+PAR_SUMMARY::Number of errors = 0
+
+Total CPU  time to completion: 3 secs 
+Total REAL time to completion: 4 secs 
+
+par done!
+
+Note: user must run 'Trace' for timing closure signoff.
+
+Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
+Copyright (c) 1995 AT&T Corp.   All rights reserved.
+Copyright (c) 1995-2001 Lucent Technologies Inc.  All rights reserved.
+Copyright (c) 2001 Agere Systems   All rights reserved.
+Copyright (c) 2002-2019 Lattice Semiconductor Corporation,  All rights reserved.

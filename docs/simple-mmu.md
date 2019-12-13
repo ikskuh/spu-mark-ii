@@ -47,12 +47,13 @@ The MMU configuration is mapped into the physical address space at a system-defi
 
 Each page descriptor is 16 bit wide and organized in the following manner:
 
-| Bit Range | Description                           |
-|-----------|---------------------------------------|
-| `[0:0]`   | page mapping enabled                  |
-| `[1:1]`   | page is write protected               |
-| `[3:2]`   | reserved, must be `0`                 |
-| `[15:4]`  | Upper 12 bits of the physical address |
+| Bit Range | Name   | Description                           |
+| --------- | ------ | ------------------------------------- |
+| `[0]`     | **EN** | page mapping enabled                  |
+| `[1]`     | **WP** | page is write protected               |
+| `[2]`     | **CA** | caching is enabled for this page      |
+| `[3]`     |        | reserved, must be `0`                 |
+| `[15:4]`  | **PA** | Upper 12 bits of the physical address |
 
 The Page Fault Register contains a bit for each page that flags if there was an access fault (page not mapped).
 
@@ -73,3 +74,4 @@ Each Page Fault Register and Write Fault Register are beeing cleared to 0 after 
 
 ### v1.0
 - Initial version
+

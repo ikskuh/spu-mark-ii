@@ -1,0 +1,32 @@
+----------------------------------------------------------------------
+Report for cell root.TECH
+Register bits:  100 of 7485 (1.336%)
+I/O cells:      15
+                                  Cell usage:
+                               cell     count   Res Usage(%)
+                              CCU2D        38          100.0
+                            FD1P3AX        24          100.0
+                            FD1P3IX        10          100.0
+                            FD1S3AX         5          100.0
+                            FD1S3AY         1          100.0
+                            FD1S3IX        60          100.0
+                                GSR         1          100.0
+                                 IB         6          100.0
+                               LUT4        48          100.0
+                                 OB         9          100.0
+SUB MODULES
+        UART_Sender(12000000,19200)         1
+                              TOTAL       203
+----------------------------------------------------------------------
+Report for cell UART_Sender(12000000,19200).v1
+Instance Path : UART_Sender0
+                                  Cell usage:
+                               cell     count   Res Usage(%)
+                              CCU2D        17           44.7
+                            FD1P3AX         4           16.7
+                            FD1P3IX        10          100.0
+                            FD1S3AX         5          100.0
+                            FD1S3AY         1          100.0
+                            FD1S3IX        28           46.7
+                               LUT4        27           56.2
+                              TOTAL        92

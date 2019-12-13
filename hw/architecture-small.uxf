@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="14.3.0">
+  <zoom_level>16</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>240</x>
+      <y>160</y>
+      <w>208</w>
+      <h>688</h>
+    </coordinates>
+    <panel_attributes>MachXO3 6900
+--
+FPGA
+SPU Mark II</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>672</x>
+      <y>304</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>AS6C4008
+--
+512kB RAM</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>672</x>
+      <y>160</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>25A512
+--
+64kB SPI EEPROM</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>656</x>
+      <y>736</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>P8X32A-D40
+--
+Parallax Propeller
+SuperIO</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1024</x>
+      <y>736</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>PS/2 Socket
+--
+Keyboard</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>848</x>
+      <y>768</y>
+      <w>208</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+PS/2</panel_attributes>
+    <additional_attributes>10.0;20.0;110.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>304</y>
+      <w>272</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-&gt;
+lw=2
+ 8 Bit (DATA)</panel_attributes>
+    <additional_attributes>10.0;20.0;150.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>192</y>
+      <w>272</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+SPI</panel_attributes>
+    <additional_attributes>10.0;20.0;150.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>352</y>
+      <w>272</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+lw=2
+16 Bit (ADDR)</panel_attributes>
+    <additional_attributes>10.0;20.0;150.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>768</y>
+      <w>256</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+SPI?</panel_attributes>
+    <additional_attributes>10.0;20.0;140.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1024</x>
+      <y>448</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>D-SUB HD15
+--
+Video/VGA</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>480</y>
+      <w>624</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+HSYNC/VSYNC/R/G/B</panel_attributes>
+    <additional_attributes>10.0;20.0;370.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1024</x>
+      <y>592</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>µUSB
+--
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>624</y>
+      <w>256</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+RXD/TXD</panel_attributes>
+    <additional_attributes>10.0;20.0;140.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>656</x>
+      <y>880</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>24LC512
+--
+64kB I²C EEPROM</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>656</x>
+      <y>592</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>FT232H
+--
+USB-UART</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>848</x>
+      <y>624</y>
+      <w>208</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+USB</panel_attributes>
+    <additional_attributes>10.0;20.0;110.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>736</x>
+      <y>832</y>
+      <w>80</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+I²C</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1024</x>
+      <y>880</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>SD Card Socket
+--
+Mass Storage</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>848</x>
+      <y>800</y>
+      <w>208</w>
+      <h>176</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+SDIO</panel_attributes>
+    <additional_attributes>10.0;10.0;60.0;10.0;60.0;90.0;110.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>240</x>
+      <y>16</y>
+      <w>208</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>P8X32A-D40
+--
+Parallax Propeller
+System Debugger</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>80</y>
+      <w>272</w>
+      <h>176</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+SPI</panel_attributes>
+    <additional_attributes>10.0;10.0;100.0;10.0;100.0;90.0;150.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>320</x>
+      <y>112</y>
+      <w>80</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>lt=-
+lw=2
+DBG</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;30.0</additional_attributes>
+  </element>
+</diagram>

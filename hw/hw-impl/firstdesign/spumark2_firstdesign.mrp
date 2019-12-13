@@ -1,0 +1,402 @@
+
+             Lattice Mapping Report File for Design Module 'root'
+
+
+Design Information
+------------------
+
+Command line:   map -a MachXO3LF -p LCMXO3LF-6900C -t CABGA256 -s 6 -oc
+     Industrial spumark2_firstdesign.ngd -o spumark2_firstdesign_map.ncd -pr
+     spumark2_firstdesign.prf -mp spumark2_firstdesign.mrp -lpf /home/felix/proj
+     ects/lowlevel/spu-mark-2/hw/hw-impl/firstdesign/spumark2_firstdesign.lpf
+     -lpf /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/spumark2.lpf -c 0
+     -gui -msgset
+     /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/promote.xml 
+Target Vendor:  LATTICE
+Target Device:  LCMXO3LF-6900CCABGA256
+Target Performance:   6
+Mapper:  xo3c00f,  version:  Diamond (64-bit) 3.11.1.441.0
+Mapped on:  12/13/19  13:30:17
+
+Design Summary
+--------------
+
+   Number of registers:    100 out of  7485 (1%)
+      PFU registers:          100 out of  6864 (1%)
+      PIO registers:            0 out of   621 (0%)
+   Number of SLICEs:        63 out of  3432 (2%)
+      SLICEs as Logic/ROM:     63 out of  3432 (2%)
+      SLICEs as RAM:            0 out of  2574 (0%)
+      SLICEs as Carry:         38 out of  3432 (1%)
+   Number of LUT4s:        124 out of  6864 (2%)
+      Number used as logic LUTs:         48
+      Number used as distributed RAM:     0
+      Number used as ripple logic:       76
+      Number used as shift registers:     0
+   Number of PIO sites used: 15 + 4(JTAG) out of 207 (9%)
+   Number of block RAMs:  0 out of 26 (0%)
+   Number of GSRs:        1 out of 1 (100%)
+   EFB used :        No
+   JTAG used :       No
+   Readback used :   No
+   Oscillator used : No
+   Startup used :    No
+   POR :             On
+   Bandgap :         On
+   Number of Power Controller:  0 out of 1 (0%)
+   Number of Dynamic Bank Controller (BCINRD):  0 out of 6 (0%)
+   Number of Dynamic Bank Controller (BCLVDSO):  0 out of 1 (0%)
+   Number of DCCA:  0 out of 8 (0%)
+   Number of DCMA:  0 out of 2 (0%)
+   Number of PLLs:  0 out of 2 (0%)
+   Number of DQSDLLs:  0 out of 2 (0%)
+   Number of CLKDIVC:  0 out of 4 (0%)
+   Number of ECLKSYNCA:  0 out of 4 (0%)
+   Number of ECLKBRIDGECS:  0 out of 2 (0%)
+   Notes:-
+      1. Total number of LUT4s = (Number of logic LUT4s) + 2*(Number of
+     distributed RAMs) + 2*(Number of ripple logic)
+      2. Number of logic LUT4s does not include count of distributed RAM and
+     ripple logic.
+   Number of clocks:  1
+     Net extclk_c: 56 loads, 56 rising, 0 falling (Driver: PIO extclk )
+
+                                    Page 1
+
+
+
+
+Design:  root                                          Date:  12/13/19  13:30:17
+
+Design Summary (cont)
+---------------------
+   Number of Clock Enables:  6
+     Net UART_Sender0/extclk_c_enable_21: 2 loads, 2 LSLICEs
+     Net UART_Sender0/extclk_c_enable_3: 1 loads, 1 LSLICEs
+     Net UART_Sender0/txd_N_215: 5 loads, 5 LSLICEs
+     Net extrst_c: 2 loads, 2 LSLICEs
+     Net extclk_c_enable_18: 4 loads, 4 LSLICEs
+     Net extclk_c_enable_11: 5 loads, 5 LSLICEs
+   Number of LSRs:  4
+     Net UART_Sender0/extclk_c_enable_21: 1 loads, 1 LSLICEs
+     Net UART_Sender0/n977: 16 loads, 16 LSLICEs
+     Net UART_Sender0/clkdiv_31__N_194: 5 loads, 5 LSLICEs
+     Net extclk_c_enable_11: 17 loads, 17 LSLICEs
+   Number of nets driven by tri-state buffers:  0
+   Top 10 highest fanout non-clock nets:
+     Net extclk_c_enable_11: 22 loads
+     Net UART_Sender0/n977: 16 loads
+     Net UART_Sender0/clkdiv_31__N_194: 14 loads
+     Net UART_Sender0/txd_N_215: 13 loads
+     Net extrst_c: 6 loads
+     Net UART_Sender0/n312: 5 loads
+     Net extclk_c_enable_18: 4 loads
+     Net cnt_0: 3 loads
+     Net switches_c_0: 3 loads
+     Net UART_Sender0/extclk_c_enable_21: 3 loads
+
+
+
+
+   Number of warnings:  3
+   Number of errors:    0
+     
+
+Design Errors/Warnings
+----------------------
+
+WARNING - map:
+     /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/spumark2.lpf(39):
+     Semantic error in "IOBUF PORT "uart0_rxd" IO_TYPE=LVCMOS33 ;": Port
+     "uart0_rxd" does not exist in the design. This preference has been
+     disabled.
+WARNING - map: input pad net 'uart0_rxd' has no legal load.
+WARNING - map: IO buffer missing for top level port uart0_rxd...logic will be
+     discarded.
+
+IO (PIO) Attributes
+-------------------
+
++---------------------+-----------+-----------+------------+
+| IO Name             | Direction | Levelmode | IO         |
+|                     |           |  IO_TYPE  | Register   |
++---------------------+-----------+-----------+------------+
+| leds[5]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| leds[6]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| leds[7]             | OUTPUT    | LVCMOS33  |            |
+
+                                    Page 2
+
+
+
+
+Design:  root                                          Date:  12/13/19  13:30:17
+
+IO (PIO) Attributes (cont)
+--------------------------
++---------------------+-----------+-----------+------------+
+| leds[4]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| leds[3]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| leds[2]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| leds[1]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| leds[0]             | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| uart0_txd           | OUTPUT    | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| switches[3]         | INPUT     | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| switches[2]         | INPUT     | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| switches[1]         | INPUT     | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| switches[0]         | INPUT     | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| extclk              | INPUT     | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+| extrst              | INPUT     | LVCMOS33  |            |
++---------------------+-----------+-----------+------------+
+
+Removed logic
+-------------
+
+Block i583 undriven or does not drive anything - clipped.
+Signal GND_net undriven or does not drive anything - clipped.
+Signal VCC_net undriven or does not drive anything - clipped.
+Signal cnt_172_add_4_8/CO undriven or does not drive anything - clipped.
+Signal clkdiv_173_add_4_33/S1 undriven or does not drive anything - clipped.
+Signal clkdiv_173_add_4_33/CO undriven or does not drive anything - clipped.
+Signal clkdiv_173_add_4_1/S0 undriven or does not drive anything - clipped.
+Signal clkdiv_173_add_4_1/CI undriven or does not drive anything - clipped.
+Signal cnt_172_add_4_2/S0 undriven or does not drive anything - clipped.
+Signal cnt_172_add_4_2/CI undriven or does not drive anything - clipped.
+Signal UART_Sender0/clkdiv_174_add_4_33/S1 undriven or does not drive anything -
+     clipped.
+Signal UART_Sender0/clkdiv_174_add_4_33/CO undriven or does not drive anything -
+     clipped.
+Signal UART_Sender0/clkdiv_174_add_4_1/S0 undriven or does not drive anything -
+     clipped.
+Signal UART_Sender0/clkdiv_174_add_4_1/CI undriven or does not drive anything -
+     clipped.
+Block i1 was optimized away.
+
+     
+
+GSR Usage
+---------
+
+GSR Component:
+   The Global Set Reset (GSR) resource has been used to implement a global reset
+
+                                    Page 3
+
+
+
+
+Design:  root                                          Date:  12/13/19  13:30:17
+
+GSR Usage (cont)
+----------------
+        of the design. The reset signal used for GSR control is 'extrst_c'.
+        
+
+     GSR Property:
+   The design components with GSR property set to ENABLED will respond to global
+        set reset while the components with GSR property set to DISABLED will
+        not.
+        
+
+     Components with disabled GSR Property
+-------------------------------------
+
+     These components have the GSR property set to DISABLED. The components will
+     not respond to the reset signal 'extrst_c' via the GSR component.
+
+     Type and number of components of the type: 
+   Register = 17 
+
+     Type and instance name of component: 
+   Register : UART_Sender0/data_buffer__i1
+   Register : UART_Sender0/txd_34
+   Register : UART_Sender0/data_buffer__i4
+   Register : UART_Sender0/data_buffer__i3
+   Register : UART_Sender0/data_buffer__i2
+   Register : leds_i0_i1
+   Register : uart_send_char__i1
+   Register : uart_send_char__i4
+   Register : uart_send_char__i3
+   Register : uart_send_char__i2
+   Register : leds_i0_i8
+   Register : leds_i0_i7
+   Register : leds_i0_i6
+   Register : leds_i0_i5
+   Register : leds_i0_i4
+   Register : leds_i0_i3
+   Register : leds_i0_i2
+
+     Components with synchronous local reset also reset by asynchronous GSR
+----------------------------------------------------------------------
+
+     These components have the GSR property set to ENABLED and the local reset
+     is synchronous. The components will respond to the synchronous local reset
+     and to the unrelated asynchronous reset signal 'extrst_c' via the GSR
+     component.
+
+     Type and number of components of the type: 
+   Register = 69 
+
+     Type and instance name of component: 
+   Register : UART_Sender0/clkdiv_174__i0
+   Register : UART_Sender0/clkdiv_174__i31
+   Register : UART_Sender0/clkdiv_174__i30
+   Register : UART_Sender0/clkdiv_174__i29
+   Register : UART_Sender0/clkdiv_174__i28
+   Register : UART_Sender0/clkdiv_174__i27
+   Register : UART_Sender0/clkdiv_174__i26
+
+                                    Page 4
+
+
+
+
+Design:  root                                          Date:  12/13/19  13:30:17
+
+GSR Usage (cont)
+----------------
+   Register : UART_Sender0/clkdiv_174__i25
+   Register : UART_Sender0/clkdiv_174__i24
+   Register : UART_Sender0/clkdiv_174__i23
+   Register : UART_Sender0/clkdiv_174__i22
+   Register : UART_Sender0/clkdiv_174__i21
+   Register : UART_Sender0/clkdiv_174__i20
+   Register : UART_Sender0/clkdiv_174__i19
+   Register : UART_Sender0/clkdiv_174__i18
+   Register : UART_Sender0/clkdiv_174__i17
+   Register : UART_Sender0/clkdiv_174__i16
+   Register : UART_Sender0/clkdiv_174__i15
+   Register : UART_Sender0/clkdiv_174__i14
+   Register : UART_Sender0/clkdiv_174__i13
+   Register : UART_Sender0/clkdiv_174__i12
+   Register : UART_Sender0/clkdiv_174__i11
+   Register : UART_Sender0/clkdiv_174__i10
+   Register : UART_Sender0/clkdiv_174__i8
+   Register : UART_Sender0/clkdiv_174__i7
+   Register : UART_Sender0/clkdiv_174__i3
+   Register : UART_Sender0/clkdiv_174__i2
+   Register : UART_Sender0/clkdiv_174__i1
+   Register : UART_Sender0/state_FSM_i12
+   Register : UART_Sender0/state_FSM_i11
+   Register : UART_Sender0/state_FSM_i10
+   Register : UART_Sender0/state_FSM_i9
+   Register : UART_Sender0/state_FSM_i8
+   Register : UART_Sender0/state_FSM_i7
+   Register : UART_Sender0/state_FSM_i6
+   Register : UART_Sender0/state_FSM_i5
+   Register : UART_Sender0/state_FSM_i4
+   Register : clkdiv_173__i0
+   Register : clkdiv_173__i31
+   Register : clkdiv_173__i30
+   Register : clkdiv_173__i29
+   Register : clkdiv_173__i28
+   Register : clkdiv_173__i27
+   Register : clkdiv_173__i26
+   Register : clkdiv_173__i25
+   Register : clkdiv_173__i24
+   Register : clkdiv_173__i23
+   Register : clkdiv_173__i22
+   Register : clkdiv_173__i21
+   Register : clkdiv_173__i20
+   Register : clkdiv_173__i19
+   Register : clkdiv_173__i18
+   Register : clkdiv_173__i17
+   Register : clkdiv_173__i16
+   Register : clkdiv_173__i15
+   Register : clkdiv_173__i14
+   Register : clkdiv_173__i13
+   Register : clkdiv_173__i12
+   Register : clkdiv_173__i11
+   Register : clkdiv_173__i10
+   Register : clkdiv_173__i9
+   Register : clkdiv_173__i8
+   Register : clkdiv_173__i7
+
+                                    Page 5
+
+
+
+
+Design:  root                                          Date:  12/13/19  13:30:17
+
+GSR Usage (cont)
+----------------
+   Register : clkdiv_173__i6
+   Register : clkdiv_173__i5
+   Register : clkdiv_173__i4
+   Register : clkdiv_173__i3
+   Register : clkdiv_173__i2
+   Register : clkdiv_173__i1
+
+Run Time and Memory Usage
+-------------------------
+
+   Total CPU Time: 0 secs  
+   Total REAL Time: 0 secs  
+   Peak Memory Usage: 187 MB
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                    Page 6
+
+
+Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
+     Copyright (c) 1995 AT&T Corp.   All rights reserved.
+     Copyright (c) 1995-2001 Lucent Technologies Inc.  All rights reserved.
+     Copyright (c) 2001 Agere Systems   All rights reserved.
+     Copyright (c) 2002-2019 Lattice Semiconductor Corporation,  All rights
+     reserved.
