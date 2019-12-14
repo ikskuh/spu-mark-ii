@@ -37,10 +37,28 @@ ARCHITECTURE rtl OF root IS
 		
 	END COMPONENT UART_Sender;
 	
+	COMPONENT UART_Receiver IS
+		GENERIC (
+			clkfreq  : natural; -- frequency of 'clk' in Hz
+			baudrate : natural  -- basic symbol rate of the UART ("bit / sec")
+		);
+		PORT (
+			rst  : in  std_logic; -- asynchronous reset
+			clk  : in  std_logic; -- the clock for the uart operation.
+			rxd  : in  std_logic; -- uses logic levels, non-inverted
+			bsy  : out std_logic; -- is '1' when receiving a byte and '0' when not.
+			data : out unsigned(7 downto 0); -- the data to send. must be valid in the first clock cycle where send='1'
+			recv : out std_logic   -- when '1', data transmission is complete. this bit is only set for 1 clk cycle
+		);
+		
+	END COMPONENT UART_Receiver;
+	
 	signal cnt : unsigned(7 downto 0);
 	signal clkdiv : unsigned(31 downto 0);
-	signal floating : std_logic;
+	signal floating0 : std_logic;
+	signal floating1 : std_logic;
 	signal uart_send_char : unsigned(7 downto 0);
+	signal uart_receive_done : std_logic;
 BEGIN	
 	UART_Sender0: UART_Sender
 	GENERIC MAP(
@@ -51,9 +69,23 @@ BEGIN
 		rst => extrst,
 		clk => extclk,
 		txd => uart0_txd,
-		send => '1',
-		data => uart_send_char, -- 'X'
-		bsy => floating
+		send => uart_receive_done,
+		data => uart_send_char,
+		bsy => floating0
+	);
+	
+	UART_Receiver0: UART_Receiver
+	GENERIC MAP(
+		clkfreq => 12_000_000,
+		baudrate => 19200
+	)
+	PORT MAP(
+		rst => extrst,
+		clk => extclk,
+		rxd => uart0_rxd,
+		bsy => floating1,
+		data => uart_send_char,
+		recv => uart_receive_done
 	);
 
 	copy_leds: PROCESS (extclk, extrst)
@@ -63,18 +95,9 @@ BEGIN
 			cnt    <= to_unsigned(0, cnt'length);
 		else
 			if rising_edge(extclk) then
-				uart_send_char <= to_unsigned(48, 8) + unsigned(switches);
-				if clkdiv = 11_999_999 then
-					clkdiv <= to_unsigned(0, clkdiv'length);
-					cnt <= cnt + unsigned(switches);
-					leds <= not std_logic_vector(cnt);
-				else
-					clkdiv <= clkdiv + 1;
-				end if;
+				leds <= not std_logic_vector(uart_send_char);
 			end if;
 		end if;
 	END PROCESS copy_leds;
-	
-	-- uart0_txd <= uart0_rxd;
 	
 END ARCHITECTURE rtl ;

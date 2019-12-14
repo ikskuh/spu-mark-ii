@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 Lattice Synthesis Timing Report, Version  
-Fri Dec 13 13:30:16 2019
+Fri Dec 13 17:39:03 2019
 
 Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
 Copyright (c) 1995 AT&T Corp.   All rights reserved.
@@ -19,118 +19,124 @@ Report level:    verbose report, limited to 3 items per constraint
 
 ================================================================================
 Constraint: create_clock -period 5.000000 -name clk0 [get_nets extclk_c]
-            1891 items scored, 1891 timing errors detected.
+            1072 items scored, 1072 timing errors detected.
 --------------------------------------------------------------------------------
 
 
-Error:  The following path violates requirements by 3.758ns
+Error:  The following path violates requirements by 5.011ns
 
  Logical Details:  Cell type  Pin type       Cell name  (clock net +/-)
 
-   Source:         FD1S3IX    CK             clkdiv_173__i10  (from extclk_c +)
-   Destination:    FD1P3AX    SP             cnt_172__i1  (to extclk_c +)
+   Source:         FD1S3AX    CK             \UART_Receiver0/clkdiv_i3  (from extclk_c +)
+   Destination:    FD1P3AX    SP             \UART_Receiver0/data_buffer_i0_i4  (to extclk_c +)
 
-   Delay:                   8.522ns  (33.0% logic, 67.0% route), 7 logic levels.
+   Delay:                   9.775ns  (33.0% logic, 67.0% route), 8 logic levels.
 
  Constraint Details:
 
-      8.522ns data_path clkdiv_173__i10 to cnt_172__i1 violates
+      9.775ns data_path \UART_Receiver0/clkdiv_i3 to \UART_Receiver0/data_buffer_i0_i4 violates
       5.000ns delay constraint less
-      0.236ns LCE_S requirement (totaling 4.764ns) by 3.758ns
+      0.236ns LCE_S requirement (totaling 4.764ns) by 5.011ns
 
- Path Details: clkdiv_173__i10 to cnt_172__i1
+ Path Details: \UART_Receiver0/clkdiv_i3 to \UART_Receiver0/data_buffer_i0_i4
 
    Name    Fanout   Delay (ns)          Pins               Resource(Cell.Net)
-L_CO        ---     0.367             CK to Q              clkdiv_173__i10 (from extclk_c)
-Route         2   e 0.838                                  clkdiv[10]
-LUT4        ---     0.408              C to Z              i9_4_lut
-Route         1   e 0.660                                  n24
-LUT4        ---     0.408              B to Z              i12_4_lut
-Route         1   e 0.660                                  n27
-LUT4        ---     0.408              A to Z              i1_4_lut
-Route         1   e 0.660                                  n19
-LUT4        ---     0.408              A to Z              i10_3_lut
-Route         1   e 0.660                                  n28
-LUT4        ---     0.408              C to Z              i562_4_lut
-Route         2   e 0.798                                  n913
-LUT4        ---     0.408              B to Z              i563_3_lut_rep_1
-Route        40   e 1.431                                  extclk_c_enable_11
+L_CO        ---     0.367             CK to Q              \UART_Receiver0/clkdiv_i3 (from extclk_c)
+Route         2   e 0.838                                  \UART_Receiver0/clkdiv[3]
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i24_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n56
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i28_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n60
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i30_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n62
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i31_4_lut_rep_32
+Route        12   e 1.156                                  \UART_Receiver0/n1505
+LUT4        ---     0.408              C to Z              \UART_Receiver0/i2_3_lut_rep_29
+Route         5   e 0.981                                  \UART_Receiver0/n1502
+LUT4        ---     0.408              A to Z              \UART_Receiver0/i1_4_lut_rep_28
+Route         4   e 0.937                                  \UART_Receiver0/n1501
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i1_4_lut_adj_7
+Route         1   e 0.660                                  \UART_Receiver0/extclk_c_enable_6
                   --------
-                    8.522  (33.0% logic, 67.0% route), 7 logic levels.
+                    9.775  (33.0% logic, 67.0% route), 8 logic levels.
 
 
-Error:  The following path violates requirements by 3.758ns
+Error:  The following path violates requirements by 5.011ns
 
  Logical Details:  Cell type  Pin type       Cell name  (clock net +/-)
 
-   Source:         FD1S3IX    CK             clkdiv_173__i10  (from extclk_c +)
-   Destination:    FD1P3AX    SP             cnt_172__i2  (to extclk_c +)
+   Source:         FD1S3AX    CK             \UART_Receiver0/clkdiv_i3  (from extclk_c +)
+   Destination:    FD1P3AX    SP             \UART_Receiver0/data_buffer_i0_i3  (to extclk_c +)
 
-   Delay:                   8.522ns  (33.0% logic, 67.0% route), 7 logic levels.
+   Delay:                   9.775ns  (33.0% logic, 67.0% route), 8 logic levels.
 
  Constraint Details:
 
-      8.522ns data_path clkdiv_173__i10 to cnt_172__i2 violates
+      9.775ns data_path \UART_Receiver0/clkdiv_i3 to \UART_Receiver0/data_buffer_i0_i3 violates
       5.000ns delay constraint less
-      0.236ns LCE_S requirement (totaling 4.764ns) by 3.758ns
+      0.236ns LCE_S requirement (totaling 4.764ns) by 5.011ns
 
- Path Details: clkdiv_173__i10 to cnt_172__i2
+ Path Details: \UART_Receiver0/clkdiv_i3 to \UART_Receiver0/data_buffer_i0_i3
 
    Name    Fanout   Delay (ns)          Pins               Resource(Cell.Net)
-L_CO        ---     0.367             CK to Q              clkdiv_173__i10 (from extclk_c)
-Route         2   e 0.838                                  clkdiv[10]
-LUT4        ---     0.408              C to Z              i9_4_lut
-Route         1   e 0.660                                  n24
-LUT4        ---     0.408              B to Z              i12_4_lut
-Route         1   e 0.660                                  n27
-LUT4        ---     0.408              A to Z              i1_4_lut
-Route         1   e 0.660                                  n19
-LUT4        ---     0.408              A to Z              i10_3_lut
-Route         1   e 0.660                                  n28
-LUT4        ---     0.408              C to Z              i562_4_lut
-Route         2   e 0.798                                  n913
-LUT4        ---     0.408              B to Z              i563_3_lut_rep_1
-Route        40   e 1.431                                  extclk_c_enable_11
+L_CO        ---     0.367             CK to Q              \UART_Receiver0/clkdiv_i3 (from extclk_c)
+Route         2   e 0.838                                  \UART_Receiver0/clkdiv[3]
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i24_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n56
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i28_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n60
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i30_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n62
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i31_4_lut_rep_32
+Route        12   e 1.156                                  \UART_Receiver0/n1505
+LUT4        ---     0.408              C to Z              \UART_Receiver0/i2_3_lut_rep_29
+Route         5   e 0.981                                  \UART_Receiver0/n1502
+LUT4        ---     0.408              A to Z              \UART_Receiver0/i1_4_lut_rep_28
+Route         4   e 0.937                                  \UART_Receiver0/n1501
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i1_4_lut_adj_8
+Route         1   e 0.660                                  \UART_Receiver0/extclk_c_enable_7
                   --------
-                    8.522  (33.0% logic, 67.0% route), 7 logic levels.
+                    9.775  (33.0% logic, 67.0% route), 8 logic levels.
 
 
-Error:  The following path violates requirements by 3.758ns
+Error:  The following path violates requirements by 5.011ns
 
  Logical Details:  Cell type  Pin type       Cell name  (clock net +/-)
 
-   Source:         FD1S3IX    CK             clkdiv_173__i10  (from extclk_c +)
-   Destination:    FD1P3AX    SP             cnt_172__i3  (to extclk_c +)
+   Source:         FD1S3AX    CK             \UART_Receiver0/clkdiv_i3  (from extclk_c +)
+   Destination:    FD1P3AX    SP             \UART_Receiver0/data_buffer_i0_i2  (to extclk_c +)
 
-   Delay:                   8.522ns  (33.0% logic, 67.0% route), 7 logic levels.
+   Delay:                   9.775ns  (33.0% logic, 67.0% route), 8 logic levels.
 
  Constraint Details:
 
-      8.522ns data_path clkdiv_173__i10 to cnt_172__i3 violates
+      9.775ns data_path \UART_Receiver0/clkdiv_i3 to \UART_Receiver0/data_buffer_i0_i2 violates
       5.000ns delay constraint less
-      0.236ns LCE_S requirement (totaling 4.764ns) by 3.758ns
+      0.236ns LCE_S requirement (totaling 4.764ns) by 5.011ns
 
- Path Details: clkdiv_173__i10 to cnt_172__i3
+ Path Details: \UART_Receiver0/clkdiv_i3 to \UART_Receiver0/data_buffer_i0_i2
 
    Name    Fanout   Delay (ns)          Pins               Resource(Cell.Net)
-L_CO        ---     0.367             CK to Q              clkdiv_173__i10 (from extclk_c)
-Route         2   e 0.838                                  clkdiv[10]
-LUT4        ---     0.408              C to Z              i9_4_lut
-Route         1   e 0.660                                  n24
-LUT4        ---     0.408              B to Z              i12_4_lut
-Route         1   e 0.660                                  n27
-LUT4        ---     0.408              A to Z              i1_4_lut
-Route         1   e 0.660                                  n19
-LUT4        ---     0.408              A to Z              i10_3_lut
-Route         1   e 0.660                                  n28
-LUT4        ---     0.408              C to Z              i562_4_lut
-Route         2   e 0.798                                  n913
-LUT4        ---     0.408              B to Z              i563_3_lut_rep_1
-Route        40   e 1.431                                  extclk_c_enable_11
+L_CO        ---     0.367             CK to Q              \UART_Receiver0/clkdiv_i3 (from extclk_c)
+Route         2   e 0.838                                  \UART_Receiver0/clkdiv[3]
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i24_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n56
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i28_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n60
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i30_4_lut
+Route         1   e 0.660                                  \UART_Receiver0/n62
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i31_4_lut_rep_32
+Route        12   e 1.156                                  \UART_Receiver0/n1505
+LUT4        ---     0.408              C to Z              \UART_Receiver0/i2_3_lut_rep_29
+Route         5   e 0.981                                  \UART_Receiver0/n1502
+LUT4        ---     0.408              A to Z              \UART_Receiver0/i1_4_lut_rep_28
+Route         4   e 0.937                                  \UART_Receiver0/n1501
+LUT4        ---     0.408              B to Z              \UART_Receiver0/i1_4_lut_adj_10
+Route         1   e 0.660                                  \UART_Receiver0/extclk_c_enable_8
                   --------
-                    8.522  (33.0% logic, 67.0% route), 7 logic levels.
+                    9.775  (33.0% logic, 67.0% route), 8 logic levels.
 
-Warning: 8.758 ns is the maximum delay for this constraint.
+Warning: 10.011 ns is the maximum delay for this constraint.
 
 
 Timing Report Summary
@@ -140,7 +146,7 @@ Constraint                              |   Constraint|       Actual|Levels
 --------------------------------------------------------------------------------
                                         |             |             |
 create_clock -period 5.000000 -name     |             |             |
-clk0 [get_nets extclk_c]                |     5.000 ns|     8.758 ns|     7 *
+clk0 [get_nets extclk_c]                |     5.000 ns|    10.011 ns|     8 *
                                         |             |             |
 --------------------------------------------------------------------------------
 
@@ -150,31 +156,33 @@ clk0 [get_nets extclk_c]                |     5.000 ns|     8.758 ns|     7 *
 --------------------------------------------------------------------------------
 Critical Nets                           |   Loads|  Errors| % of total
 --------------------------------------------------------------------------------
-\UART_Sender0/txd_N_215                 |      17|    1114|     58.91%
+\UART_Receiver0/n1505                   |      12|     710|     66.23%
                                         |        |        |
-\UART_Sender0/n977                      |      28|     896|     47.38%
+\UART_Receiver0/n62                     |       1|     488|     45.52%
                                         |        |        |
-n913                                    |       2|     776|     41.04%
+\UART_Receiver0/n1502                   |       5|     466|     43.47%
                                         |        |        |
-n19                                     |       1|     768|     40.61%
+\UART_Receiver0/n60                     |       1|     352|     32.84%
                                         |        |        |
-n28                                     |       1|     768|     40.61%
+\UART_Sender0/n593                      |       8|     340|     31.72%
                                         |        |        |
-extclk_c_enable_11                      |      40|     648|     34.27%
+\UART_Sender0/n1503                     |      28|     280|     26.12%
                                         |        |        |
-\UART_Sender0/n922                      |       1|     614|     32.47%
+\UART_Receiver0/extclk_c_enable_34      |       8|     256|     23.88%
                                         |        |        |
-n27                                     |       1|     336|     17.77%
+\UART_Sender0/n61                       |       1|     256|     23.88%
                                         |        |        |
-\UART_Sender0/n60                       |       1|     334|     17.66%
+\UART_Sender0/n58                       |       1|     228|     21.27%
                                         |        |        |
-\UART_Sender0/n58                       |       1|     268|     14.17%
+\UART_Receiver0/n56                     |       1|     212|     19.78%
                                         |        |        |
-n24                                     |       1|     192|     10.15%
+\UART_Receiver0/n1500                   |      26|     156|     14.55%
                                         |        |        |
-n25                                     |       1|     192|     10.15%
+\UART_Sender0/n52                       |       2|     152|     14.18%
                                         |        |        |
-n26                                     |       1|     192|     10.15%
+\UART_Receiver0/n1501                   |       4|     144|     13.43%
+                                        |        |        |
+\UART_Receiver0/n58                     |       1|     126|     11.75%
                                         |        |        |
 --------------------------------------------------------------------------------
 
@@ -182,10 +190,10 @@ n26                                     |       1|     192|     10.15%
 Timing summary:
 ---------------
 
-Timing errors: 1891  Score: 4120282
+Timing errors: 1072  Score: 3036102
 
-Constraints cover  4156 paths, 246 nets, and 543 connections (95.4% coverage)
+Constraints cover  4664 paths, 315 nets, and 771 connections (96.1% coverage)
 
 
-Peak memory: 212525056 bytes, TRCE: 0 bytes, DLYMAN: 0 bytes
+Peak memory: 213049344 bytes, TRCE: 0 bytes, DLYMAN: 0 bytes
 CPU_TIME_REPORT: 0 secs 

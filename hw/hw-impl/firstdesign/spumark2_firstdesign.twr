@@ -13,7 +13,7 @@ Setup and Hold Report
 
 --------------------------------------------------------------------------------
 Lattice TRACE Report - Setup, Version Diamond (64-bit) 3.11.1.441.0
-Fri Dec 13 13:30:24 2019
+Fri Dec 13 17:39:24 2019
 
 Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
 Copyright (c) 1995 AT&T Corp.   All rights reserved.
@@ -38,571 +38,547 @@ BLOCK RESETPATHS
 
 
 ================================================================================
-Preference: FREQUENCY NET "extclk_c" 353.607000 MHz ;
-            2889 items scored, 2247 timing errors detected.
+Preference: FREQUENCY NET "extclk_c" 413.565000 MHz ;
+            3557 items scored, 3241 timing errors detected.
 --------------------------------------------------------------------------------
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i14  (to extclk_c +)
-                   FF                        clkdiv_173__i13
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i26  (to extclk_c +)
+                   FF                        UART_Sender0/clkdiv_303__i25
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_19 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_13 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_19:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_13:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C20D.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C24B.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_19:
+      Destination Clock Path extclk to UART_Sender0/SLICE_13:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C20D.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C24B.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i30  (to extclk_c +)
-                   FF                        clkdiv_173__i29
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i22  (to extclk_c +)
+                   FF                        UART_Sender0/clkdiv_303__i21
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_20 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_15 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_20:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_15:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C22D.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C23D.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_20:
+      Destination Clock Path extclk to UART_Sender0/SLICE_15:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22D.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23D.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i12  (to extclk_c +)
-                   FF                        clkdiv_173__i11
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i10  (to extclk_c +)
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_21 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_3 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_21:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_3:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C20C.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C22B.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_21:
+      Destination Clock Path extclk to UART_Sender0/SLICE_3:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C20C.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C22B.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i28  (to extclk_c +)
-                   FF                        clkdiv_173__i27
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i14  (to extclk_c +)
+                   FF                        UART_Sender0/clkdiv_303__i13
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_22 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_1 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_22:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_1:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C22C.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C22D.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_22:
+      Destination Clock Path extclk to UART_Sender0/SLICE_1:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22C.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C22D.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i26  (to extclk_c +)
-                   FF                        clkdiv_173__i25
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i31  (to extclk_c +)
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_23 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_10 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_23:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_10:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C22B.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C25A.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_23:
+      Destination Clock Path extclk to UART_Sender0/SLICE_10:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22B.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C25A.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i10  (to extclk_c +)
-                   FF                        clkdiv_173__i9
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i3  (to extclk_c +)
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_24 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_6 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_24:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_6:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C20B.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C21C.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_24:
+      Destination Clock Path extclk to UART_Sender0/SLICE_6:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C20B.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C21C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i8  (to extclk_c +)
-                   FF                        clkdiv_173__i7
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i28  (to extclk_c +)
+                   FF                        UART_Sender0/clkdiv_303__i27
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_25 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_12 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_25:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_12:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C20A.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C24C.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_25:
+      Destination Clock Path extclk to UART_Sender0/SLICE_12:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C20A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C24C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i24  (to extclk_c +)
-                   FF                        clkdiv_173__i23
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i20  (to extclk_c +)
+                   FF                        UART_Sender0/clkdiv_303__i19
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_27 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_16 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_27:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C22A.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C23C.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_27:
+      Destination Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i6  (to extclk_c +)
-                   FF                        clkdiv_173__i5
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i24  (to extclk_c +)
+                   FF                        UART_Sender0/clkdiv_303__i23
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_28 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_14 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_28:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_14:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C19D.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C24A.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_28:
+      Destination Clock Path extclk to UART_Sender0/SLICE_14:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C19D.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C24A.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
 
-Error: The following path exceeds requirements by 7.364ns
+Error: The following path exceeds requirements by 8.523ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              clkdiv_173__i24  (from extclk_c +)
-   Destination:    FF         Data in        clkdiv_173__i4  (to extclk_c +)
-                   FF                        clkdiv_173__i3
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i20  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i0  (to extclk_c +)
 
-   Delay:               9.968ns  (28.4% logic, 71.6% route), 7 logic levels.
+   Delay:              10.717ns  (22.6% logic, 77.4% route), 6 logic levels.
 
  Constraint Details:
 
-      9.968ns physical path delay SLICE_27 to SLICE_29 exceeds
-      2.828ns delay constraint less
+     10.717ns physical path delay UART_Sender0/SLICE_16 to UART_Sender0/SLICE_8 exceeds
+      2.418ns delay constraint less
       0.000ns skew and
-      0.224ns LSR_SET requirement (totaling 2.604ns) by 7.364ns
+      0.224ns LSR_SET requirement (totaling 2.194ns) by 8.523ns
 
  Physical Path Details:
 
-      Data path SLICE_27 to SLICE_29:
+      Data path UART_Sender0/SLICE_16 to UART_Sender0/SLICE_8:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.368    R18C22A.CLK to     R18C22A.Q1 SLICE_27 (from extclk_c)
-ROUTE         2     1.400     R18C22A.Q1 to     R17C21B.B1 clkdiv_24
-CTOF_DEL    ---     0.410     R17C21B.B1 to     R17C21B.F1 SLICE_67
-ROUTE         1     0.353     R17C21B.F1 to     R17C21B.C0 n24
-CTOF_DEL    ---     0.410     R17C21B.C0 to     R17C21B.F0 SLICE_67
-ROUTE         1     0.549     R17C21B.F0 to     R17C21C.B1 n27
-CTOF_DEL    ---     0.410     R17C21C.B1 to     R17C21C.F1 SLICE_58
-ROUTE         1     0.353     R17C21C.F1 to     R17C21C.C0 n19
-CTOF_DEL    ---     0.410     R17C21C.C0 to     R17C21C.F0 SLICE_58
-ROUTE         1     0.765     R17C21C.F0 to     R17C21A.A0 n28
-CTOF_DEL    ---     0.410     R17C21A.A0 to     R17C21A.F0 SLICE_66
-ROUTE         2     1.564     R17C21A.F0 to     R21C20B.B0 n913
-CTOF_DEL    ---     0.410     R21C20B.B0 to     R21C20B.F0 SLICE_64
-ROUTE        22     2.156     R21C20B.F0 to    R18C19C.LSR extclk_c_enable_11 (to extclk_c)
+REG_DEL     ---     0.368    R19C23C.CLK to     R19C23C.Q1 UART_Sender0/SLICE_16 (from extclk_c)
+ROUTE         2     1.466     R19C23C.Q1 to     R18C21B.B1 UART_Sender0/clkdiv_20
+CTOF_DEL    ---     0.410     R18C21B.B1 to     R18C21B.F1 UART_Sender0/SLICE_100
+ROUTE         2     0.495     R18C21B.F1 to     R18C22B.D0 UART_Sender0/n52
+CTOF_DEL    ---     0.410     R18C22B.D0 to     R18C22B.F0 UART_Sender0/SLICE_78
+ROUTE         1     0.763     R18C22B.F0 to     R18C23D.A0 UART_Sender0/n58
+CTOF_DEL    ---     0.410     R18C23D.A0 to     R18C23D.F0 UART_Sender0/SLICE_76
+ROUTE         1     0.809     R18C23D.F0 to     R17C23A.B1 UART_Sender0/n61
+CTOF_DEL    ---     0.410     R17C23A.B1 to     R17C23A.F1 UART_Sender0/SLICE_63
+ROUTE         8     2.680     R17C23A.F1 to     R14C20B.B0 UART_Sender0/n593
+CTOF_DEL    ---     0.410     R14C20B.B0 to     R14C20B.F0 UART_Sender0/SLICE_80
+ROUTE        16     2.086     R14C20B.F0 to    R19C21A.LSR UART_Sender0/n1503 (to extclk_c)
                   --------
-                    9.968   (28.4% logic, 71.6% route), 7 logic levels.
+                   10.717   (22.6% logic, 77.4% route), 6 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_27:
+      Source Clock Path extclk to UART_Sender0/SLICE_16:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C22A.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C23C.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_29:
+      Destination Clock Path extclk to UART_Sender0/SLICE_8:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     2.160       C8.PADDI to    R18C19C.CLK extclk_c
+ROUTE        66     2.160       C8.PADDI to    R19C21A.CLK extclk_c
                   --------
                     2.160   (0.0% logic, 100.0% route), 0 logic levels.
 
-Warning:  98.116MHz is the maximum frequency for this preference.
+Warning:  91.399MHz is the maximum frequency for this preference.
 
 Report Summary
 --------------
@@ -610,8 +586,8 @@ Report Summary
 Preference                              |   Constraint|       Actual|Levels
 ----------------------------------------------------------------------------
                                         |             |             |
-FREQUENCY NET "extclk_c" 353.607000 MHz |             |             |
-;                                       |  353.607 MHz|   98.116 MHz|   7 *
+FREQUENCY NET "extclk_c" 413.565000 MHz |             |             |
+;                                       |  413.565 MHz|   91.399 MHz|   6 *
                                         |             |             |
 ----------------------------------------------------------------------------
 
@@ -621,19 +597,19 @@ FREQUENCY NET "extclk_c" 353.607000 MHz |             |             |
 ----------------------------------------------------------------------------
 Critical Nets                           |   Loads|  Errors| % of total
 ----------------------------------------------------------------------------
-UART_Sender0/txd_N_215                  |      13|     896|     39.88%
+UART_Receiver0/n1505                    |      12|    1184|     36.53%
                                         |        |        |
-extclk_c_enable_11                      |      22|     704|     31.33%
+UART_Sender0/n593                       |       8|     800|     24.68%
                                         |        |        |
-n913                                    |       2|     624|     27.77%
+UART_Receiver0/n62                      |       1|     592|     18.27%
                                         |        |        |
-UART_Sender0/n977                       |      16|     528|     23.50%
+UART_Sender0/n1503                      |      16|     576|     17.77%
                                         |        |        |
-n28                                     |       1|     468|     20.83%
+UART_Receiver0/n1500                    |      15|     540|     16.66%
                                         |        |        |
-UART_Sender0/n922                       |       1|     448|     19.94%
+UART_Sender0/n61                        |       1|     400|     12.34%
                                         |        |        |
-n19                                     |       1|     416|     18.51%
+UART_Receiver0/n1502                    |       5|     396|     12.22%
                                         |        |        |
 ----------------------------------------------------------------------------
 
@@ -643,21 +619,21 @@ Clock Domains Analysis
 
 Found 1 clocks:
 
-Clock Domain: extclk_c   Source: extclk.PAD   Loads: 56
-   Covered under: FREQUENCY NET "extclk_c" 353.607000 MHz ;
+Clock Domain: extclk_c   Source: extclk.PAD   Loads: 66
+   Covered under: FREQUENCY NET "extclk_c" 413.565000 MHz ;
 
 
 Timing summary (Setup):
 ---------------
 
-Timing errors: 2247  Score: 7819950
-Cumulative negative slack: 7819950
+Timing errors: 3241  Score: 11694546
+Cumulative negative slack: 11694546
 
-Constraints cover 2889 paths, 1 nets, and 456 connections (95.20% coverage)
+Constraints cover 3557 paths, 1 nets, and 690 connections (96.50% coverage)
 
 --------------------------------------------------------------------------------
 Lattice TRACE Report - Hold, Version Diamond (64-bit) 3.11.1.441.0
-Fri Dec 13 13:30:24 2019
+Fri Dec 13 17:39:24 2019
 
 Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
 Copyright (c) 1995 AT&T Corp.   All rights reserved.
@@ -681,394 +657,52 @@ BLOCK RESETPATHS
 
 
 ================================================================================
-Preference: FREQUENCY NET "extclk_c" 353.607000 MHz ;
-            2889 items scored, 0 timing errors detected.
+Preference: FREQUENCY NET "extclk_c" 413.565000 MHz ;
+            3557 items scored, 0 timing errors detected.
 --------------------------------------------------------------------------------
 
 
-Passed: The following path meets requirements by 0.299ns
+Passed: The following path meets requirements by 0.372ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              uart_send_char__i1  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/data_buffer__i1  (to extclk_c +)
+   Source:         FF         Q              UART_Receiver0/clkdiv_i15  (from extclk_c +)
+   Destination:    FF         Data in        UART_Receiver0/clkdiv_i15  (to extclk_c +)
 
-   Delay:               0.280ns  (46.8% logic, 53.2% route), 1 logic levels.
-
- Constraint Details:
-
-      0.280ns physical path delay SLICE_55 to UART_Sender0/SLICE_62 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.299ns
-
- Physical Path Details:
-
-      Data path SLICE_55 to UART_Sender0/SLICE_62:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R18C17D.CLK to     R18C17D.Q0 SLICE_55 (from extclk_c)
-ROUTE         1     0.149     R18C17D.Q0 to     R18C17C.M0 uart_send_char_0 (to extclk_c)
-                  --------
-                    0.280   (46.8% logic, 53.2% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_55:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C17D.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to UART_Sender0/SLICE_62:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C17C.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.299ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              uart_send_char__i3  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/data_buffer__i3  (to extclk_c +)
-
-   Delay:               0.280ns  (46.8% logic, 53.2% route), 1 logic levels.
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
 
  Constraint Details:
 
-      0.280ns physical path delay SLICE_56 to UART_Sender0/SLICE_60 meets
-     -0.019ns M_HLD and
+      0.359ns physical path delay UART_Receiver0/SLICE_25 to UART_Receiver0/SLICE_25 meets
+     -0.013ns DIN_HLD and
       0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.299ns
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
 
  Physical Path Details:
 
-      Data path SLICE_56 to UART_Sender0/SLICE_60:
+      Data path UART_Receiver0/SLICE_25 to UART_Receiver0/SLICE_25:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R18C18A.CLK to     R18C18A.Q0 SLICE_56 (from extclk_c)
-ROUTE         1     0.149     R18C18A.Q0 to     R18C18D.M0 uart_send_char_2 (to extclk_c)
+REG_DEL     ---     0.131    R11C24A.CLK to     R11C24A.Q0 UART_Receiver0/SLICE_25 (from extclk_c)
+ROUTE         2     0.129     R11C24A.Q0 to     R11C24A.A0 UART_Receiver0/clkdiv_15
+CTOF_DEL    ---     0.099     R11C24A.A0 to     R11C24A.F0 UART_Receiver0/SLICE_25
+ROUTE         1     0.000     R11C24A.F0 to    R11C24A.DI0 UART_Receiver0/n348 (to extclk_c)
                   --------
-                    0.280   (46.8% logic, 53.2% route), 1 logic levels.
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_56:
+      Source Clock Path extclk to UART_Receiver0/SLICE_25:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C18A.CLK extclk_c
+ROUTE        66     0.887       C8.PADDI to    R11C24A.CLK extclk_c
                   --------
                     0.887   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to UART_Sender0/SLICE_60:
+      Destination Clock Path extclk to UART_Receiver0/SLICE_25:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C18D.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.299ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              uart_send_char__i4  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/data_buffer__i4  (to extclk_c +)
-
-   Delay:               0.280ns  (46.8% logic, 53.2% route), 1 logic levels.
-
- Constraint Details:
-
-      0.280ns physical path delay SLICE_56 to UART_Sender0/SLICE_60 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.299ns
-
- Physical Path Details:
-
-      Data path SLICE_56 to UART_Sender0/SLICE_60:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R18C18A.CLK to     R18C18A.Q1 SLICE_56 (from extclk_c)
-ROUTE         1     0.149     R18C18A.Q1 to     R18C18D.M1 uart_send_char_3 (to extclk_c)
-                  --------
-                    0.280   (46.8% logic, 53.2% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_56:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C18A.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to UART_Sender0/SLICE_60:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C18D.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.299ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              UART_Sender0/state_FSM_i4  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/state_FSM_i5  (to extclk_c +)
-
-   Delay:               0.280ns  (46.8% logic, 53.2% route), 1 logic levels.
-
- Constraint Details:
-
-      0.280ns physical path delay SLICE_68 to SLICE_67 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.299ns
-
- Physical Path Details:
-
-      Data path SLICE_68 to SLICE_67:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R17C21D.CLK to     R17C21D.Q1 SLICE_68 (from extclk_c)
-ROUTE         1     0.149     R17C21D.Q1 to     R17C21B.M0 UART_Sender0/n311 (to extclk_c)
-                  --------
-                    0.280   (46.8% logic, 53.2% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_68:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21D.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to SLICE_67:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21B.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.301ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              UART_Sender0/state_FSM_i10  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/state_FSM_i11  (to extclk_c +)
-
-   Delay:               0.282ns  (46.5% logic, 53.5% route), 1 logic levels.
-
- Constraint Details:
-
-      0.282ns physical path delay SLICE_58 to SLICE_58 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.301ns
-
- Physical Path Details:
-
-      Data path SLICE_58 to SLICE_58:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R17C21C.CLK to     R17C21C.Q0 SLICE_58 (from extclk_c)
-ROUTE         2     0.151     R17C21C.Q0 to     R17C21C.M1 UART_Sender0/n305 (to extclk_c)
-                  --------
-                    0.282   (46.5% logic, 53.5% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_58:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21C.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to SLICE_58:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21C.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.301ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              UART_Sender0/state_FSM_i11  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/state_FSM_i12  (to extclk_c +)
-
-   Delay:               0.282ns  (46.5% logic, 53.5% route), 1 logic levels.
-
- Constraint Details:
-
-      0.282ns physical path delay SLICE_58 to SLICE_68 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.301ns
-
- Physical Path Details:
-
-      Data path SLICE_58 to SLICE_68:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R17C21C.CLK to     R17C21C.Q1 SLICE_58 (from extclk_c)
-ROUTE         2     0.151     R17C21C.Q1 to     R17C21D.M0 UART_Sender0/n304 (to extclk_c)
-                  --------
-                    0.282   (46.5% logic, 53.5% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_58:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21C.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to SLICE_68:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21D.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.301ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              UART_Sender0/state_FSM_i9  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/state_FSM_i10  (to extclk_c +)
-
-   Delay:               0.282ns  (46.5% logic, 53.5% route), 1 logic levels.
-
- Constraint Details:
-
-      0.282ns physical path delay SLICE_66 to SLICE_58 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.301ns
-
- Physical Path Details:
-
-      Data path SLICE_66 to SLICE_58:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R17C21A.CLK to     R17C21A.Q0 SLICE_66 (from extclk_c)
-ROUTE         2     0.151     R17C21A.Q0 to     R17C21C.M0 UART_Sender0/n306 (to extclk_c)
-                  --------
-                    0.282   (46.5% logic, 53.5% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_66:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21A.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to SLICE_58:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21C.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.301ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              UART_Sender0/state_FSM_i5  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/state_FSM_i6  (to extclk_c +)
-
-   Delay:               0.282ns  (46.5% logic, 53.5% route), 1 logic levels.
-
- Constraint Details:
-
-      0.282ns physical path delay SLICE_67 to SLICE_67 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.301ns
-
- Physical Path Details:
-
-      Data path SLICE_67 to SLICE_67:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R17C21B.CLK to     R17C21B.Q0 SLICE_67 (from extclk_c)
-ROUTE         2     0.151     R17C21B.Q0 to     R17C21B.M1 UART_Sender0/n310 (to extclk_c)
-                  --------
-                    0.282   (46.5% logic, 53.5% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_67:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21B.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to SLICE_67:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C21B.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-
-Passed: The following path meets requirements by 0.304ns
-
- Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
-
-   Source:         FF         Q              UART_Sender0/state_FSM_i7  (from extclk_c +)
-   Destination:    FF         Data in        UART_Sender0/state_FSM_i8  (to extclk_c +)
-
-   Delay:               0.285ns  (46.0% logic, 54.0% route), 1 logic levels.
-
- Constraint Details:
-
-      0.285ns physical path delay SLICE_65 to SLICE_65 meets
-     -0.019ns M_HLD and
-      0.000ns delay constraint less
-      0.000ns skew requirement (totaling -0.019ns) by 0.304ns
-
- Physical Path Details:
-
-      Data path SLICE_65 to SLICE_65:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R17C20B.CLK to     R17C20B.Q0 SLICE_65 (from extclk_c)
-ROUTE         2     0.154     R17C20B.Q0 to     R17C20B.M1 UART_Sender0/n308 (to extclk_c)
-                  --------
-                    0.285   (46.0% logic, 54.0% route), 1 logic levels.
-
- Clock Skew Details: 
-
-      Source Clock Path extclk to SLICE_65:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C20B.CLK extclk_c
-                  --------
-                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
-
-      Destination Clock Path extclk to SLICE_65:
-
-   Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R17C20B.CLK extclk_c
+ROUTE        66     0.887       C8.PADDI to    R11C24A.CLK extclk_c
                   --------
                     0.887   (0.0% logic, 100.0% route), 0 logic levels.
 
@@ -1077,43 +711,403 @@ Passed: The following path meets requirements by 0.372ns
 
  Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
 
-   Source:         FF         Q              cnt_172__i4  (from extclk_c +)
-   Destination:    FF         Data in        cnt_172__i4  (to extclk_c +)
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i22  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i22  (to extclk_c +)
 
    Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
 
  Constraint Details:
 
-      0.359ns physical path delay SLICE_17 to SLICE_17 meets
+      0.359ns physical path delay UART_Sender0/SLICE_15 to UART_Sender0/SLICE_15 meets
      -0.013ns DIN_HLD and
       0.000ns delay constraint less
       0.000ns skew requirement (totaling -0.013ns) by 0.372ns
 
  Physical Path Details:
 
-      Data path SLICE_17 to SLICE_17:
+      Data path UART_Sender0/SLICE_15 to UART_Sender0/SLICE_15:
 
    Name    Fanout   Delay (ns)          Site               Resource
-REG_DEL     ---     0.131    R18C39C.CLK to     R18C39C.Q0 SLICE_17 (from extclk_c)
-ROUTE         2     0.129     R18C39C.Q0 to     R18C39C.A0 cnt_4
-CTOF_DEL    ---     0.099     R18C39C.A0 to     R18C39C.F0 SLICE_17
-ROUTE         1     0.000     R18C39C.F0 to    R18C39C.DI0 n41_adj_220 (to extclk_c)
+REG_DEL     ---     0.131    R19C23D.CLK to     R19C23D.Q1 UART_Sender0/SLICE_15 (from extclk_c)
+ROUTE         2     0.129     R19C23D.Q1 to     R19C23D.A1 UART_Sender0/clkdiv_22
+CTOF_DEL    ---     0.099     R19C23D.A1 to     R19C23D.F1 UART_Sender0/SLICE_15
+ROUTE         1     0.000     R19C23D.F1 to    R19C23D.DI1 UART_Sender0/n143 (to extclk_c)
                   --------
                     0.359   (64.1% logic, 35.9% route), 2 logic levels.
 
  Clock Skew Details: 
 
-      Source Clock Path extclk to SLICE_17:
+      Source Clock Path extclk to UART_Sender0/SLICE_15:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C39C.CLK extclk_c
+ROUTE        66     0.887       C8.PADDI to    R19C23D.CLK extclk_c
                   --------
                     0.887   (0.0% logic, 100.0% route), 0 logic levels.
 
-      Destination Clock Path extclk to SLICE_17:
+      Destination Clock Path extclk to UART_Sender0/SLICE_15:
 
    Name    Fanout   Delay (ns)          Site               Resource
-ROUTE        56     0.887       C8.PADDI to    R18C39C.CLK extclk_c
+ROUTE        66     0.887       C8.PADDI to    R19C23D.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i8  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i8  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Sender0/SLICE_4 to UART_Sender0/SLICE_4 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Sender0/SLICE_4 to UART_Sender0/SLICE_4:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R19C22A.CLK to     R19C22A.Q1 UART_Sender0/SLICE_4 (from extclk_c)
+ROUTE         2     0.129     R19C22A.Q1 to     R19C22A.A1 UART_Sender0/clkdiv_8
+CTOF_DEL    ---     0.099     R19C22A.A1 to     R19C22A.F1 UART_Sender0/SLICE_4
+ROUTE         1     0.000     R19C22A.F1 to    R19C22A.DI1 UART_Sender0/n157 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Sender0/SLICE_4:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R19C22A.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Sender0/SLICE_4:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R19C22A.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Receiver0/clkdiv_i27  (from extclk_c +)
+   Destination:    FF         Data in        UART_Receiver0/clkdiv_i27  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Receiver0/SLICE_19 to UART_Receiver0/SLICE_19 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Receiver0/SLICE_19 to UART_Receiver0/SLICE_19:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R11C25C.CLK to     R11C25C.Q0 UART_Receiver0/SLICE_19 (from extclk_c)
+ROUTE         2     0.129     R11C25C.Q0 to     R11C25C.A0 UART_Receiver0/clkdiv_27
+CTOF_DEL    ---     0.099     R11C25C.A0 to     R11C25C.F0 UART_Receiver0/SLICE_19
+ROUTE         1     0.000     R11C25C.F0 to    R11C25C.DI0 UART_Receiver0/n336 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Receiver0/SLICE_19:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C25C.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Receiver0/SLICE_19:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C25C.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Receiver0/clkdiv_i22  (from extclk_c +)
+   Destination:    FF         Data in        UART_Receiver0/clkdiv_i22  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Receiver0/SLICE_22 to UART_Receiver0/SLICE_22 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Receiver0/SLICE_22 to UART_Receiver0/SLICE_22:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R11C24D.CLK to     R11C24D.Q1 UART_Receiver0/SLICE_22 (from extclk_c)
+ROUTE         2     0.129     R11C24D.Q1 to     R11C24D.A1 UART_Receiver0/clkdiv_22
+CTOF_DEL    ---     0.099     R11C24D.A1 to     R11C24D.F1 UART_Receiver0/SLICE_22
+ROUTE         1     0.000     R11C24D.F1 to    R11C24D.DI1 UART_Receiver0/n341 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Receiver0/SLICE_22:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C24D.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Receiver0/SLICE_22:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C24D.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i1  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i1  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Sender0/SLICE_7 to UART_Sender0/SLICE_7 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Sender0/SLICE_7 to UART_Sender0/SLICE_7:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R19C21B.CLK to     R19C21B.Q0 UART_Sender0/SLICE_7 (from extclk_c)
+ROUTE         2     0.129     R19C21B.Q0 to     R19C21B.A0 UART_Sender0/clkdiv_1
+CTOF_DEL    ---     0.099     R19C21B.A0 to     R19C21B.F0 UART_Sender0/SLICE_7
+ROUTE         1     0.000     R19C21B.F0 to    R19C21B.DI0 UART_Sender0/n164 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Sender0/SLICE_7:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R19C21B.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Sender0/SLICE_7:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R19C21B.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Receiver0/clkdiv_i19  (from extclk_c +)
+   Destination:    FF         Data in        UART_Receiver0/clkdiv_i19  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Receiver0/SLICE_23 to UART_Receiver0/SLICE_23 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Receiver0/SLICE_23 to UART_Receiver0/SLICE_23:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R11C24C.CLK to     R11C24C.Q0 UART_Receiver0/SLICE_23 (from extclk_c)
+ROUTE         2     0.129     R11C24C.Q0 to     R11C24C.A0 UART_Receiver0/clkdiv_19
+CTOF_DEL    ---     0.099     R11C24C.A0 to     R11C24C.F0 UART_Receiver0/SLICE_23
+ROUTE         1     0.000     R11C24C.F0 to    R11C24C.DI0 UART_Receiver0/n344 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Receiver0/SLICE_23:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C24C.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Receiver0/SLICE_23:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C24C.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Sender0/clkdiv_303__i29  (from extclk_c +)
+   Destination:    FF         Data in        UART_Sender0/clkdiv_303__i29  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Sender0/SLICE_11 to UART_Sender0/SLICE_11 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Sender0/SLICE_11 to UART_Sender0/SLICE_11:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R19C24D.CLK to     R19C24D.Q0 UART_Sender0/SLICE_11 (from extclk_c)
+ROUTE         3     0.129     R19C24D.Q0 to     R19C24D.A0 UART_Sender0/clkdiv_29
+CTOF_DEL    ---     0.099     R19C24D.A0 to     R19C24D.F0 UART_Sender0/SLICE_11
+ROUTE         1     0.000     R19C24D.F0 to    R19C24D.DI0 UART_Sender0/n136 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Sender0/SLICE_11:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R19C24D.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Sender0/SLICE_11:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R19C24D.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Receiver0/clkdiv_i25  (from extclk_c +)
+   Destination:    FF         Data in        UART_Receiver0/clkdiv_i25  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Receiver0/SLICE_20 to UART_Receiver0/SLICE_20 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Receiver0/SLICE_20 to UART_Receiver0/SLICE_20:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R11C25B.CLK to     R11C25B.Q0 UART_Receiver0/SLICE_20 (from extclk_c)
+ROUTE         2     0.129     R11C25B.Q0 to     R11C25B.A0 UART_Receiver0/clkdiv_25
+CTOF_DEL    ---     0.099     R11C25B.A0 to     R11C25B.F0 UART_Receiver0/SLICE_20
+ROUTE         1     0.000     R11C25B.F0 to    R11C25B.DI0 UART_Receiver0/n338 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Receiver0/SLICE_20:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C25B.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Receiver0/SLICE_20:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C25B.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+
+Passed: The following path meets requirements by 0.372ns
+
+ Logical Details:  Cell type  Pin type       Cell/ASIC name  (clock net +/-)
+
+   Source:         FF         Q              UART_Receiver0/clkdiv_i29  (from extclk_c +)
+   Destination:    FF         Data in        UART_Receiver0/clkdiv_i29  (to extclk_c +)
+
+   Delay:               0.359ns  (64.1% logic, 35.9% route), 2 logic levels.
+
+ Constraint Details:
+
+      0.359ns physical path delay UART_Receiver0/SLICE_18 to UART_Receiver0/SLICE_18 meets
+     -0.013ns DIN_HLD and
+      0.000ns delay constraint less
+      0.000ns skew requirement (totaling -0.013ns) by 0.372ns
+
+ Physical Path Details:
+
+      Data path UART_Receiver0/SLICE_18 to UART_Receiver0/SLICE_18:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+REG_DEL     ---     0.131    R11C25D.CLK to     R11C25D.Q0 UART_Receiver0/SLICE_18 (from extclk_c)
+ROUTE         2     0.129     R11C25D.Q0 to     R11C25D.A0 UART_Receiver0/clkdiv_29
+CTOF_DEL    ---     0.099     R11C25D.A0 to     R11C25D.F0 UART_Receiver0/SLICE_18
+ROUTE         1     0.000     R11C25D.F0 to    R11C25D.DI0 UART_Receiver0/n334 (to extclk_c)
+                  --------
+                    0.359   (64.1% logic, 35.9% route), 2 logic levels.
+
+ Clock Skew Details: 
+
+      Source Clock Path extclk to UART_Receiver0/SLICE_18:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C25D.CLK extclk_c
+                  --------
+                    0.887   (0.0% logic, 100.0% route), 0 logic levels.
+
+      Destination Clock Path extclk to UART_Receiver0/SLICE_18:
+
+   Name    Fanout   Delay (ns)          Site               Resource
+ROUTE        66     0.887       C8.PADDI to    R11C25D.CLK extclk_c
                   --------
                     0.887   (0.0% logic, 100.0% route), 0 logic levels.
 
@@ -1123,8 +1117,8 @@ Report Summary
 Preference(MIN Delays)                  |   Constraint|       Actual|Levels
 ----------------------------------------------------------------------------
                                         |             |             |
-FREQUENCY NET "extclk_c" 353.607000 MHz |             |             |
-;                                       |     0.000 ns|     0.299 ns|   1  
+FREQUENCY NET "extclk_c" 413.565000 MHz |             |             |
+;                                       |     0.000 ns|     0.372 ns|   2  
                                         |             |             |
 ----------------------------------------------------------------------------
 
@@ -1137,8 +1131,8 @@ Clock Domains Analysis
 
 Found 1 clocks:
 
-Clock Domain: extclk_c   Source: extclk.PAD   Loads: 56
-   Covered under: FREQUENCY NET "extclk_c" 353.607000 MHz ;
+Clock Domain: extclk_c   Source: extclk.PAD   Loads: 66
+   Covered under: FREQUENCY NET "extclk_c" 413.565000 MHz ;
 
 
 Timing summary (Hold):
@@ -1147,16 +1141,16 @@ Timing summary (Hold):
 Timing errors: 0  Score: 0
 Cumulative negative slack: 0
 
-Constraints cover 2889 paths, 1 nets, and 456 connections (95.20% coverage)
+Constraints cover 3557 paths, 1 nets, and 690 connections (96.50% coverage)
 
 
 
 Timing summary (Setup and Hold):
 ---------------
 
-Timing errors: 2247 (setup), 0 (hold)
-Score: 7819950 (setup), 0 (hold)
-Cumulative negative slack: 7819950 (7819950+0)
+Timing errors: 3241 (setup), 0 (hold)
+Score: 11694546 (setup), 0 (hold)
+Cumulative negative slack: 11694546 (11694546+0)
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------

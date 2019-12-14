@@ -1,32 +1,46 @@
 ----------------------------------------------------------------------
 Report for cell root.TECH
-Register bits:  100 of 7485 (1.336%)
-I/O cells:      15
+Register bits:  106 of 7485 (1.416%)
+I/O cells:      12
                                   Cell usage:
                                cell     count   Res Usage(%)
-                              CCU2D        38          100.0
-                            FD1P3AX        24          100.0
-                            FD1P3IX        10          100.0
-                            FD1S3AX         5          100.0
-                            FD1S3AY         1          100.0
-                            FD1S3IX        60          100.0
+                              CCU2D        34          100.0
+                            FD1P3AX        40          100.0
+                            FD1P3IX         2          100.0
+                            FD1S3AX         8          100.0
+                            FD1S3IX        56          100.0
                                 GSR         1          100.0
-                                 IB         6          100.0
-                               LUT4        48          100.0
+                                 IB         3          100.0
+                               LUT4       117          100.0
                                  OB         9          100.0
+                              PFUMX         5          100.0
 SUB MODULES
+      UART_Receiver(12000000,19200)         1
         UART_Sender(12000000,19200)         1
-                              TOTAL       203
+                              TOTAL       277
 ----------------------------------------------------------------------
 Report for cell UART_Sender(12000000,19200).v1
 Instance Path : UART_Sender0
                                   Cell usage:
                                cell     count   Res Usage(%)
-                              CCU2D        17           44.7
-                            FD1P3AX         4           16.7
-                            FD1P3IX        10          100.0
-                            FD1S3AX         5          100.0
-                            FD1S3AY         1          100.0
-                            FD1S3IX        28           46.7
-                               LUT4        27           56.2
-                              TOTAL        92
+                              CCU2D        17           50.0
+                            FD1P3AX        12           30.0
+                            FD1P3IX         1           50.0
+                            FD1S3AX         4           50.0
+                            FD1S3IX        28           50.0
+                               LUT4        45           38.5
+                              PFUMX         3           60.0
+                              TOTAL       110
+----------------------------------------------------------------------
+Report for cell UART_Receiver(12000000,19200).v1
+Instance Path : UART_Receiver0
+                                  Cell usage:
+                               cell     count   Res Usage(%)
+                              CCU2D        17           50.0
+                            FD1P3AX        20           50.0
+                            FD1P3IX         1           50.0
+                            FD1S3AX         4           50.0
+                            FD1S3IX        28           50.0
+                               LUT4        63           53.8
+                              PFUMX         2           40.0
+                              TOTAL       135

@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<BaliProject version="3.2" title="spumark2" device="LCMXO2280C-5FT256C" default_implementation="firstdesign">
+<BaliProject version="3.2" title="spumark2" device="LCMXO3LF-6900C-6BG256I" default_implementation="firstdesign">
     <Options/>
     <Implementation title="firstdesign" dir="firstdesign" description="firstdesign" synthesis="lse" default_strategy="Strategy1">
-        <Options def_top="root"/>
+        <Options def_top="SPU_Mark_II"/>
         <Source name="root.vhd" type="VHDL" type_short="VHDL">
             <Options top_module="root"/>
+        </Source>
+        <Source name="uart_sender.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="uart_receiver.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="cpu.vhd" type="VHDL" type_short="VHDL">
+            <Options top_module="SPU_Mark_II"/>
         </Source>
         <Source name="firstdesign/firstdesign.xcf" type="Programming Project File" type_short="Programming">
             <Options/>

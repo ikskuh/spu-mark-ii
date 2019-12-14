@@ -4,7 +4,7 @@ Copyright (c) 1995 AT&T Corp.   All rights reserved.
 Copyright (c) 1995-2001 Lucent Technologies Inc.  All rights reserved.
 Copyright (c) 2001 Agere Systems   All rights reserved.
 Copyright (c) 2002-2019 Lattice Semiconductor Corporation,  All rights reserved.
-Fri Dec 13 13:30:24 2019
+Fri Dec 13 17:39:24 2019
 
 
 Command: bitgen -g RamCfg:Reset -path /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl -w -gui -msgset /home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/promote.xml spumark2_firstdesign.ncd spumark2_firstdesign.prf 
@@ -73,6 +73,6 @@ Creating bit map...
 Bitstream Status: Final           Version 1.95.
  
 Saving bit stream in "spumark2_firstdesign.bit".
-Total CPU Time: 3 secs 
+Total CPU Time: 2 secs 
 Total REAL Time: 3 secs 
 Peak Memory Usage: 431 MB

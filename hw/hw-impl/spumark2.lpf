@@ -24,10 +24,10 @@ IOBUF PORT "switches[1]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "switches[2]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "switches[3]" IO_TYPE=LVCMOS33 ;
 
-LOCATE COMP "switches[0]" SITE "N2";
-LOCATE COMP "switches[1]" SITE "P1";
-LOCATE COMP "switches[2]" SITE "M3";
-LOCATE COMP "switches[3]" SITE "N1";
+#LOCATE COMP "switches[0]" SITE "N2";
+#LOCATE COMP "switches[1]" SITE "P1";
+#LOCATE COMP "switches[2]" SITE "M3";
+#LOCATE COMP "switches[3]" SITE "N1";
 
 IOBUF PORT "extclk" IO_TYPE=LVCMOS33 ;
 LOCATE COMP "extclk" SITE "C8";
@@ -39,5 +39,5 @@ LOCATE COMP "extrst" SITE "B3";
 IOBUF PORT "uart0_rxd" IO_TYPE=LVCMOS33;
 IOBUF PORT "uart0_txd" IO_TYPE=LVCMOS33;
 
-# LOCATE COMP "uart0_rxd" SITE "E10";
+LOCATE COMP "uart0_rxd" SITE "E10";
 LOCATE COMP "uart0_txd" SITE "C12";

@@ -2,16 +2,10 @@ LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.numeric_std.ALL;
 
--- LIBRARY lattice;
--- USE lattice.components.all;
- 
--- LIBRARY machxo;
--- USE machxo.all;
-
 ENTITY UART_Sender IS
 	GENERIC (
-		clkfreq  : natural;
-		baudrate : natural
+		clkfreq  : natural; -- frequency of 'clk' in Hz
+		baudrate : natural  -- basic symbol rate of the UART ("bit / sec")
 	);
 	PORT (
 		rst  : in  std_logic; -- asynchronous reset
@@ -50,9 +44,12 @@ BEGIN
 	  if rst = '0' then
 			clkdiv <= to_unsigned(0, clkdiv'length);
 			state <= to_unsigned(0, state'length);
+			bsy <= '0';
 		else
 			if rising_edge(clk) then
 				if state = STATE_IDLE then
+					-- STATE_IDLE waits for `send` to be '1', then starts the transmission
+						
 					-- prepare for first bit transmission
 					clkdiv <= to_unsigned(clk_limit, clkdiv'length);
 					
@@ -67,10 +64,12 @@ BEGIN
 					end if;
 				
 				else
+					-- this path here is clocked with `baud` Hz instead of the base frequency
 					if clkdiv = 0 then
 						clkdiv <= to_unsigned(clk_limit, clkdiv'length);
 						
 						CASE state IS
+							-- transfer individual bits
 							WHEN STATE_BIT0  => txd <= data_buffer(0); state <= STATE_BIT1;
 							WHEN STATE_BIT1  => txd <= data_buffer(1); state <= STATE_BIT2;
 							WHEN STATE_BIT2  => txd <= data_buffer(2); state <= STATE_BIT3;
@@ -79,6 +78,8 @@ BEGIN
 							WHEN STATE_BIT5  => txd <= data_buffer(5); state <= STATE_BIT6;
 							WHEN STATE_BIT6  => txd <= data_buffer(6); state <= STATE_BIT7;
 							WHEN STATE_BIT7  => txd <= data_buffer(7); state <= STATE_STOP;
+							
+							-- send stop bit
 							WHEN STATE_STOP  => txd <= '1';            state <= STATE_DONE; -- we have to wait until our STOP bit is completly transferred!
 							
 							-- includes STATE_DONE!
@@ -94,3 +95,35 @@ BEGIN
 	END PROCESS P0;
 
 END ARCHITECTURE rtl ;
+
+
+--<GyrosGeier> es gibt richtige enum-Typen
+--<xq> ah!
+--<xq> oh :D
+--<GyrosGeier> die sind kuerzer zu verwenden, und haben keine Repraesentation
+--<GyrosGeier> => der Compiler waehlt die bestmoegliche
+--<GyrosGeier> und dann kann der WHEN OTHERS auch weg
+--<xq> oki, genau aus dem grund hab ich gefragt :D
+--<GyrosGeier> ich wuerde auch den clock-divider in einen eigenen Prozess packen, einfach der Lesbarkeit wegen
+--<xq> okay? wie kommunizier ich dann damit?
+--<GyrosGeier> ueber ein signal
+--<GyrosGeier> also, Dein uart-Prozess ist dann halt sensitiv auf rst,bitclk
+--<xq> ah und der "sendeprozess" legt erst los, wenn ich die startcondition gesetzt habe 
+--<xq> und der andere prozess wartet dann darauf, dass der andere prozess das signal zurücksetzt?
+--<GyrosGeier> ich wuerde die bitclk nur generieren, wenn bsy gesetzt ist
+--<xq> hmm
+--<GyrosGeier> => der sendeprozess gibt das Startbit raus und setzt bsy, dann laeuft die Uhr los
+--<xq> ich grübel mal drüber nach
+--<xq> ich hatte bisher das meiste immer in einem prozess :D
+--<GyrosGeier> also gut, ich wuerde das eh alles komplett ohne Prozess machen
+--<xq> inwiefern?
+--<GyrosGeier> lauter direkte Signalzuweisungen auf architecture-Ebene
+--<GyrosGeier> also concurrent assignment
+--<GyrosGeier> das generiert idR deutlich besseren Code
+--<xq> hm, dafür bin ich definitiv nicht fit genug :D
+--<GyrosGeier> weil jeder Ast in einem Prozess, der nicht durchlaufen wird, erstmal ein Register generiert, um den alten Zustand zu halten
+--<GyrosGeier> with state select txd <= '0' when start, data(0) when bit0, data(1) when bit1 ...
+--<GyrosGeier> d.h. Dein txd-Bit is ein direkter Mux, der am aktuellen State haengt
+--<GyrosGeier> und idle ist halt auch '1'
+--<GyrosGeier> die Zuweisung zu state ist dann halt "ON bitclk"
+--<xq> ah, das könnte ich mal probieren
