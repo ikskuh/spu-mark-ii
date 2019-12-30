@@ -1,9 +1,9 @@
 
-SOURCES=$(shell find src -name "*.vhd")
+SOURCES=$(addprefix src/,cpu.vhd builtin-rom.vhd testbench.vhd)
 
 OBJS=$(notdir $(SOURCES:.vhd=.o))
 
-all: testbench.ghw
+all: testbench.ghw clean
 
 testbench: $(OBJS)
 	ghdl -e --std=08 testbench
@@ -17,8 +17,8 @@ testbench: $(OBJS)
 %.ghw: %
 	ghdl -r $< --wave=$@ --stop-time=5000ns
 
-clean:
-	rm *.o
+clean: $(OBJS)
+	rm $^
 
 .PHONY: clean
 .SUFFIXES:

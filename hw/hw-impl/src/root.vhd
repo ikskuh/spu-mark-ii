@@ -15,10 +15,17 @@ ENTITY root IS
 		extclk    : in  std_logic;
 		extrst    : in  std_logic;
 		uart0_rxd : in  std_logic;
-		uart0_txd : out std_logic
+		uart0_txd : out std_logic;
+		sram_addr : out std_logic_vector(18 downto 0);
+		sram_data : inout std_logic_vector(7 downto 0);
+		sram_we   : out std_logic;
+		sram_oe   : out std_logic;
+		sram_ce   : out std_logic
 	);
 	
 END ENTITY root;
+
+use work.rom.all;
 
 ARCHITECTURE rtl OF root IS	
 	COMPONENT UART_Sender IS
@@ -83,8 +90,24 @@ ARCHITECTURE rtl OF root IS
 	SIGNAL clkdiv : unsigned(31 downto 0) := to_unsigned(0, 32);
 	SIGNAL cpuclk : std_logic := '0';
 	
-		signal counter : unsigned(7 downto 0) := to_unsigned(0, 8);
+	signal counter : unsigned(7 downto 0) := to_unsigned(0, 8);
+
+	TYPE SRAM_Mode_Type IS (OFF,READ,WRITE);
+
+	SIGNAL sram_data_in : std_logic_vector(7 downto 0);
+	SIGNAL sram_data_out : std_logic_vector(7 downto 0);
+	SIGNAL sram_mode : SRAM_Mode_Type := off;
+	
+	signal next_is_sram : boolean := false;
+
 BEGIN	
+	sram_data_in <= sram_data;
+	sram_data <= sram_data_out when sram_mode = write else "ZZZZZZZZ";
+	
+	sram_we <= '0' when sram_mode = write else '1';
+	sram_oe <= '0' when sram_mode = read else '1';
+	sram_ce <= '0' when sram_mode /= off else '1';
+
 	UART_Sender0: UART_Sender
 	GENERIC MAP(
 		clkfreq => 12_000_000, 
@@ -146,23 +169,49 @@ BEGIN
 	begin
 		if extrst = '0' then
 				leds <= "11111111"; 
+				sram_addr <= "0000000000000000000";
+				sram_mode <= off;
+				next_is_sram <= false;
 		else
 			if rising_edge(cpuclk) then
-
 				if bus_request = '1' then
-					leds <= not bus_address(8 downto 1); -- display requested bus address
-					bus_acknowledge <= '1';
-					if bus_write = '1' then
-						-- ignore writes
+					leds <= "0" & not bus_address(7 downto 1); -- display requested bus address
+
+					if next_is_sram then
+						-- SRAM operation
+
+						if bus_write = '0' then
+							bus_data_in <= "00000000" & sram_data_in;
+						end if;
+
+						sram_mode <= off;
+						bus_acknowledge <= '1';
+						next_is_sram <= false;
+
 					else
-						case bus_address is
-							when others =>
-								bus_data_in <= "0000000000000000";
-						end case;
+						if bus_address(15) = '1' then
+							-- SRAM operation
+							sram_mode <= write when bus_write = '1' else read;
+							sram_addr <= "0000" & bus_address(14 downto 1) & "0";
+							if bus_write = '1' then
+								sram_data_out <= bus_data_out(7 downto 0);
+							end if;
+							next_is_sram <= true;
+	
+						else
+							bus_acknowledge <= '0';
+							if bus_write = '1' then
+								-- ignore writes
+							else
+								bus_data_in <= builtin_rom(bus_address);
+							end if;
+						end if;
 					end if;
 				else
 					leds <= "11111111"; -- LEDs off
 					bus_acknowledge <= '0';
+					sram_mode <= off;
+					next_is_sram <= false;
 				end if;
 			end if;
 		end if;

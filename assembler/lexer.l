@@ -59,13 +59,13 @@ char *string_buf_ptr;
 %}
 %%
 
-^\.org                          { return MKTOKEN(TOK_DIRECTIVE, DIR_ORG); }
-^\.db                           { return MKTOKEN(TOK_DIRECTIVE, DIR_DB); }
-^\.dw                           { return MKTOKEN(TOK_DIRECTIVE, DIR_DW); }
-^\.align                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ALIGN); }
-^\.ascii                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCII); }
-^\.asciiz                       { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCIIZ); }
-^\.equ                          { return MKTOKEN(TOK_DIRECTIVE, DIR_EQU); }
+^{ws}\.org                          { return MKTOKEN(TOK_DIRECTIVE, DIR_ORG); }
+^{ws}\.db                           { return MKTOKEN(TOK_DIRECTIVE, DIR_DB); }
+^{ws}\.dw                           { return MKTOKEN(TOK_DIRECTIVE, DIR_DW); }
+^{ws}\.align                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ALIGN); }
+^{ws}\.ascii                        { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCII); }
+^{ws}\.asciiz                       { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCIIZ); }
+^{ws}\.equ                          { return MKTOKEN(TOK_DIRECTIVE, DIR_EQU); }
 
 \[{ws}ex{ws}:{ws}always{ws}\]   { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
 \[{ws}ex{ws}:{ws}zero{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_ZERO); }
@@ -100,9 +100,6 @@ char *string_buf_ptr;
 \[{ws}cmd{ws}:{ws}set{ws}\]     { return MKTOKEN(TOK_MOD_CMD, CMD_SET); }
 \[{ws}cmd{ws}:{ws}stor8{ws}\]   { return MKTOKEN(TOK_MOD_CMD, CMD_STOR8); }
 \[{ws}cmd{ws}:{ws}stor16{ws}\]  { return MKTOKEN(TOK_MOD_CMD, CMD_STOR16); }
-\[{ws}cmd{ws}:{ws}setint{ws}\]  { return MKTOKEN(TOK_MOD_CMD, CMD_SETINT); }
-\[{ws}cmd{ws}:{ws}int{ws}\]     { return MKTOKEN(TOK_MOD_CMD, CMD_INT); }
-\[{ws}cmd{ws}:{ws}mapmmu{ws}\]  { return MKTOKEN(TOK_MOD_CMD, CMD_MAPMMU); }
 \[{ws}cmd{ws}:{ws}load8{ws}\]   { return MKTOKEN(TOK_MOD_CMD, CMD_LOAD8); }
 \[{ws}cmd{ws}:{ws}load16{ws}\]  { return MKTOKEN(TOK_MOD_CMD, CMD_LOAD16); }
 \[{ws}cmd{ws}:{ws}bpget{ws}\]   { return MKTOKEN(TOK_MOD_CMD, CMD_BPGET); }
@@ -166,7 +163,7 @@ char *string_buf_ptr;
 
 (;|#)[^\n]*                     { /* ignore comments */ }
 
-.                               { _abort(); }
+.                               { fprintf(stderr, "unknown char: '%s'\n", yytext); _abort(); }
 
 %%
 ///////////////////////////////////////////////////////////////////////////////

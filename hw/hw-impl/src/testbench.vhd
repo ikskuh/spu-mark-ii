@@ -25,6 +25,8 @@ USE ieee.numeric_std.ALL;
 LIBRARY std;
 use std.textio.all;
 
+use work.rom.all;
+
 ENTITY testbench IS
 END testbench;
 
@@ -113,6 +115,11 @@ ARCHITECTURE behavior OF testbench IS
 	CONSTANT CMD_LSL     : std_logic_vector(4 downto 0) := "11110"; -- EXEC_LSL; -- lsl
 	CONSTANT CMD_LSR     : std_logic_vector(4 downto 0) := "11111"; -- EXEC_LSR; -- lsr
 
+	TYPE RAM_Type IS ARRAY(0 to 31) OF std_logic_vector(15 downto 0);
+
+	SIGNAL simulated_ram : RAM_Type;
+
+
 BEGIN
 
 -- Please check and add your generic clause manually
@@ -135,6 +142,7 @@ BEGIN
 	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal: --__
 
 	tb : PROCESS(clk, rst)
+		variable temp : std_logic_vector(15 downto 0);
 	BEGIN
 		if rst = '0' then
 			bus_acknowledge <= '0';
@@ -143,19 +151,19 @@ BEGIN
 				if bus_request = '1' then
 					bus_acknowledge <= '1';
 					if bus_write = '1' then
-						report "bus write at " & to_hstring(unsigned(bus_address & "0")) & " <= " & to_hstring(unsigned(bus_data_out));
+						if bus_address(15) = '1' then
+							simulated_ram(to_integer(unsigned(bus_address(6 downto 1)))) <= bus_data_out;
+						end if;
+						-- report "bus write at " & to_hstring(unsigned(bus_address & "0")) & " <= " ; -- & to_hstring(unsigned(bus_data_out));
 						-- ignore writes
 					else 
-						report "bus read at " & to_hstring(unsigned(bus_address & "0"));
-						case to_integer(unsigned(bus_address & "0")) is
-							when 16#0000# => bus_data_in <= "0" & CMD_COPY & OUT_JMP & FLAG_NO & INP_ZERO & INP_IMM & CON_ALWAYS;
-							when 16#0002# => bus_data_in <= "0000000000001000";
-							
-							when 16#0008# => bus_data_in <= "0" & CMD_COPY & OUT_JMP & FLAG_NO & INP_ZERO & INP_IMM & CON_ALWAYS;
-							when 16#000A# => bus_data_in <= "0000000000000000";
-
-							when others => bus_data_in <= "0000000000000000";
-						end case;
+						if bus_address(15) = '1' then
+							temp := simulated_ram(to_integer(unsigned(bus_address(6 downto 1))));
+						else
+							temp := builtin_rom(bus_address);
+						end if;
+						bus_data_in <= temp;
+						-- report "bus read at " & to_hstring(unsigned(bus_address & "0")) & " => " & to_hstring(unsigned(temp));
 					end if;
 				else
 					bus_acknowledge <= '0';

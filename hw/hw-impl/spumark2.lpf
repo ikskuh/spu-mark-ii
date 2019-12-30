@@ -41,3 +41,39 @@ IOBUF PORT "uart0_txd" IO_TYPE=LVCMOS33;
 
 LOCATE COMP "uart0_rxd" SITE "E10";
 LOCATE COMP "uart0_txd" SITE "C12";
+
+
+
+
+
+
+LOCATE COMP "sram_addr[0]"  SITE "R10";
+LOCATE COMP "sram_addr[1]"  SITE "T10";
+LOCATE COMP "sram_addr[2]"  SITE "T9";
+LOCATE COMP "sram_addr[3]"  SITE "P9";
+LOCATE COMP "sram_addr[4]"  SITE "T8";
+LOCATE COMP "sram_addr[5]"  SITE "P8";
+LOCATE COMP "sram_addr[6]"  SITE "R7";
+LOCATE COMP "sram_addr[7]"  SITE "P7";
+LOCATE COMP "sram_addr[8]"  SITE "R8";
+LOCATE COMP "sram_addr[9]"  SITE "M6";
+LOCATE COMP "sram_addr[10]" SITE "N9";
+LOCATE COMP "sram_addr[11]" SITE "L8";
+LOCATE COMP "sram_addr[12]" SITE "L7";
+LOCATE COMP "sram_addr[13]" SITE "T7";
+LOCATE COMP "sram_addr[14]" SITE "N6";
+LOCATE COMP "sram_addr[15]" SITE "P4";
+LOCATE COMP "sram_addr[16]" SITE "R4";
+LOCATE COMP "sram_addr[17]" SITE "T5";
+LOCATE COMP "sram_addr[18]" SITE "T3";
+LOCATE COMP "sram_data[0]"  SITE "P11";
+LOCATE COMP "sram_data[1]"  SITE "T11";
+LOCATE COMP "sram_data[2]"  SITE "R11";
+LOCATE COMP "sram_data[3]"  SITE "T14";
+LOCATE COMP "sram_data[4]"  SITE "R13";
+LOCATE COMP "sram_data[5]"  SITE "M11";
+LOCATE COMP "sram_data[6]"  SITE "N10";
+LOCATE COMP "sram_data[7]"  SITE "P10";
+LOCATE COMP "sram_we"       SITE "R6";
+LOCATE COMP "sram_oe"       SITE "M8";
+LOCATE COMP "sram_ce"       SITE "R10";

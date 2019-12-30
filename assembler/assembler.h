@@ -38,7 +38,6 @@
 
 #define _abort() do { fprintf(stderr, "abort in %s:%d!\n", __FILE__, __LINE__); abort(); } while(false)
 
-
 typedef struct token
 {
 	int type, value;

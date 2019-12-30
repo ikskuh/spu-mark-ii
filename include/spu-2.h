@@ -10,16 +10,16 @@ typedef uint8_t byte_t;
 
 #define INSTR_ENCODE(ex, i0, i1, fl, ou, cm) 0 \
 	| ((ex & 07) << 0) \
-	| ((fl & 01) << 3) \
-	| ((i0 & 03) << 4) \
-	| ((i1 & 03) << 6) \
+	| ((i0 & 03) << 3) \
+	| ((i1 & 03) << 5) \
+	| ((fl & 01) << 7) \
 	| ((ou & 03) << 8) \
 	| ((cm & 63) << 10)
 
 #define INSTR_GETEXEC(iword) (((iword) >>  0) & 07)
-#define INSTR_GETFLAG(iword) (((iword) >>  3) & 01)
-#define INSTR_GETI0(iword)   (((iword) >>  4) & 03)
-#define INSTR_GETI1(iword)   (((iword) >>  6) & 03)
+#define INSTR_GETI0(iword)   (((iword) >>  3) & 03)
+#define INSTR_GETI1(iword)   (((iword) >>  5) & 03)
+#define INSTR_GETFLAG(iword) (((iword) >>  7) & 01)
 #define INSTR_GETOUT(iword)  (((iword) >>  8) & 03)
 #define INSTR_GETCMD(iword)  (((iword) >> 10) & 63)
 
@@ -56,11 +56,12 @@ typedef uint8_t byte_t;
 #define CMD_SET     3
 #define CMD_STOR8   4
 #define CMD_STOR16  5
-#define CMD_SETINT  6
-#define CMD_INT     7
-#define CMD_LOAD8   8
-#define CMD_LOAD16  9
-#define CMD_MAPMMU 10
+#define CMD_LOAD8   6
+#define CMD_LOAD16  7
+// UNDEFINED        8
+// UNDEFINED        9
+#define CMD_FRGET  10
+#define CMD_FRSET  11
 #define CMD_BPGET  12
 #define CMD_BPSET  13
 #define CMD_SPGET  14
