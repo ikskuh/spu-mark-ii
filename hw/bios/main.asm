@@ -2,11 +2,9 @@
 
 _start:
 	spset stack
-	push 15
-	push 10
-	push 20
-	add
-	sub
+	push 1
+	push 2
+	mul
 	st 0x4000
 
 loop1:

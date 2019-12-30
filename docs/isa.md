@@ -238,11 +238,11 @@ Commands are what define the core behaviour of the opcode. They allow arithmetic
 | `01000`₂  (8₁₀) | ???     | *Reserved*                                                   | Invokes undefined behavior                         |
 | `01001`₂  (9₁₀) | ???     | *Reserved*                                                   | Invokes undefined behavior                         |
 | `01010`₂ (10₁₀) | FRGET   | Gets the flag register                                       | `output = (FL & ~input1)`                          |
-| `01011`₂ (11₁₀) | FRSET   | Sets the flag register                                       | `output = FL = (input0 & ~input1) | (FL & input1)` |
+| `01011`₂ (11₁₀) | FRSET   | Sets the flag register                                       | `output = FL₀; FL₁ = (input0 & ~input1) | (FL & input1)` |
 | `01100`₂ (12₁₀) | BPGET   | Gets the base pointer                                        | `output = BP`                                      |
-| `01101`₂ (13₁₀) | BPSET   | Sets the base pointer                                        | `output = BP = input0`                             |
+| `01101`₂ (13₁₀) | BPSET   | Sets the base pointer                                        | `output = BP₀; BP₁ = input0`                             |
 | `01110`₂ (14₁₀) | SPGET   | Gets the stack pointer                                       | `output = SP`                                      |
-| `01111`₂ (15₁₀) | SPSET   | Sets the stack pointer                                       | `output = SP = input0`                             |
+| `01111`₂ (15₁₀) | SPSET   | Sets the stack pointer                                       | `output = SP₀; SP₁ = input0`                             |
 | `10000`₂ (16₁₀) | ADD     | Adds the two inputs                                          | `output = input0 + input1`                         |
 | `10001`₂ (17₁₀) | SUB     | Subtracts `input1` from `input0`                             | `output = input0 - input1`                         |
 | `10010`₂ (18₁₀) | MUL     | Multiplies `input0` and `input1`                             | `output = input0 * input1`                         |
@@ -392,6 +392,11 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 - output TYPE signal (tells if memory access is for code or data)
 
 ## Changelog
+
+### v1.7
+
+- Makes `frset`, `spset`, `bpset` return the previous value instead of the newly set.
+  This allows improved or shorting handling of safed parameters.
 
 ### v1.6
 

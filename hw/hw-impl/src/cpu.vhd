@@ -449,25 +449,25 @@ BEGIN
 						finish_instruction(unsigned(mem_data_in));
 
 					when EXEC_FRSET =>
-						-- finish_instruction(REG_FR and (not REG_I0));
+						finish_instruction(unsigned(std_logic_vector(REG_FR) and (not std_logic_vector(REG_I0))));
 
 					when EXEC_FRGET => 
-						-- REG_FR <= std_logic_vector(REG_I0 and (not REG_I1)) or (unsigned(REG_FR) and (REG_I1));
-						-- finish_instruction(unsigned(REG_FR));
+						finish_instruction(unsigned(REG_FR));
+						REG_FR <= (std_logic_vector(REG_I0) and (not std_logic_vector(REG_I1))) or (REG_FR and std_logic_vector(REG_I1));
 
 					when EXEC_BPGET =>
 						finish_instruction(REG_BP);
 						
 					when EXEC_BPSET =>
+						finish_instruction(REG_BP);
 						REG_BP <= REG_I0;
-						finish_instruction(REG_I0);
 
 					when EXEC_SPGET =>
 						finish_instruction(REG_SP);
 
 					when EXEC_SPSET =>
+						finish_instruction(REG_SP);
 						REG_SP <= REG_I0;
-						finish_instruction(REG_I0);
 
 					WHEN EXEC_ADD =>
 						finish_instruction(REG_I0 + REG_I1);
@@ -477,7 +477,7 @@ BEGIN
 					
 					when EXEC_MUL =>
 						state <= RESET; -- not implemented yet
-
+						
 					when EXEC_DIV =>
 						state <= RESET; -- not implemented yet
 						
@@ -516,9 +516,7 @@ BEGIN
 
 					when EXEC_LSR =>
 						finish_instruction("0" & REG_I0(15 downto 1));
-						
 					
-
 				END CASE;
 			end if;
 		end if;	
