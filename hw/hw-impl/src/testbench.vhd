@@ -151,19 +151,27 @@ BEGIN
 				if bus_request = '1' then
 					bus_acknowledge <= '1';
 					if bus_write = '1' then
+						report "bus write at " & to_hstring(unsigned(bus_address) & "0") & " <= " & to_hstring(unsigned(bus_data_out));
 						if bus_address(15) = '1' then
 							simulated_ram(to_integer(unsigned(bus_address(6 downto 1)))) <= bus_data_out;
+						else
+							if bus_address = "010000000000000" then -- 0x4000
+								report "serial output: " & to_hstring(unsigned(bus_data_out));
+							end if;
 						end if;
-						-- report "bus write at " & to_hstring(unsigned(bus_address & "0")) & " <= " ; -- & to_hstring(unsigned(bus_data_out));
 						-- ignore writes
 					else 
 						if bus_address(15) = '1' then
 							temp := simulated_ram(to_integer(unsigned(bus_address(6 downto 1))));
 						else
-							temp := builtin_rom(bus_address);
+							if bus_address = "010000000000000" then -- 0x4000
+								temp := "0000000011111111"; -- read 0xFF
+							else
+								temp := builtin_rom(bus_address);
+							end if;
 						end if;
 						bus_data_in <= temp;
-						-- report "bus read at " & to_hstring(unsigned(bus_address & "0")) & " => " & to_hstring(unsigned(temp));
+						report "bus read at " & to_hstring(unsigned(bus_address) & "0") & " => " & to_hstring(unsigned(temp));						
 					end if;
 				else
 					bus_acknowledge <= '0';

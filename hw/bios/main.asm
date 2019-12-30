@@ -7,7 +7,7 @@ _start:
 	push 20
 	add
 	sub
-	pop
+	st 0x4000
 
 loop1:
 	jmp loop2
