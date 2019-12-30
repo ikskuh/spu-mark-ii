@@ -1,0 +1,74 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Mon Dec 30 15:54:01 2019
+[*]
+[dumpfile] "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/testbench.ghw"
+[dumpfile_mtime] "Mon Dec 30 15:53:56 2019"
+[dumpfile_size] 2632
+[savefile] "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/testbench.gtkw"
+[timestart] 0
+[size] 1920 1056
+[pos] -1 -1
+*-27.000000 283800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.testbench.
+[treeopen] top.testbench.uut.
+[sst_width] 312
+[signals_width] 277
+[sst_expanded] 1
+[sst_vpaned_height] 510
+@28
+top.testbench.uut.clk
+top.testbench.uut.rst
+@200
+-
+@28
+top.testbench.bus_request
+top.testbench.bus_acknowledge
+top.testbench.bus_write
+@22
+#{top.testbench.bus_address[15:1]} top.testbench.bus_address[15] top.testbench.bus_address[14] top.testbench.bus_address[13] top.testbench.bus_address[12] top.testbench.bus_address[11] top.testbench.bus_address[10] top.testbench.bus_address[9] top.testbench.bus_address[8] top.testbench.bus_address[7] top.testbench.bus_address[6] top.testbench.bus_address[5] top.testbench.bus_address[4] top.testbench.bus_address[3] top.testbench.bus_address[2] top.testbench.bus_address[1]
+@28
+#{top.testbench.bus_bls[1:0]} top.testbench.bus_bls[1] top.testbench.bus_bls[0]
+@22
+#{top.testbench.bus_data_in[15:0]} top.testbench.bus_data_in[15] top.testbench.bus_data_in[14] top.testbench.bus_data_in[13] top.testbench.bus_data_in[12] top.testbench.bus_data_in[11] top.testbench.bus_data_in[10] top.testbench.bus_data_in[9] top.testbench.bus_data_in[8] top.testbench.bus_data_in[7] top.testbench.bus_data_in[6] top.testbench.bus_data_in[5] top.testbench.bus_data_in[4] top.testbench.bus_data_in[3] top.testbench.bus_data_in[2] top.testbench.bus_data_in[1] top.testbench.bus_data_in[0]
+#{top.testbench.bus_data_out[15:0]} top.testbench.bus_data_out[15] top.testbench.bus_data_out[14] top.testbench.bus_data_out[13] top.testbench.bus_data_out[12] top.testbench.bus_data_out[11] top.testbench.bus_data_out[10] top.testbench.bus_data_out[9] top.testbench.bus_data_out[8] top.testbench.bus_data_out[7] top.testbench.bus_data_out[6] top.testbench.bus_data_out[5] top.testbench.bus_data_out[4] top.testbench.bus_data_out[3] top.testbench.bus_data_out[2] top.testbench.bus_data_out[1] top.testbench.bus_data_out[0]
+@200
+-
+@420
+top.testbench.uut.state
+@200
+-
+@c00022
+#{top.testbench.uut.reg_instr[15:0]} top.testbench.uut.reg_instr[15] top.testbench.uut.reg_instr[14] top.testbench.uut.reg_instr[13] top.testbench.uut.reg_instr[12] top.testbench.uut.reg_instr[11] top.testbench.uut.reg_instr[10] top.testbench.uut.reg_instr[9] top.testbench.uut.reg_instr[8] top.testbench.uut.reg_instr[7] top.testbench.uut.reg_instr[6] top.testbench.uut.reg_instr[5] top.testbench.uut.reg_instr[4] top.testbench.uut.reg_instr[3] top.testbench.uut.reg_instr[2] top.testbench.uut.reg_instr[1] top.testbench.uut.reg_instr[0]
+@28
+top.testbench.uut.reg_instr[15]
+top.testbench.uut.reg_instr[14]
+top.testbench.uut.reg_instr[13]
+top.testbench.uut.reg_instr[12]
+top.testbench.uut.reg_instr[11]
+top.testbench.uut.reg_instr[10]
+top.testbench.uut.reg_instr[9]
+top.testbench.uut.reg_instr[8]
+top.testbench.uut.reg_instr[7]
+top.testbench.uut.reg_instr[6]
+top.testbench.uut.reg_instr[5]
+top.testbench.uut.reg_instr[4]
+top.testbench.uut.reg_instr[3]
+top.testbench.uut.reg_instr[2]
+top.testbench.uut.reg_instr[1]
+top.testbench.uut.reg_instr[0]
+@1401200
+-group_end
+@22
+#{top.testbench.uut.reg_i0[15:0]} top.testbench.uut.reg_i0[15] top.testbench.uut.reg_i0[14] top.testbench.uut.reg_i0[13] top.testbench.uut.reg_i0[12] top.testbench.uut.reg_i0[11] top.testbench.uut.reg_i0[10] top.testbench.uut.reg_i0[9] top.testbench.uut.reg_i0[8] top.testbench.uut.reg_i0[7] top.testbench.uut.reg_i0[6] top.testbench.uut.reg_i0[5] top.testbench.uut.reg_i0[4] top.testbench.uut.reg_i0[3] top.testbench.uut.reg_i0[2] top.testbench.uut.reg_i0[1] top.testbench.uut.reg_i0[0]
+#{top.testbench.uut.reg_i1[15:0]} top.testbench.uut.reg_i1[15] top.testbench.uut.reg_i1[14] top.testbench.uut.reg_i1[13] top.testbench.uut.reg_i1[12] top.testbench.uut.reg_i1[11] top.testbench.uut.reg_i1[10] top.testbench.uut.reg_i1[9] top.testbench.uut.reg_i1[8] top.testbench.uut.reg_i1[7] top.testbench.uut.reg_i1[6] top.testbench.uut.reg_i1[5] top.testbench.uut.reg_i1[4] top.testbench.uut.reg_i1[3] top.testbench.uut.reg_i1[2] top.testbench.uut.reg_i1[1] top.testbench.uut.reg_i1[0]
+@200
+-
+@22
+#{top.testbench.uut.reg_sp[15:0]} top.testbench.uut.reg_sp[15] top.testbench.uut.reg_sp[14] top.testbench.uut.reg_sp[13] top.testbench.uut.reg_sp[12] top.testbench.uut.reg_sp[11] top.testbench.uut.reg_sp[10] top.testbench.uut.reg_sp[9] top.testbench.uut.reg_sp[8] top.testbench.uut.reg_sp[7] top.testbench.uut.reg_sp[6] top.testbench.uut.reg_sp[5] top.testbench.uut.reg_sp[4] top.testbench.uut.reg_sp[3] top.testbench.uut.reg_sp[2] top.testbench.uut.reg_sp[1] top.testbench.uut.reg_sp[0]
+#{top.testbench.uut.reg_bp[15:0]} top.testbench.uut.reg_bp[15] top.testbench.uut.reg_bp[14] top.testbench.uut.reg_bp[13] top.testbench.uut.reg_bp[12] top.testbench.uut.reg_bp[11] top.testbench.uut.reg_bp[10] top.testbench.uut.reg_bp[9] top.testbench.uut.reg_bp[8] top.testbench.uut.reg_bp[7] top.testbench.uut.reg_bp[6] top.testbench.uut.reg_bp[5] top.testbench.uut.reg_bp[4] top.testbench.uut.reg_bp[3] top.testbench.uut.reg_bp[2] top.testbench.uut.reg_bp[1] top.testbench.uut.reg_bp[0]
+#{top.testbench.uut.reg_fr[15:0]} top.testbench.uut.reg_fr[15] top.testbench.uut.reg_fr[14] top.testbench.uut.reg_fr[13] top.testbench.uut.reg_fr[12] top.testbench.uut.reg_fr[11] top.testbench.uut.reg_fr[10] top.testbench.uut.reg_fr[9] top.testbench.uut.reg_fr[8] top.testbench.uut.reg_fr[7] top.testbench.uut.reg_fr[6] top.testbench.uut.reg_fr[5] top.testbench.uut.reg_fr[4] top.testbench.uut.reg_fr[3] top.testbench.uut.reg_fr[2] top.testbench.uut.reg_fr[1] top.testbench.uut.reg_fr[0]
+#{top.testbench.uut.reg_ip[15:0]} top.testbench.uut.reg_ip[15] top.testbench.uut.reg_ip[14] top.testbench.uut.reg_ip[13] top.testbench.uut.reg_ip[12] top.testbench.uut.reg_ip[11] top.testbench.uut.reg_ip[10] top.testbench.uut.reg_ip[9] top.testbench.uut.reg_ip[8] top.testbench.uut.reg_ip[7] top.testbench.uut.reg_ip[6] top.testbench.uut.reg_ip[5] top.testbench.uut.reg_ip[4] top.testbench.uut.reg_ip[3] top.testbench.uut.reg_ip[2] top.testbench.uut.reg_ip[1] top.testbench.uut.reg_ip[0]
+[pattern_trace] 1
+[pattern_trace] 0

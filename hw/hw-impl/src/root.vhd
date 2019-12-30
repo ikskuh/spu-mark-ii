@@ -50,15 +50,40 @@ ARCHITECTURE rtl OF root IS
 			data : out unsigned(7 downto 0); -- the data to send. must be valid in the first clock cycle where send='1'
 			recv : out std_logic   -- when '1', data transmission is complete. this bit is only set for 1 clk cycle
 		);
-		
 	END COMPONENT UART_Receiver;
+
+	COMPONENT SPU_Mark_II
+	PORT(
+		rst             : IN std_logic;
+		clk             : IN std_logic;
+		bus_data_in     : IN std_logic_vector(15 downto 0);
+		bus_acknowledge : IN std_logic;          
+		bus_data_out    : OUT std_logic_vector(15 downto 0);
+		bus_address     : OUT std_logic_vector(15 downto 1);
+		bus_write       : OUT std_logic;
+		bus_bls         : OUT std_logic_vector(1 downto 0);
+		bus_request     : OUT std_logic
+		);
+	END COMPONENT;
 	
 	signal cnt : unsigned(7 downto 0);
-	signal clkdiv : unsigned(31 downto 0);
 	signal floating0 : std_logic;
 	signal floating1 : std_logic;
 	signal uart_send_char : unsigned(7 downto 0);
 	signal uart_receive_done : std_logic;
+
+	SIGNAL bus_data_out :  std_logic_vector(15 downto 0);
+	SIGNAL bus_data_in :  std_logic_vector(15 downto 0);
+	SIGNAL bus_address :  std_logic_vector(15 downto 1);
+	SIGNAL bus_write :  std_logic;
+	SIGNAL bus_bls :  std_logic_vector(1 downto 0);
+	SIGNAL bus_request :  std_logic;
+	SIGNAL bus_acknowledge :  std_logic;
+
+	SIGNAL clkdiv : unsigned(31 downto 0) := to_unsigned(0, 32);
+	SIGNAL cpuclk : std_logic := '0';
+	
+		signal counter : unsigned(7 downto 0) := to_unsigned(0, 8);
 BEGIN	
 	UART_Sender0: UART_Sender
 	GENERIC MAP(
@@ -88,16 +113,71 @@ BEGIN
 		recv => uart_receive_done
 	);
 
-	copy_leds: PROCESS (extclk, extrst)
-	BEGIN
-	  if extrst = '0' then
+	uut: SPU_Mark_II PORT MAP(
+		rst => extrst,
+		clk => cpuclk,
+		bus_data_out => bus_data_out,
+		bus_data_in => bus_data_in,
+		bus_address => bus_address,
+		bus_write => bus_write,
+		bus_bls => bus_bls,
+		bus_request => bus_request,
+		bus_acknowledge => bus_acknowledge
+	);
+	
+	cpuclkdiv : PROCESS(extclk, extrst)
+	begin
+		if extrst = '0' then
 			clkdiv <= to_unsigned(0, clkdiv'length);
-			cnt    <= to_unsigned(0, cnt'length);
 		else
 			if rising_edge(extclk) then
-				leds <= not std_logic_vector(uart_send_char);
+				if clkdiv = 0 then
+					clkdiv <= to_unsigned(1_200_000 - 1, clkdiv'length);
+					cpuclk <= not cpuclk;
+				else
+					clkdiv <= clkdiv - 1;
+				end if;
 			end if;
 		end if;
-	END PROCESS copy_leds;
+
+	end process;
+
+	fake_mem: PROCESS(cpuclk, extrst) is
+	begin
+		if extrst = '0' then
+				leds <= "11111111"; 
+		else
+			if rising_edge(cpuclk) then
+
+				if bus_request = '1' then
+					leds <= not bus_address(8 downto 1); -- display requested bus address
+					bus_acknowledge <= '1';
+					if bus_write = '1' then
+						-- ignore writes
+					else
+						case bus_address is
+							when others =>
+								bus_data_in <= "0000000000000000";
+						end case;
+					end if;
+				else
+					leds <= "11111111"; -- LEDs off
+					bus_acknowledge <= '0';
+				end if;
+			end if;
+		end if;
+	END process;
+
+	-- copy_leds: PROCESS (extclk, extrst)
+	-- BEGIN
+	--   if extrst = '0' then
+	-- 		clkdiv <= to_unsigned(0, clkdiv'length);
+	-- 		cnt    <= to_unsigned(0, cnt'length);
+	-- 	else
+	-- 		if rising_edge(extclk) then
+	-- 			leds <= not std_logic_vector(uart_send_char);
+	-- 		end if;
+	-- 	end if;
+	-- END PROCESS copy_leds;
 	
 END ARCHITECTURE rtl ;

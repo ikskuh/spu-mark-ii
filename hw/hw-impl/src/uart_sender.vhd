@@ -21,21 +21,23 @@ END ENTITY UART_Sender;
 ARCHITECTURE rtl OF UART_Sender IS
 	CONSTANT clk_limit : natural := (clkfreq / baudrate) - 1;
 
-	CONSTANT STATE_IDLE  : unsigned(3 downto 0) := to_unsigned( 0, 4);
-	CONSTANT STATE_START : unsigned(3 downto 0) := to_unsigned( 1, 4);
-	CONSTANT STATE_BIT0  : unsigned(3 downto 0) := to_unsigned( 2, 4);
-	CONSTANT STATE_BIT1  : unsigned(3 downto 0) := to_unsigned( 3, 4);
-	CONSTANT STATE_BIT2  : unsigned(3 downto 0) := to_unsigned( 4, 4);
-	CONSTANT STATE_BIT3  : unsigned(3 downto 0) := to_unsigned( 5, 4);
-	CONSTANT STATE_BIT4  : unsigned(3 downto 0) := to_unsigned( 6, 4);
-	CONSTANT STATE_BIT5  : unsigned(3 downto 0) := to_unsigned( 7, 4);
-	CONSTANT STATE_BIT6  : unsigned(3 downto 0) := to_unsigned( 8, 4);
-	CONSTANT STATE_BIT7  : unsigned(3 downto 0) := to_unsigned( 9, 4);
-	CONSTANT STATE_STOP  : unsigned(3 downto 0) := to_unsigned(10, 4);
-	CONSTANT STATE_DONE  : unsigned(3 downto 0) := to_unsigned(11, 4);
+	TYPE UartState IS (
+		STATE_IDLE,
+		STATE_START,
+		STATE_BIT0,
+		STATE_BIT1,
+		STATE_BIT2,
+		STATE_BIT3,
+		STATE_BIT4,
+		STATE_BIT5,
+		STATE_BIT6,
+		STATE_BIT7,
+		STATE_STOP,
+		STATE_DONE
+	  );
 
 	SIGNAL clkdiv : unsigned(31 downto 0);
-	SIGNAL state : unsigned(3 downto 0);
+	SIGNAL state : UartState := STATE_IDLE;
 	SIGNAL data_buffer : unsigned(7 downto 0);
 BEGIN
 
@@ -43,7 +45,7 @@ BEGIN
 	BEGIN
 	  if rst = '0' then
 			clkdiv <= to_unsigned(0, clkdiv'length);
-			state <= to_unsigned(0, state'length);
+			state <= STATE_IDLE;
 			bsy <= '0';
 		else
 			if rising_edge(clk) then
