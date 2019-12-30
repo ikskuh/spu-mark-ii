@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 Lattice Synthesis Timing Report, Version  
-Fri Dec 13 17:39:03 2019
+Tue Dec 17 09:30:32 2019
 
 Copyright (c) 1991-1994 by NeoCAD Inc. All rights reserved.
 Copyright (c) 1995 AT&T Corp.   All rights reserved.
@@ -170,9 +170,9 @@ Critical Nets                           |   Loads|  Errors| % of total
                                         |        |        |
 \UART_Receiver0/extclk_c_enable_34      |       8|     256|     23.88%
                                         |        |        |
-\UART_Sender0/n61                       |       1|     256|     23.88%
-                                        |        |        |
 \UART_Sender0/n58                       |       1|     228|     21.27%
+                                        |        |        |
+\UART_Sender0/n61                       |       1|     228|     21.27%
                                         |        |        |
 \UART_Receiver0/n56                     |       1|     212|     19.78%
                                         |        |        |
@@ -183,6 +183,8 @@ Critical Nets                           |   Loads|  Errors| % of total
 \UART_Receiver0/n1501                   |       4|     144|     13.43%
                                         |        |        |
 \UART_Receiver0/n58                     |       1|     126|     11.75%
+                                        |        |        |
+\UART_Sender0/n59                       |       1|     112|     10.45%
                                         |        |        |
 --------------------------------------------------------------------------------
 
@@ -195,5 +197,5 @@ Timing errors: 1072  Score: 3036102
 Constraints cover  4664 paths, 315 nets, and 771 connections (96.1% coverage)
 
 
-Peak memory: 213049344 bytes, TRCE: 0 bytes, DLYMAN: 0 bytes
+Peak memory: 215613440 bytes, TRCE: 0 bytes, DLYMAN: 0 bytes
 CPU_TIME_REPORT: 0 secs 

@@ -30,9 +30,10 @@
 
 
 -lpf 1
--lib "work" -vhd "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/root.vhd"
-"/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/uart_sender.vhd"
-"/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/uart_receiver.vhd"
+-lib "work" -vhd "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/src/cpu.vhd"
+"/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/src/root.vhd"
+"/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/src/uart_receiver.vhd"
+"/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/src/uart_sender.vhd"
 -top root
 
 
