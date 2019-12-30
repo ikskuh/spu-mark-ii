@@ -25,6 +25,8 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 		FETCH_INPUT0,
 		FETCH_INPUT1,
 
+		PUSH_OUTPUT,
+
 		DO_MEMORY,
 		
 		EXEC_COPY,
@@ -61,41 +63,33 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 		EXEC_LSR
 	);
 
-	TYPE Mem_Operation IS (
-		READ,
-		WRITE,
-		PUSH,
-		PEEK,
-		POP
-	);
-
-	SUBTYPE CPU_WORD IS std_logic_vector(15 downto 0);
+	SUBTYPE CPU_BITS IS std_logic_vector(15 downto 0);
+	SUBTYPE CPU_WORD IS unsigned(15 downto 0);
 	
-	CONSTANT NUL : CPU_WORD := "0000000000000000";
+	CONSTANT NUL : CPU_WORD := to_unsigned(0, 16);
+	CONSTANT NUL_BITS : CPU_BITS := "0000000000000000";
+
 	CONSTANT INP_ZERO : std_logic_vector(1 downto 0) := "00";
 	CONSTANT INP_IMM  : std_logic_vector(1 downto 0) := "01";
 	CONSTANT INP_PEEK : std_logic_vector(1 downto 0) := "10";
 	CONSTANT INP_POP  : std_logic_vector(1 downto 0) := "11";
 
 	SIGNAL state, state_after_memory : FSM_State;
-	
-	SIGNAL memOper : Mem_Operation;
 
 	SIGNAL REG_SP : CPU_WORD; -- stack pointer
 	SIGNAL REG_BP : CPU_WORD; -- base pointer
 	SIGNAL REG_IP : CPU_WORD; -- instruction pointer
-	SIGNAL REG_FR : CPU_WORD; -- flag register
+	SIGNAL REG_FR : CPU_BITS; -- flag register
 	
-	SIGNAL REG_INSTR : CPU_WORD; -- current instruction word
+	SIGNAL REG_INSTR : CPU_BITS; -- current instruction word
 	SIGNAL REG_I0    : CPU_WORD; -- input0
 	SIGNAL REG_I1    : CPU_WORD; -- input1
-	SIGNAL REG_OUT   : CPU_WORD; -- output
 	
 	ALIAS INSTR_EXEC : std_logic_vector(2 downto 0) is REG_INSTR(2 downto 0);
-	ALIAS INSTR_IN0  : std_logic_vector(1 downto 0) is REG_INSTR(3 downto 2);
-	ALIAS INSTR_IN1  : std_logic_vector(1 downto 0) is REG_INSTR(4 downto 3);
-	ALIAS INSTR_FLAG : std_logic                    is REG_INSTR(5);
-	ALIAS INSTR_OUT  : std_logic_vector(1 downto 0) is REG_INSTR(7 downto 6);
+	ALIAS INSTR_IN0  : std_logic_vector(1 downto 0) is REG_INSTR(4 downto 3);
+	ALIAS INSTR_IN1  : std_logic_vector(1 downto 0) is REG_INSTR(6 downto 5);
+	ALIAS INSTR_FLAG : std_logic                    is REG_INSTR(7);
+	ALIAS INSTR_OUT  : std_logic_vector(1 downto 0) is REG_INSTR(9 downto 8);
 	ALIAS INSTR_CMD  : std_logic_vector(4 downto 0) is REG_INSTR(14 downto 10);
 	
 	ALIAS FLAG_Z : std_logic is REG_FR(0);
@@ -106,9 +100,9 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 	SIGNAL mem_bls      : std_logic_vector(1 downto 0) := "00";
 	SIGNAL mem_req      : std_logic := '0';
 	SIGNAL mem_write    : std_logic := '0';
-	SIGNAL mem_data_out : std_logic_vector(15 downto 0) := NUL;
-	SIGNAL mem_data_in  : std_logic_vector(15 downto 0) := NUL;
-	SIGNAL mem_address  : std_logic_vector(15 downto 1) := NUL(15 downto 1);
+	SIGNAL mem_data_out : std_logic_vector(15 downto 0) := NUL_BITS;
+	SIGNAL mem_data_in  : std_logic_vector(15 downto 0) := NUL_BITS;
+	SIGNAL mem_address  : std_logic_vector(15 downto 1) := NUL_BITS(15 downto 1);
 	SIGNAL mem_ack      : std_logic;
 	
 	function isInstructionExecuted(condition : std_logic_vector(2 downto 0); Z : std_logic; N : std_logic) return Boolean IS
@@ -217,8 +211,8 @@ BEGIN
 		begin
 			mem_req     <= '1';
 			mem_bls     <= "11";
-			mem_write    <= '0';
-			mem_address <= address(15 downto 1);
+			mem_write   <= '0';
+			mem_address <= std_logic_vector(address(15 downto 1));
 			state_after_memory <= stateAfter;
 			state <= DO_MEMORY;
 		end procedure;
@@ -228,8 +222,8 @@ BEGIN
 			mem_req      <= '1';
 			mem_bls      <= "11";
 			mem_write    <= '1';
-			mem_address  <= address(15 downto 1);
-			mem_data_out <= value;
+			mem_address  <= std_logic_vector(address(15 downto 1));
+			mem_data_out <= std_logic_vector(value);
 			state_after_memory <= stateAfter;
 			state <= DO_MEMORY;
 		end procedure;
@@ -257,7 +251,7 @@ BEGIN
 			beginMemOutput(address, "11", value, stateAfter);
 		end procedure;
 
-		procedure beginWriteMemory8(address : in CPU_WORD; value : in std_logic_vector(7 downto 0); stateAfter : FSM_State) is
+		procedure beginWriteMemory8(address : in CPU_WORD; value : in unsigned(7 downto 0); stateAfter : FSM_State) is
 		begin
 			if address(0) = '1' then
 				beginMemOutput(address, "10", value & "00000000", stateAfter);
@@ -279,15 +273,15 @@ BEGIN
 		procedure beginPop(stateAfter : FSM_State) is
 		begin
 			beginReadMemory16(REG_SP, stateAfter);
-			REG_SP <= std_logic_vector(unsigned(REG_SP) - to_unsigned(2, REG_SP'length));
+			REG_SP <= REG_SP + 2;
 		end procedure;
 
 		-- starts to push the value and will change to stateAfter.
 		-- stateAfter must use endWriteMemory to complete the transfer.
 		procedure beginPush(value : in CPU_WORD; stateAfter : FSM_State) is
 		begin
-			REG_SP <= std_logic_vector(unsigned(REG_SP) + to_unsigned(2, REG_SP'length));
-			beginWriteMemory16(REG_SP, value, stateAfter);
+			beginWriteMemory16(REG_SP - 2, value, stateAfter);
+			REG_SP <= REG_SP - 2;
 		end procedure;
 
 		-- completes execution of a instruction and handles
@@ -300,14 +294,14 @@ BEGIN
 					beginReadMemory16(REG_IP, FETCH_INSTR);
 				
 				when "01" => -- push
-					beginPush(output, FETCH_INSTR);
+					beginPush(output, PUSH_OUTPUT);
 					
 				when "10" => -- jmp
 					REG_IP <= output;
 					beginReadMemory16(output, FETCH_INSTR);
 				
 				when "11" => -- jmp rel
-					temp := std_logic_vector(unsigned(REG_IP) + unsigned(output(14 downto 0) & "0"));
+					temp := REG_IP + (output(14 downto 0) & "0");
 					REG_IP <= temp;
 					beginReadMemory16(temp, FETCH_INSTR);
 				
@@ -321,7 +315,7 @@ BEGIN
 		begin
 			if INSTR_IN1 = INP_IMM then
 				beginReadMemory16(REG_IP, FETCH_INPUT1);
-				REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+				REG_IP <= REG_IP + 2;
 			elsif INSTR_IN1 = INP_POP then
 				beginPop(FETCH_INPUT1);
 			elsif INSTR_IN1 = INP_PEEK then
@@ -341,7 +335,7 @@ BEGIN
 			if rising_edge(clk) then
 				CASE state IS
 					WHEN RESET =>
-						REG_FR <= NUL;
+						REG_FR <= NUL_BITS;
 						REG_BP <= NUL;
 						REG_SP <= NUL;
 						REG_IP <= NUL;
@@ -352,11 +346,11 @@ BEGIN
 							mem_req <= '0';
 							if mem_write = '0' then
 								case mem_bls is
-									when "00"   => mem_data_in <= NUL;
+									when "00"   => mem_data_in <= NUL_BITS;
 									when "01"   => mem_data_in <= "00000000" & mem_data_in(7 downto 0);
 									when "10"   => mem_data_in <= "00000000" & mem_data_in(15 downto 8);
 									when "11"   => mem_data_in <= bus_data_in;
-									when others => mem_data_in <= NUL;
+									when others => mem_data_in <= NUL_BITS;
 								end case;
 							end if;
 							state <= state_after_memory;
@@ -369,62 +363,66 @@ BEGIN
 							
 							-- start decoding instruction
 							if mem_data_in(4 downto 3) = INP_IMM then
-								-- IP +4, fetch from +2
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(4, REG_IP'length));
-								beginReadMemory16(std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length)), FETCH_INPUT0);
+								REG_IP <= REG_IP + 4;
+								beginReadMemory16(REG_IP + 2, FETCH_INPUT0);
+
 							elsif mem_data_in(4 downto 3) = INP_POP then
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+								REG_IP <= REG_IP + 2;
 								beginPop(FETCH_INPUT0);
+
 							elsif mem_data_in(4 downto 3) = INP_PEEK then
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+								REG_IP <= REG_IP + 2;
 								beginPeek(FETCH_INPUT0);
 							elsif INSTR_IN1 = INP_IMM then
 								REG_I0 <= NUL;
-								beginReadMemory16(std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length)), FETCH_INPUT1);
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(4, REG_IP'length));
+								beginReadMemory16(REG_IP + 2, FETCH_INPUT1);
+								REG_IP <= REG_IP + 4;
 							elsif INSTR_IN1 = INP_POP then
 								REG_I0 <= NUL;
 								beginPop(FETCH_INPUT1);
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+								REG_IP <= REG_IP + 2;
 							elsif INSTR_IN1 = INP_PEEK then
 								REG_I0 <= NUL;
 								beginPeek(FETCH_INPUT1);
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+								REG_IP <= REG_IP + 2;
 							else
 								REG_I0 <= NUL;
 								REG_I1 <= NUL;
 								state <= getInstructionStartState(mem_data_in(14 downto 10));
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+								REG_IP <= REG_IP + 2;
 							end if;
 						else
 							-- Instruction is not executed, go to next instruction
 							if mem_data_in(4 downto 3) = "01" and mem_data_in(6 downto 5) = "01" then
 								-- skip over both immediate values
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(6, REG_IP'length));
+								REG_IP <= REG_IP + 6;
 							elsif mem_data_in(4 downto 3) = "01" or mem_data_in(6 downto 5) = "01" then
 								-- skip over one immediate value
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(4, REG_IP'length));
+								REG_IP <= REG_IP + 4;
 							else
 								-- just skip the current instruction
-								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+								REG_IP <= REG_IP + 2;
 							end if;
 							
-							beginReadMemory16(REG_IP, FETCH_INSTR);
+							beginReadMemory16(REG_IP + 2, FETCH_INSTR);
 						end if;
 					
 					WHEN FETCH_INPUT0 => -- use with memRead16, popMem, peekMem
-						REG_I0 <= mem_data_in;
+						REG_I0 <= unsigned(mem_data_in);
 						beginFetchArg1;
 						
 					WHEN FETCH_INPUT1 => -- use with memRead16, popMem, peekMem
-						REG_I1 <= mem_data_in;
+						REG_I1 <= unsigned(mem_data_in);
 						state <= getInstructionStartState(INSTR_CMD);
 						
+					WHEN PUSH_OUTPUT =>
+						beginReadMemory16(REG_IP, FETCH_INSTR);
+
 					WHEN EXEC_COPY =>
 						finish_instruction(REG_I0);
 					
 					when EXEC_IPGET =>
-						finish_instruction(std_logic_vector(unsigned(REG_IP) + unsigned(REG_I0(14 downto 1) & "0")));
+						finish_instruction(unsigned(REG_IP) + unsigned(REG_I0(14 downto 1) & "0"));
 						
 					when EXEC_GET =>
 						state <= RESET; -- not implemented yet
@@ -448,14 +446,14 @@ BEGIN
 						beginReadMemory16(REG_I0, EXEC_LOAD_PROCESSING);
 
 					when EXEC_LOAD_PROCESSING =>
-						finish_instruction(mem_data_in);
+						finish_instruction(unsigned(mem_data_in));
 
 					when EXEC_FRSET =>
-						finish_instruction(REG_FR and (not REG_I0));
+						-- finish_instruction(REG_FR and (not REG_I0));
 
 					when EXEC_FRGET => 
-						REG_FR <= (REG_I0 and (not REG_I1)) or (REG_FR and (REG_I1));
-						finish_instruction(REG_FR);
+						-- REG_FR <= std_logic_vector(REG_I0 and (not REG_I1)) or (unsigned(REG_FR) and (REG_I1));
+						-- finish_instruction(unsigned(REG_FR));
 
 					when EXEC_BPGET =>
 						finish_instruction(REG_BP);
@@ -472,10 +470,10 @@ BEGIN
 						finish_instruction(REG_I0);
 
 					WHEN EXEC_ADD =>
-						finish_instruction(std_logic_vector(unsigned(REG_I0) + unsigned(REG_I1)));
+						finish_instruction(REG_I0 + REG_I1);
 						
 					WHEN EXEC_SUB =>
-						finish_instruction(std_logic_vector(unsigned(REG_I0) - unsigned(REG_I1)));
+						finish_instruction(REG_I0 - REG_I1);
 					
 					when EXEC_MUL =>
 						state <= RESET; -- not implemented yet
@@ -499,7 +497,7 @@ BEGIN
 						finish_instruction(not REG_I0);
 
 					when EXEC_NEG =>
-						finish_instruction(std_logic_vector(-signed(REG_I0)));
+						finish_instruction(unsigned(-signed(REG_I0)));
 
 					when EXEC_ROL =>
 						finish_instruction(REG_I0(14 downto 0) & REG_I0(15));
@@ -519,6 +517,8 @@ BEGIN
 					when EXEC_LSR =>
 						finish_instruction("0" & REG_I0(15 downto 1));
 						
+					
+
 				END CASE;
 			end if;
 		end if;	

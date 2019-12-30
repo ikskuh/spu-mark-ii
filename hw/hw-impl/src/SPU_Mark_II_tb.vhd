@@ -22,6 +22,9 @@ LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
+LIBRARY std;
+use std.textio.all;
+
 ENTITY testbench IS
 END testbench;
 
@@ -140,10 +143,17 @@ BEGIN
 				if bus_request = '1' then
 					bus_acknowledge <= '1';
 					if bus_write = '1' then
+						report "bus write at " & to_hstring(unsigned(bus_address & "0")) & " <= " & to_hstring(unsigned(bus_data_out));
 						-- ignore writes
 					else 
+						report "bus read at " & to_hstring(unsigned(bus_address & "0"));
 						case to_integer(unsigned(bus_address & "0")) is
-							when 16#0000# => bus_data_in <= "0" & CMD_COPY & OUT_DISCARD & FLAG_NO & INP_IMM & INP_IMM & CON_ALWAYS;
+							when 16#0000# => bus_data_in <= "0" & CMD_COPY & OUT_JMP & FLAG_NO & INP_ZERO & INP_IMM & CON_ALWAYS;
+							when 16#0002# => bus_data_in <= "0000000000001000";
+							
+							when 16#0008# => bus_data_in <= "0" & CMD_COPY & OUT_JMP & FLAG_NO & INP_ZERO & INP_IMM & CON_ALWAYS;
+							when 16#000A# => bus_data_in <= "0000000000000000";
+
 							when others => bus_data_in <= "0000000000000000";
 						end case;
 					end if;
