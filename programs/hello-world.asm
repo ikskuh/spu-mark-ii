@@ -4,10 +4,9 @@ _start:
 	push msg
 _loop:
 	[i0:peek] ld8 [f:yes]
-	[ex:nonzero] out 0x00
+	[ex:nonzero] st8 0x1000
 	[ex:nonzero] add 1
-	[ex:nonzero] jmp _loop
-	rjmp -4
+	[ex:nonzero] rjmp -3
 
 .org 0x1000
 msg:

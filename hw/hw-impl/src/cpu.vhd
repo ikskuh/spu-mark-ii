@@ -10,10 +10,10 @@ ENTITY SPU_Mark_II IS
 		bus_data_out    : out std_logic_vector(15 downto 0);
 		bus_data_in     : in  std_logic_vector(15 downto 0);
 		bus_address     : out std_logic_vector(15 downto 0);
-		write_operation : out std_logic; -- when '1' then bus write is requested, otherwise a read.
-		byte_lan_select : out std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
-		mem_request     : out std_logic; -- when set to '1', the bus operation is requested
-		mem_acknowledge : in  std_logic  -- when set to '1', the bus operation is acknowledged
+		bus_write       : out std_logic; -- when '1' then bus write is requested, otherwise a read.
+		bus_bls         : out std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		bus_request     : out std_logic; -- when set to '1', the bus operation is requested
+		bus_acknowledge : in  std_logic  -- when set to '1', the bus operation is acknowledged
 	);
 	
 END ENTITY SPU_Mark_II;
@@ -22,15 +22,8 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 	TYPE FSM_State IS (
 		RESET, 
 		FETCH_INSTR, 
-		FETCH_IMM0, 
-		PEEK_INP0, 
-		POP_INP0, 
-		FETCH_IMM1, 
-		PEEK_INP1, 
-		POP_INP1,
-		
-		READ_MEM,
-		WRITE_MEM,
+		FETCH_INPUT0,
+		FETCH_INPUT1,
 
 		PUSH_RESULT,
 		
@@ -66,6 +59,14 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 		EXEC_LSR
 	);
 
+	TYPE Mem_Operation IS (
+		READ,
+		WRITE,
+		PUSH,
+		PEEK,
+		POP
+	);
+
 	SUBTYPE CPU_WORD IS std_logic_vector(15 downto 0);
 	
 	CONSTANT NUL : CPU_WORD := "0000000000000000";
@@ -76,6 +77,8 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 
 	SIGNAL state, state_after_memory : FSM_State;
 	
+	SIGNAL memOper : Mem_Operation;
+
 	SIGNAL REG_SP : CPU_WORD; -- stack pointer
 	SIGNAL REG_BP : CPU_WORD; -- base pointer
 	SIGNAL REG_IP : CPU_WORD; -- instruction pointer
@@ -96,6 +99,15 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 	ALIAS FLAG_Z : std_logic is REG_FR(0);
 	ALIAS FLAG_N : std_logic is REG_FR(0);
 	ALIAS FLAG_I : std_logic_vector(3 downto 0) is REG_FR(5 downto 2);
+
+
+	SIGNAL mem_bls      : std_logic_vector(1 downto 0) := "00";
+	SIGNAL mem_req      : std_logic := '0';
+	SIGNAL mem_write    : std_logic := '0';
+	SIGNAL mem_data_out : std_logic_vector(15 downto 0) := NUL;
+	SIGNAL mem_address  : std_logic_vector(15 downto 0) := NUL;
+	SIGNAL mem_data_in  : std_logic_vector(15 downto 0);
+	SIGNAL mem_ack      : std_logic;
 	
 	function isInstructionExecuted(condition : std_logic_vector(2 downto 0); Z : std_logic; N : std_logic) return Boolean IS
 	BEGIN
@@ -184,52 +196,145 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 			when "11111" => return EXEC_COPY; -- lsr
 			when others  => return RESET;           -- undefined anyways
 		end case;
-  end;
+	end;
  
 BEGIN
 
+	bus_bls      <= mem_bls;
+	bus_request  <= mem_req;
+	bus_write    <= mem_write;
+	bus_data_out <= mem_data_out;
+	bus_address  <= mem_address;
+	mem_data_in  <= bus_data_in;
+	mem_ack      <= bus_acknowledge;
+
 	P0: PROCESS (clk, rst) is
-		procedure beginReadMemory16(signal address : in CPU_WORD; stateAfter : FSM_State) is
+		-- starts to read a value from memory and will change to stateAfter.
+		-- stateAfter must use endReadMemory to complete the transfer.
+		procedure beginReadMemory16(address : in CPU_WORD; stateAfter : FSM_State) is
 		begin
-			state_after_memory <= stateAfter;
-			mem_request <= '1';
-			byte_lan_select <= "11";
-			write_operation <= '0';
-			bus_address <= address(15 downto 0) & "0";
-			state <= READ_MEM;
+			mem_req     <= '1';
+			mem_bls     <= "11";
+			mem_write    <= '0';
+			mem_address <= address(15 downto 0) & "0";
+			-- state_after_memory <= stateAfter;
+			state <= stateAfter;
 		end procedure;
 
-		impure function endReadMemory return boolean is
+		-- starts to write a value to memory and will change to stateAfter.
+		-- stateAfter must use endWriteMemory to complete the transfer.
+		procedure beginWriteMemory16(address : in CPU_WORD; value : in CPU_WORD; stateAfter : FSM_State) is
+			begin
+				mem_req      <= '1';
+				mem_bls      <= "11";
+				mem_write    <= '1';
+				mem_address  <= address(15 downto 0) & "0";
+				mem_data_out <= value;
+				-- state_after_memory <= stateAfter;
+				state <= stateAfter;
+			end procedure;
+
+		-- starts to pop a value and will change to stateAfter.
+		-- stateAfter must use endReadMemory to complete the transfer.
+		procedure beginPeek(stateAfter : FSM_State) is
 		begin
-			return mem_acknowledge = '1';
+			beginReadMemory16(REG_SP, stateAfter);
+		end procedure;
+
+		-- starts to pop a value and will change to stateAfter.
+		-- stateAfter must use endReadMemory to complete the transfer.
+		procedure beginPop(stateAfter : FSM_State) is
+		begin
+			beginReadMemory16(REG_SP, stateAfter);
+			REG_SP <= std_logic_vector(unsigned(REG_SP) - to_unsigned(2, REG_SP'length));
+		end procedure;
+
+		-- starts to push the value and will change to stateAfter.
+		-- stateAfter must use endWriteMemory to complete the transfer.
+		procedure beginPush(value : in CPU_WORD; stateAfter : FSM_State) is
+		begin
+			REG_SP <= std_logic_vector(unsigned(REG_SP) + to_unsigned(2, REG_SP'length));
+			beginWriteMemory16(REG_SP, value, stateAfter);
+		end procedure;
+
+		type ReadMemoryResult is record
+			transferComplete : boolean;
+			data             : CPU_WORD;
+		end record;
+
+		-- Ends a memory transaction process.
+		-- Returns result.transferComplete = true if the transaction is complete.
+		-- Fixed-up result is contained in result.data (so upper-byte-reads will be returned in the lower byte as well).
+		-- Must not be called anymore after it returned true and no other begin* function was called!
+		impure function endReadMemory return ReadMemoryResult is
+		begin
+			if mem_ack = '1' then
+				mem_req <= '0';
+				case mem_bls is
+					when "00"   => return (transferComplete => true, data => NUL);
+					when "01"   => return (transferComplete => true, data => "00000000" & mem_data_in(7 downto 0));
+					when "10"   => return (transferComplete => true, data => "00000000" & mem_data_in(15 downto 8));
+					when "11"   => return (transferComplete => true, data => bus_data_in);
+					when others => return (transferComplete => false, data => NUL);
+				end case;
+			else 
+				return (transferComplete => false, data => NUL);
+			end if;
 		end function;
 
-		procedure finish_instruction(
-			signal state : out FSM_State; 
-			signal reg_ip: inout CPU_WORD;
-			signal reg_out: out CPU_WORD;
-			signal reg_sp: inout CPU_WORD;
-			output : in CPU_WORD
-		) is
+		-- Ends a memory transaction process.
+		-- Returns true if the transaction is complete.
+		-- Must not be called anymore after it returned true and no other begin* function was called!
+		impure function endWriteMemory return boolean is 
 		begin
-			reg_out <= output;
+			if mem_ack = '1' then
+				mem_req <= '0';
+				return true;
+			else
+				return false;
+			end if;
+		end function;
+
+		-- completes execution of a instruction and handles
+		-- post-command processing.
+		procedure finish_instruction(output : in CPU_WORD) is
+		begin
 			case INSTR_OUT is
 				when "00" => -- discard
 					state <= FETCH_INSTR;
+				
 				when "01" => -- push
-					state <= PUSH_RESULT;
-					REG_SP <= std_logic_vector(unsigned(REG_SP) - to_unsigned(2, REG_IP'length));
+					beginPush(output, PUSH_RESULT);
 					
 				when "10" => -- jmp
 					REG_IP <= output;
 					state <= FETCH_INSTR;
+				
 				when "11" => -- jmp rel
 					REG_IP <= std_logic_vector(unsigned(REG_IP) + unsigned(output(14 downto 0) & "0"));
 					state <= FETCH_INSTR;
+				
 				when others =>
 					state <= RESET;
 			end case;		
 		end procedure;
+
+		procedure beginFetchArg1 is
+		begin
+			if INSTR_IN1 = INP_IMM then
+				beginReadMemory16(REG_IP, FETCH_INPUT1);
+				REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
+			elsif INSTR_IN1 = INP_POP then
+				beginPop(FETCH_INPUT1);
+			elsif INSTR_IN1 = INP_PEEK then
+				beginPeek(FETCH_INPUT1);
+			else
+				REG_I1 <= NUL;
+				state <= getInstructionStartState(INSTR_CMD);
+			end if;
+		end procedure;
+
+		variable mem_result : ReadMemoryResult;
 
 	BEGIN
 	  if rst = '0' then
@@ -245,31 +350,32 @@ BEGIN
 						beginReadMemory16(NUL, FETCH_INSTR);
 					
 					WHEN FETCH_INSTR => -- use with readMem16!
-						variable result := endReadMemory();
-
-						if memTransactionDone(result) then
-							REG_INSTR <= memGetValue(result);
+						mem_result := endReadMemory;
+						if mem_result.transferComplete then
+							REG_INSTR <= mem_result.data;
 							
-							if isInstructionExecuted(bus_data_in(2 downto 0), FLAG_Z, FLAG_N) then
+							if isInstructionExecuted(mem_result.data(2 downto 0), FLAG_Z, FLAG_N) then
 							
 								REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
 								
 								-- start decoding instruction
 								if INSTR_IN0 = INP_IMM then
-									state <= FETCH_IMM0;
+									beginReadMemory16(REG_IP, FETCH_INPUT0);
+									REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
 								elsif INSTR_IN0 = INP_POP then
-									state <= POP_INP0;
+									beginPop(FETCH_INPUT0);
 								elsif INSTR_IN0 = INP_PEEK then
-									state <= PEEK_INP0;
+									beginPeek(FETCH_INPUT0);
 								elsif INSTR_IN1 = INP_IMM then
 									REG_I0 <= NUL;
-									state <= FETCH_IMM1;
+									beginReadMemory16(REG_IP, FETCH_INPUT1);
+									REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
 								elsif INSTR_IN1 = INP_POP then
 									REG_I0 <= NUL;
-									state <= POP_INP1;
+									beginPop(FETCH_INPUT1);
 								elsif INSTR_IN1 = INP_PEEK then
 									REG_I0 <= NUL;
-									state <= PEEK_INP1;
+									beginPeek(FETCH_INPUT1);
 								else
 									REG_I0 <= NUL;
 									REG_I1 <= NUL;
@@ -277,10 +383,10 @@ BEGIN
 								end if;
 							else
 								-- Instruction is not executed, go to next instruction
-								if bus_data_in(4 downto 3) = "01" and bus_data_in(6 downto 5) = "01" then
+								if mem_result.data(4 downto 3) = "01" and mem_result.data(6 downto 5) = "01" then
 									-- skip over both immediate values
 									REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(6, REG_IP'length));
-								elsif bus_data_in(4 downto 3) = "01" or bus_data_in(6 downto 5) = "01" then
+								elsif mem_result.data(4 downto 3) = "01" or mem_result.data(6 downto 5) = "01" then
 									-- skip over one immediate value
 									REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(4, REG_IP'length));
 								else
@@ -293,113 +399,25 @@ BEGIN
 							
 						end if;
 					
-					WHEN FETCH_IMM0 => -- use with memRead16
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '0';
-						bus_address <= REG_IP;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
-							REG_I0 <= bus_data_in;
-							REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
-							
-							if INSTR_IN1 = INP_IMM then
-								state <= FETCH_IMM1;
-							elsif INSTR_IN1 = INP_POP then
-								state <= POP_INP1;
-							elsif INSTR_IN1 = INP_PEEK then
-								state <= PEEK_INP1;
-							else
-								REG_I1 <= NUL;
-								state <= getInstructionStartState(INSTR_CMD);
-							end if;
-						end if;
-					
-					WHEN PEEK_INP0 => -- use with peekMem
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '0';
-						bus_address <= REG_SP;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
-							REG_I0 <= bus_data_in;
-							
-							if INSTR_IN1 = INP_IMM then
-								state <= FETCH_IMM1;
-							elsif INSTR_IN1 = INP_POP then
-								state <= POP_INP1;
-							elsif INSTR_IN1 = INP_PEEK then
-								state <= PEEK_INP1;
-							else
-								REG_I1 <= NUL;
-								state <= getInstructionStartState(INSTR_CMD);
-							end if;
-						end if;
-					
-					WHEN POP_INP0 => -- use with popMem
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '0';
-						bus_address <= REG_SP;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
-							REG_I0 <= bus_data_in;
-							REG_SP <= std_logic_vector(unsigned(REG_SP) + to_unsigned(2, REG_IP'length));
-							
-							if INSTR_IN1 = INP_IMM then
-								state <= FETCH_IMM1;
-							elsif INSTR_IN1 = INP_POP then
-								state <= POP_INP1;
-							elsif INSTR_IN1 = INP_PEEK then
-								state <= PEEK_INP1;
-							else
-								REG_I1 <= NUL;
-								state <= getInstructionStartState(INSTR_CMD);
-							end if;
+					WHEN FETCH_INPUT0 => -- use with memRead16, popMem, peekMem
+						mem_result := endReadMemory;
+						if mem_result.transferComplete then
+							REG_I0 <= mem_result.data;
+							beginFetchArg1;
 						end if;
 						
-					WHEN FETCH_IMM1 => -- use with memRead16
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '0';
-						bus_address <= REG_IP;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
-							REG_I1 <= bus_data_in;
-							REG_IP <= std_logic_vector(unsigned(REG_IP) + to_unsigned(2, REG_IP'length));
-							
+					WHEN FETCH_INPUT1 => -- use with memRead16, popMem, peekMem
+						mem_result := endReadMemory;
+						if mem_result.transferComplete then
+							REG_I1 <= mem_result.data;
 							state <= getInstructionStartState(INSTR_CMD);
 						end if;
 						
-					WHEN PEEK_INP1 => -- use with peekMem
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '0';
-						bus_address <= REG_SP;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
-							REG_I1 <= bus_data_in;
-							state <= getInstructionStartState(INSTR_CMD);
-						end if;
-						
-					WHEN POP_INP1 =>  -- use with popMem
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '0';
-						bus_address <= REG_SP;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
-							REG_I1 <= bus_data_in;
-							REG_SP <= std_logic_vector(unsigned(REG_SP) + to_unsigned(2, REG_IP'length));
-							
-							state <= getInstructionStartState(INSTR_CMD);
-						end if;
-					
 					WHEN EXEC_COPY =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0);
+						finish_instruction(REG_I0);
 					
 					when EXEC_IPGET =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, std_logic_vector(unsigned(REG_IP) + unsigned(REG_I0(14 downto 1) & "0")));
+						finish_instruction(std_logic_vector(unsigned(REG_IP) + unsigned(REG_I0(14 downto 1) & "0")));
 						
 					when EXEC_GET =>
 						state <= RESET; -- not implemented yet
@@ -420,31 +438,31 @@ BEGIN
 						state <= RESET; -- not implemented yet
 
 					when EXEC_FRSET =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_FR and (not REG_I0));
+						finish_instruction(REG_FR and (not REG_I0));
 
 					when EXEC_FRGET => 
 						REG_FR <= (REG_I0 and (not REG_I1)) or (REG_FR and (REG_I1));
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_FR);
+						finish_instruction(REG_FR);
 
 					when EXEC_BPGET =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_BP);
+						finish_instruction(REG_BP);
 						
 					when EXEC_BPSET =>
 						REG_BP <= REG_I0;
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0);
+						finish_instruction(REG_I0);
 
 					when EXEC_SPGET =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_SP);
+						finish_instruction(REG_SP);
 
 					when EXEC_SPSET =>
 						REG_SP <= REG_I0;
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0);
+						finish_instruction(REG_I0);
 
 					WHEN EXEC_ADD =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, std_logic_vector(unsigned(REG_I0) + unsigned(REG_I1)));
+						finish_instruction(std_logic_vector(unsigned(REG_I0) + unsigned(REG_I1)));
 						
 					WHEN EXEC_SUB =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, std_logic_vector(unsigned(REG_I0) - unsigned(REG_I1)));
+						finish_instruction(std_logic_vector(unsigned(REG_I0) - unsigned(REG_I1)));
 					
 					when EXEC_MUL =>
 						state <= RESET; -- not implemented yet
@@ -456,49 +474,43 @@ BEGIN
 						state <= RESET; -- not implemented yet
 					
 					when EXEC_AND =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0 and REG_I1);
+						finish_instruction(REG_I0 and REG_I1);
 					
 					when EXEC_OR =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0 or REG_I1);
+						finish_instruction(REG_I0 or REG_I1);
 
 					when EXEC_XOR =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0 xor REG_I1);
+						finish_instruction(REG_I0 xor REG_I1);
 
 					when EXEC_NOT =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, not REG_I0);
+						finish_instruction(not REG_I0);
 
 					when EXEC_NEG =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, std_logic_vector(-signed(REG_I0)));
+						finish_instruction(std_logic_vector(-signed(REG_I0)));
 
 					when EXEC_ROL =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0(14 downto 0) & REG_I0(15));
+						finish_instruction(REG_I0(14 downto 0) & REG_I0(15));
 					
 					when EXEC_ROR =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0(0) & REG_I0(15 downto 1));
+						finish_instruction(REG_I0(0) & REG_I0(15 downto 1));
 
 					when EXEC_BSWAP =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0(7 downto 0) & REG_I0(15 downto 8));
+						finish_instruction(REG_I0(7 downto 0) & REG_I0(15 downto 8));
 
 					when EXEC_ASR =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0(15) & REG_I0(15 downto 1));
+						finish_instruction(REG_I0(15) & REG_I0(15 downto 1));
 
 					when EXEC_LSL =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, REG_I0(14 downto 0) & "0");
+						finish_instruction(REG_I0(14 downto 0) & "0");
 
 					when EXEC_LSR =>
-						finish_instruction(state, reg_ip, reg_out, reg_sp, "0" & REG_I0(15 downto 1));
+						finish_instruction("0" & REG_I0(15 downto 1));
 
 					WHEN PUSH_RESULT => -- use with pushMem
-						mem_request <= '1';
-						byte_lan_select <= "11";
-						write_operation <= '1';
-						bus_address <= REG_SP;
-						bus_data_out <= REG_OUT;
-						if mem_acknowledge = '1' then
-							mem_request <= '0';
+						if endWriteMemory then
 							state <= FETCH_INSTR;
 						end if;
-							
+						
 				END CASE;
 			end if;
 		end if;	

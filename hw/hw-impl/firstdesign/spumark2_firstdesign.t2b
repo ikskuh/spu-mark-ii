@@ -1,5 +1,0 @@
-
-
--g RamCfg:Reset
-
--path "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl"  
