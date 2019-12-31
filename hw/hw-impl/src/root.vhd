@@ -72,12 +72,24 @@ ARCHITECTURE rtl OF root IS
 		bus_request     : OUT std_logic
 		);
 	END COMPONENT;
-	
-	signal cnt : unsigned(7 downto 0);
-	signal floating0 : std_logic;
-	signal floating1 : std_logic;
-	signal uart_send_char : unsigned(7 downto 0);
-	signal uart_receive_done : std_logic;
+
+	COMPONENT FIFO IS
+		GENERIC (
+			width : natural := 16; -- width in bits
+			depth : natural := 8  -- number of elements in the fifo
+		);
+		PORT (
+			rst             : in  std_logic; -- asynchronous reset
+			clk             : in  std_logic; -- system clock
+			input           : in  std_logic_vector(width - 1 downto 0);
+			output          : out std_logic_vector(width - 1 downto 0);
+			insert          : in  std_logic;
+			remove          : in  std_logic;
+			empty           : out std_logic;
+			full            : out std_logic;
+			not_empty       : out std_logic
+		);
+	END COMPONENT FIFO;
 
 	SIGNAL bus_data_out :  std_logic_vector(15 downto 0);
 	SIGNAL bus_data_in :  std_logic_vector(15 downto 0);
@@ -100,6 +112,22 @@ ARCHITECTURE rtl OF root IS
 	
 	signal next_is_sram : boolean := false;
 
+	SIGNAL uart_rx_fifo_input     : std_logic_vector(7 downto 0);
+	SIGNAL uart_rx_fifo_output    : std_logic_vector(7 downto 0);
+	SIGNAL uart_rx_fifo_insert    : std_logic := '0';
+	SIGNAL uart_rx_fifo_remove    : std_logic := '0';
+	SIGNAL uart_rx_fifo_full      : std_logic := '0';
+	SIGNAL uart_rx_fifo_empty     : std_logic := '0';
+	SIGNAL uart_rx_fifo_not_empty : std_logic := '0';
+	
+	SIGNAL uart_tx_fifo_input     : std_logic_vector(7 downto 0);
+	SIGNAL uart_tx_fifo_output    : std_logic_vector(7 downto 0);
+	SIGNAL uart_tx_fifo_insert    : std_logic := '0';
+	SIGNAL uart_tx_fifo_remove    : std_logic := '0';
+	SIGNAL uart_tx_fifo_full      : std_logic := '0';
+	SIGNAL uart_tx_fifo_empty     : std_logic := '0';
+	SIGNAL uart_tx_fifo_not_empty : std_logic := '0';
+
 BEGIN	
 	sram_data_in <= sram_data;
 	sram_data <= sram_data_out when sram_mode = write else "ZZZZZZZZ";
@@ -109,34 +137,74 @@ BEGIN
 	sram_ce <= '0' when sram_mode /= off else '1';
 
 	UART_Sender0: UART_Sender
-	GENERIC MAP(
-		clkfreq => 12_000_000, 
-		baudrate => 19200 -- this is a *exakt* counter :)
-	)
-	PORT MAP(
-		rst => extrst,
-		clk => extclk,
-		txd => uart0_txd,
-		send => uart_receive_done,
-		data => uart_send_char,
-		bsy => floating0
-	);
+		GENERIC MAP(
+			clkfreq => 12_000_000, 
+			baudrate => 19200 -- this is a *exakt* counter :)
+		)
+		PORT MAP(
+			rst => extrst,
+			clk => extclk,
+			txd => uart0_txd,
+			send => uart_tx_fifo_not_empty,
+			data => unsigned(uart_tx_fifo_output),
+			bsy => uart_tx_fifo_remove
+		)
+	;
+	
+	tx_fifo: FIFO
+		GENERIC MAP(
+			width => 8,
+			depth => 8
+		)
+		PORT MAP (
+			rst       => extrst,
+			clk       => extclk,
+			input     => uart_tx_fifo_input,
+			output    => uart_tx_fifo_output,
+			insert    => uart_tx_fifo_insert,
+			remove    => uart_tx_fifo_remove,
+			empty     => uart_tx_fifo_empty,
+			full      => uart_tx_fifo_full,
+			not_empty => uart_tx_fifo_not_empty
+		)
+	;
 	
 	UART_Receiver0: UART_Receiver
-	GENERIC MAP(
-		clkfreq => 12_000_000,
-		baudrate => 19200
-	)
-	PORT MAP(
-		rst => extrst,
-		clk => extclk,
-		rxd => uart0_rxd,
-		bsy => floating1,
-		data => uart_send_char,
-		recv => uart_receive_done
-	);
+		GENERIC MAP(
+			clkfreq => 12_000_000,
+			baudrate => 19200
+		)
+		PORT MAP(
+			rst => extrst,
+			clk => extclk,
+			rxd => uart0_rxd,
+			bsy => open,
+			std_logic_vector(data) => uart_rx_fifo_input,
+			recv => uart_rx_fifo_insert
+		)
+	;
+	
+	rx_fifo: FIFO
+		GENERIC MAP(
+			width => 8,
+			depth => 8
+		)
+		PORT MAP (
+			rst       => extrst,
+			clk       => extclk,
+			input     => uart_rx_fifo_input,
+			output    => uart_rx_fifo_output,
+			insert    => uart_rx_fifo_insert,
+			remove    => uart_rx_fifo_remove,
+			empty     => uart_rx_fifo_empty,
+			full      => uart_rx_fifo_full,
+			not_empty => uart_rx_fifo_not_empty
+		)
+	;
 
-	uut: SPU_Mark_II PORT MAP(
+
+
+	cpu: SPU_Mark_II PORT MAP(
 		rst => extrst,
 		clk => cpuclk,
 		bus_data_out => bus_data_out,
@@ -197,9 +265,28 @@ BEGIN
 								sram_data_out <= bus_data_out(7 downto 0);
 							end if;
 							next_is_sram <= true;
-	
-						else
 							bus_acknowledge <= '0';
+						elsif bus_address = "010000000000000" then -- 0x4000, Debug Uart
+							
+							if bus_write = '1' then
+								if uart_tx_fifo_full = '0' then
+									uart_tx_fifo_input <= bus_data_out(7 downto 0);
+									uart_tx_fifo_insert <= '1';
+									bus_acknowledge <= '1';
+								end if;
+							else
+								if uart_rx_fifo_empty = '0' then
+									uart_rx_fifo_remove <= '1';
+									bus_data_in <= "00000000" & uart_rx_fifo_output;
+									bus_acknowledge <= '1';
+								else
+									bus_data_in <= "1111111111111111";
+									bus_acknowledge <= '1';
+								end if;
+							end if;
+
+						else
+							bus_acknowledge <= '1';
 							if bus_write = '1' then
 								-- ignore writes
 							else
@@ -212,6 +299,8 @@ BEGIN
 					bus_acknowledge <= '0';
 					sram_mode <= off;
 					next_is_sram <= false;
+					uart_tx_fifo_insert <= '0';
+					uart_rx_fifo_remove <= '0';
 				end if;
 			end if;
 		end if;

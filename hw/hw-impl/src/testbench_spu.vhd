@@ -27,10 +27,10 @@ use std.textio.all;
 
 use work.rom.all;
 
-ENTITY testbench IS
-END testbench;
+ENTITY testbench_spu IS
+END testbench_spu;
 
-ARCHITECTURE behavior OF testbench IS 
+ARCHITECTURE behavior OF testbench_spu IS 
 
 	COMPONENT SPU_Mark_II
 	PORT(
@@ -119,7 +119,7 @@ ARCHITECTURE behavior OF testbench IS
 
 	SIGNAL simulated_ram : RAM_Type;
 
-
+	SIGNAL first_access : boolean := false;
 BEGIN
 
 -- Please check and add your generic clause manually
@@ -135,10 +135,9 @@ BEGIN
 		bus_acknowledge => bus_acknowledge
 	);
 
-
 -- *** Test Bench - User Defined Section ***
 
-	clk <= not clk  after 20 ns;  -- 25 MHz Taktfrequenz
+	clk <= not clk  after 83.333 ns;  -- 12 MHz Taktfrequenz
 	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal: --__
 
 	tb : PROCESS(clk, rst)
@@ -151,11 +150,13 @@ BEGIN
 				if bus_request = '1' then
 					bus_acknowledge <= '1';
 					if bus_write = '1' then
-						report "bus write at " & to_hstring(unsigned(bus_address) & "0") & " <= " & to_hstring(unsigned(bus_data_out));
+						if first_access then
+							report "bus write at " & to_hstring(unsigned(bus_address) & "0") & " <= " & to_hstring(unsigned(bus_data_out));
+						end if;
 						if bus_address(15) = '1' then
 							simulated_ram(to_integer(unsigned(bus_address(6 downto 1)))) <= bus_data_out;
 						else
-							if bus_address = "010000000000000" then -- 0x4000
+							if bus_address = "010000000000000" and first_access then -- 0x4000
 								report "serial output: " & to_hstring(unsigned(bus_data_out));
 							end if;
 						end if;
@@ -171,14 +172,19 @@ BEGIN
 							end if;
 						end if;
 						bus_data_in <= temp;
-						report "bus read at " & to_hstring(unsigned(bus_address) & "0") & " => " & to_hstring(unsigned(temp));						
+						if first_access then
+							report "bus read at " & to_hstring(unsigned(bus_address) & "0") & " => " & to_hstring(unsigned(temp));						
+						end if;
 					end if;
+					first_access <= false;
 				else
 					bus_acknowledge <= '0';
+					first_access <= true;
 				end if;
 			end if;
 		end if;
 	END PROCESS;
+
 -- *** End Test Bench - User Defined Section ***
 
 END;

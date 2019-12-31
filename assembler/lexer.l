@@ -410,8 +410,10 @@ void lex_assemble(FILE * infile)
 								state = 2;
 							} else if(state == 2) {
 								// comma before argument 2
-								if(token.type != TOK_COMMA)
+								if(token.type != TOK_COMMA) {
+									fprintf(stderr, "Expected comma!\n");
 									_abort();
+								}
 								state = 3;
 							} else if(state == 3) {
 								// argument 2

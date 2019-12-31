@@ -1,6 +1,5 @@
 BLOCK RESETPATHS ;
 BLOCK ASYNCPATHS ;
-
 IOBUF PORT "leds[0]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "leds[1]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "leds[2]" IO_TYPE=LVCMOS33 ;
@@ -9,7 +8,6 @@ IOBUF PORT "leds[4]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "leds[5]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "leds[6]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "leds[7]" IO_TYPE=LVCMOS33 ;
-
 LOCATE COMP "leds[0]" SITE "H11" ;
 LOCATE COMP "leds[1]" SITE "J13" ;
 LOCATE COMP "leds[2]" SITE "J11" ;
@@ -18,62 +16,80 @@ LOCATE COMP "leds[4]" SITE "K11" ;
 LOCATE COMP "leds[5]" SITE "L13" ;
 LOCATE COMP "leds[6]" SITE "N15" ;
 LOCATE COMP "leds[7]" SITE "P16" ;
-
 IOBUF PORT "switches[0]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "switches[1]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "switches[2]" IO_TYPE=LVCMOS33 ;
 IOBUF PORT "switches[3]" IO_TYPE=LVCMOS33 ;
-
 #LOCATE COMP "switches[0]" SITE "N2";
 #LOCATE COMP "switches[1]" SITE "P1";
 #LOCATE COMP "switches[2]" SITE "M3";
 #LOCATE COMP "switches[3]" SITE "N1";
-
 IOBUF PORT "extclk" IO_TYPE=LVCMOS33 ;
-LOCATE COMP "extclk" SITE "C8";
-
+LOCATE COMP "extclk" SITE "C8" ;
 IOBUF PORT "extrst" IO_TYPE=LVCMOS33 ;
-LOCATE COMP "extrst" SITE "B3";
+LOCATE COMP "extrst" SITE "B3" ;
+IOBUF PORT "uart0_rxd" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "uart0_txd" IO_TYPE=LVCMOS33 ;
+LOCATE COMP "uart0_rxd" SITE "E10" ;
+LOCATE COMP "uart0_txd" SITE "C12" ;
+LOCATE COMP "sram_addr[0]" SITE "T10" ;
+LOCATE COMP "sram_addr[1]" SITE "R9" ;
+LOCATE COMP "sram_addr[2]" SITE "T9" ;
+LOCATE COMP "sram_addr[3]" SITE "P9" ;
+LOCATE COMP "sram_addr[4]" SITE "T8" ;
+LOCATE COMP "sram_addr[5]" SITE "P8" ;
+LOCATE COMP "sram_addr[6]" SITE "R7" ;
+LOCATE COMP "sram_addr[7]" SITE "P7" ;
+LOCATE COMP "sram_addr[8]" SITE "R8" ;
+LOCATE COMP "sram_addr[9]" SITE "M6" ;
+LOCATE COMP "sram_addr[10]" SITE "N9" ;
+LOCATE COMP "sram_addr[11]" SITE "L8" ;
+LOCATE COMP "sram_addr[12]" SITE "L7" ;
+LOCATE COMP "sram_addr[13]" SITE "T7" ;
+LOCATE COMP "sram_addr[14]" SITE "N6" ;
+LOCATE COMP "sram_addr[15]" SITE "P4" ;
+LOCATE COMP "sram_addr[16]" SITE "R4" ;
+LOCATE COMP "sram_addr[17]" SITE "T5" ;
+LOCATE COMP "sram_addr[18]" SITE "T3" ;
+LOCATE COMP "sram_data[0]" SITE "P11" ;
+LOCATE COMP "sram_data[1]" SITE "T11" ;
+LOCATE COMP "sram_data[2]" SITE "R11" ;
+LOCATE COMP "sram_data[3]" SITE "T14" ;
+LOCATE COMP "sram_data[4]" SITE "R13" ;
+LOCATE COMP "sram_data[5]" SITE "M11" ;
+LOCATE COMP "sram_data[6]" SITE "N10" ;
+LOCATE COMP "sram_data[7]" SITE "P10" ;
+LOCATE COMP "sram_we" SITE "R6" ;
+LOCATE COMP "sram_oe" SITE "M8" ;
+LOCATE COMP "sram_ce" SITE "R10" ;
+IOBUF PORT "sram_we" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_ce" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_oe" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[0]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[1]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[2]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[3]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[4]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[5]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[6]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_data[7]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[0]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[1]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[2]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[3]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[4]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[5]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[6]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[7]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[8]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[9]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[10]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[11]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[12]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[13]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[14]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[15]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[16]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[17]" IO_TYPE=LVCMOS33 ;
+IOBUF PORT "sram_addr[18]" IO_TYPE=LVCMOS33 ;
 
-
-IOBUF PORT "uart0_rxd" IO_TYPE=LVCMOS33;
-IOBUF PORT "uart0_txd" IO_TYPE=LVCMOS33;
-
-LOCATE COMP "uart0_rxd" SITE "E10";
-LOCATE COMP "uart0_txd" SITE "C12";
-
-
-
-
-
-
-LOCATE COMP "sram_addr[0]"  SITE "R10";
-LOCATE COMP "sram_addr[1]"  SITE "T10";
-LOCATE COMP "sram_addr[2]"  SITE "T9";
-LOCATE COMP "sram_addr[3]"  SITE "P9";
-LOCATE COMP "sram_addr[4]"  SITE "T8";
-LOCATE COMP "sram_addr[5]"  SITE "P8";
-LOCATE COMP "sram_addr[6]"  SITE "R7";
-LOCATE COMP "sram_addr[7]"  SITE "P7";
-LOCATE COMP "sram_addr[8]"  SITE "R8";
-LOCATE COMP "sram_addr[9]"  SITE "M6";
-LOCATE COMP "sram_addr[10]" SITE "N9";
-LOCATE COMP "sram_addr[11]" SITE "L8";
-LOCATE COMP "sram_addr[12]" SITE "L7";
-LOCATE COMP "sram_addr[13]" SITE "T7";
-LOCATE COMP "sram_addr[14]" SITE "N6";
-LOCATE COMP "sram_addr[15]" SITE "P4";
-LOCATE COMP "sram_addr[16]" SITE "R4";
-LOCATE COMP "sram_addr[17]" SITE "T5";
-LOCATE COMP "sram_addr[18]" SITE "T3";
-LOCATE COMP "sram_data[0]"  SITE "P11";
-LOCATE COMP "sram_data[1]"  SITE "T11";
-LOCATE COMP "sram_data[2]"  SITE "R11";
-LOCATE COMP "sram_data[3]"  SITE "T14";
-LOCATE COMP "sram_data[4]"  SITE "R13";
-LOCATE COMP "sram_data[5]"  SITE "M11";
-LOCATE COMP "sram_data[6]"  SITE "N10";
-LOCATE COMP "sram_data[7]"  SITE "P10";
-LOCATE COMP "sram_we"       SITE "R6";
-LOCATE COMP "sram_oe"       SITE "M8";
-LOCATE COMP "sram_ce"       SITE "R10";
