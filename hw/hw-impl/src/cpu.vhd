@@ -105,58 +105,6 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 	SIGNAL mem_address  : std_logic_vector(15 downto 1) := NUL_BITS(15 downto 1);
 	SIGNAL mem_ack      : std_logic;
 	
-	function isInstructionExecuted(condition : std_logic_vector(2 downto 0); Z : std_logic; N : std_logic) return Boolean IS
-		variable cond : std_logic_vector(4 downto 0);
-	BEGIN
-		cond := (condition & Z & N);
-		case cond is
-			-- always
-			when "000" & "00" => return true;
-			when "000" & "01" => return true;
-			when "000" & "10" => return true;
-			when "000" & "11" => return true;
-			
-			-- is zero
-			when "001" & "00" => return false;
-			when "001" & "01" => return false;
-			when "001" & "10" => return true;
-			when "001" & "11" => return true;
-			
-			-- is not zero
-			when "010" & "00" => return true;
-			when "010" & "01" => return true;
-			when "010" & "10" => return false;
-			when "010" & "11" => return false;
-			
-			-- is greater zero
-			when "011" & "00" => return true;
-			when "011" & "01" => return false;
-			when "011" & "10" => return false;
-			when "011" & "11" => return false;
-			
-			-- is less than zero
-			when "100" & "00" => return false;
-			when "100" & "01" => return true;
-			when "100" & "10" => return false;
-			when "100" & "11" => return false;
-			
-			-- is greater or equal zero
-			when "101" & "00" => return true;
-			when "101" & "01" => return false;
-			when "101" & "10" => return true;
-			when "101" & "11" => return true;
-			
-			-- is less or equal zero
-			when "110" & "00" => return false;
-			when "110" & "01" => return true;
-			when "110" & "10" => return true;
-			when "110" & "11" => return true;
-			
-			when others => return false;
-		end case;
-	
-	END;
-	
 	function getInstructionStartState (cmd : in std_logic_vector(4 downto 0)) return FSM_State IS
   begin
 		case cmd is
@@ -384,21 +332,23 @@ BEGIN
 		-- post-command processing.
 		procedure finish_instruction(output : in CPU_WORD) is
 			variable temp : cpu_word;
-			variable cond : std_logic_vector(1 downto 0);
 		begin
 			report "finalize instruction: " & to_hstring(output);
 			if INSTR_FLAG = '1' then
-				cond(0) := '1' when (output(15 downto 15) = 1) else '0';
-				cond(1) := '1' when (output = 0) else '0';
-				case cond is
-					when "00" => report "modify flags: Z=0 N=0";
-					when "01" => report "modify flags: Z=0 N=1";
-					when "10" => report "modify flags: Z=1 N=0";
-					when "11" => report "modify flags: Z=1 N=1";
-					when others => report "modify flags: Z=? N=?";
-				end case;
-				FLAG_Z <= '1' when (output = 0) else '0';
-				FLAG_N <= '1' when (output(15 downto 15) = 1) else '0';
+				if output(15 downto 15) = 1 then
+					FLAG_N <= '1';
+					report "modify flag N -> 1";
+				else
+					FLAG_N <= '0';
+					report "modify flag N -> 0";
+				end if;
+				if output = 0 then
+					FLAG_Z <= '1';
+					report "modify flag Z -> 1";
+				else
+					FLAG_Z <= '0';
+					report "modify flag Z -> 0";
+				end if;
 			end if;
 
 			case INSTR_OUT is
@@ -438,6 +388,36 @@ BEGIN
 			end if;
 		end procedure;
 
+
+		impure function isInstructionExecuted(condition : std_logic_vector(2 downto 0)) return Boolean IS
+		BEGIN
+			case condition is
+				-- always
+				when "000" => return true;
+				
+				-- is zero
+				when "001" => return FLAG_Z = '1';
+				
+				-- is not zero
+				when "010" => return FLAG_Z = '0';
+				
+				-- is greater zero
+				when "011" => return FLAG_Z = '0' and FLAG_N = '0';
+				
+				-- is less than zero
+				when "100" => return FLAG_Z = '0' and FLAG_N = '1';
+				
+				-- is greater or equal zero
+				when "101" => return FLAG_Z = '1' or FLAG_N = '0';
+				
+				-- is less or equal zero
+				when "110" => return FLAG_Z = '1' or FLAG_N = '1';
+				
+				when others => return false;
+			end case;
+
+		END;
+
 		variable temp : CPU_WORD;
 
 	BEGIN
@@ -471,7 +451,7 @@ BEGIN
 					WHEN FETCH_INSTR => -- use with readMem16!
 						REG_INSTR <= mem_data_in;
 						
-						if isInstructionExecuted(mem_data_in(2 downto 0), FLAG_Z, FLAG_N) then
+						if isInstructionExecuted(mem_data_in(2 downto 0)) then
 							
 							report "Execute " & disassemble(mem_data_in);
 
