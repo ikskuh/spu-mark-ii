@@ -34,8 +34,8 @@ ARCHITECTURE rtl OF FIFO IS
   signal head : INDEX_Type := 0;
   signal tail : INDEX_Type := 0;
 
-  signal inserting : boolean := false;
-  signal removing : boolean := false;
+  signal inserting : std_logic := '0';
+  signal removing : std_logic := '0';
 
   -- Increment and wrap
   function incr(index : in index_type) return index_type is
@@ -57,8 +57,8 @@ begin
       full <= '0';
       head <= 0;
       tail <= 0;
-      inserting <= false;
-      removing <= false;
+      inserting <= '0';
+      removing <= '0';
     else
       if rising_edge(clk) then
         output <= storage(tail);
@@ -66,28 +66,30 @@ begin
         full <= '1' when incr(head) = tail else '0';
         not_empty <= '1' when head /= tail else '0';
 
-        if inserting then
+        if inserting = '1' then
           if insert = '0' then
-            inserting <= false;
+            inserting <= '0';
           end if;
         else
           if insert = '1' then
-            storage(head) <= input;
-            head <= incr(head);
-            inserting <= true;
+            if incr(head) /= tail then
+              storage(head) <= input;
+              head <= incr(head);
+            end if;
+            inserting <= '1';
           end if;
         end if;
 
-        if removing then
+        if removing = '1' then
           if remove = '0' then
-            removing <= false;
+            removing <= '0';
           end if;
         else
           if remove = '1' then
             if tail /= head then
               tail <= incr(tail);
             end if;
-            removing <= true;
+            removing <= '1';
           end if;
         end if;
       end if;

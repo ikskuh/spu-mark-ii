@@ -195,6 +195,102 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 			when others  => return RESET;           -- undefined anyways
 		end case;
 	end;
+
+	function disassemble(instruction : in CPU_BITS) return String is
+
+		function conditionName(cond : in std_logic_vector(2 downto 0)) return String is
+		begin
+			case cond is
+				when "000" =>  return "    ";
+				when "001" =>  return "== 0";
+				when "010" =>  return "!= 0";
+				when "011" =>  return " > 0";
+				when "100" =>  return " < 0";
+				when "101" =>  return ">= 0";
+				when "110" =>  return "<= 0";
+				when others => return "????";
+			end case;
+		end function;
+
+		function inputName(inp : in std_logic_vector(1 downto 0)) return String is
+		begin
+			case inp is
+				when "00" =>  return "ZERO";
+				when "01" =>  return "IMM ";
+				when "10" =>  return "PEEK";
+				when "11" =>  return "POP ";
+				when others => return "???";
+			end case;
+		end function;
+
+		function outputName(inp : in std_logic_vector(1 downto 0)) return String is
+		begin
+			case inp is
+				when "00" =>  return "DISCARD";
+				when "01" =>  return "PUSH";
+				when "10" =>  return "JUMP";
+				when "11" =>  return "R-JMP";
+				when others => return "???";
+			end case;
+		end function;
+
+		function flagName(inp : in std_logic) return String is
+			begin
+				if inp = '1' then
+					return "+FLAGS";
+				else
+					return "      ";
+				end if;
+			end function;
+
+		function commandName (cmd : in std_logic_vector(4 downto 0)) return String IS
+		begin
+			case cmd is
+				when "00000" => return "COPY   "; -- copy
+				when "00001" => return "IPGET  "; -- ipget
+				when "00010" => return "GET    "; -- get 
+				when "00011" => return "SET    "; -- set
+				when "00100" => return "STORE8 "; -- store8
+				when "00101" => return "STORE16"; -- store16
+				when "00110" => return "LOAD8  "; -- load8
+				when "00111" => return "LOAD16 "; -- load16
+				when "01000" => return "RESET  ";           -- RESERVED
+				when "01001" => return "RESET  ";           -- RESERVED
+				when "01010" => return "FRGET  "; -- frget
+				when "01011" => return "FRSET  "; -- frset
+				when "01100" => return "BPGET  "; -- bpget
+				when "01101" => return "BPSET  "; -- bpset
+				when "01110" => return "SPGET  "; -- spget
+				when "01111" => return "SPSET  "; -- spset
+				when "10000" => return "ADD    ";        -- add
+				when "10001" => return "SUB    ";        -- sub
+				when "10010" => return "MUL    "; -- mul
+				when "10011" => return "DIV    "; -- div
+				when "10100" => return "MOD    "; -- mod
+				when "10101" => return "AND    "; -- and
+				when "10110" => return "OR     "; -- or
+				when "10111" => return "XOR    "; -- xor
+				when "11000" => return "NOT    "; -- not
+				when "11001" => return "NEG    "; -- neg
+				when "11010" => return "ROL    "; -- rol
+				when "11011" => return "ROR    "; -- ror
+				when "11100" => return "BSWAP  "; -- bswap
+				when "11101" => return "ASR    "; -- asr
+				when "11110" => return "LSL    "; -- lsl
+				when "11111" => return "LSR    "; -- lsr
+				when others  => return "INVALID";           -- undefined anyways
+			end case;
+		end function;
+
+	begin
+		return to_hstring(unsigned(instruction))
+		  & ": " & conditionName(instruction(2 downto 0))
+			& " " & inputName(instruction(4 downto 3))
+			& " " & inputName(instruction(6 downto 5))
+			& " " & commandName(instruction(14 downto 10))
+			& " -> " & outputName(instruction(9 downto 8))
+			& flagName(instruction(7));
+	end function;
  
 BEGIN
 
@@ -288,7 +384,23 @@ BEGIN
 		-- post-command processing.
 		procedure finish_instruction(output : in CPU_WORD) is
 			variable temp : cpu_word;
+			variable cond : std_logic_vector(1 downto 0);
 		begin
+			report "finalize instruction: " & to_hstring(output);
+			if INSTR_FLAG = '1' then
+				cond(0) := '1' when (output(15 downto 15) = 1) else '0';
+				cond(1) := '1' when (output = 0) else '0';
+				case cond is
+					when "00" => report "modify flags: Z=0 N=0";
+					when "01" => report "modify flags: Z=0 N=1";
+					when "10" => report "modify flags: Z=1 N=0";
+					when "11" => report "modify flags: Z=1 N=1";
+					when others => report "modify flags: Z=? N=?";
+				end case;
+				FLAG_Z <= '1' when (output = 0) else '0';
+				FLAG_N <= '1' when (output(15 downto 15) = 1) else '0';
+			end if;
+
 			case INSTR_OUT is
 				when "00" => -- discard
 					beginReadMemory16(REG_IP, FETCH_INSTR);
@@ -361,6 +473,8 @@ BEGIN
 						
 						if isInstructionExecuted(mem_data_in(2 downto 0), FLAG_Z, FLAG_N) then
 							
+							report "Execute " & disassemble(mem_data_in);
+
 							-- start decoding instruction
 							if mem_data_in(4 downto 3) = INP_IMM then
 								REG_IP <= REG_IP + 4;
@@ -392,19 +506,24 @@ BEGIN
 								REG_IP <= REG_IP + 2;
 							end if;
 						else
+							
+							report "Skip    " & disassemble(mem_data_in);
+
 							-- Instruction is not executed, go to next instruction
 							if mem_data_in(4 downto 3) = "01" and mem_data_in(6 downto 5) = "01" then
 								-- skip over both immediate values
-								REG_IP <= REG_IP + 6;
+								temp := REG_IP + 6;
 							elsif mem_data_in(4 downto 3) = "01" or mem_data_in(6 downto 5) = "01" then
 								-- skip over one immediate value
-								REG_IP <= REG_IP + 4;
+								temp := REG_IP + 4;
 							else
 								-- just skip the current instruction
-								REG_IP <= REG_IP + 2;
+								temp := REG_IP + 2;
 							end if;
 							
-							beginReadMemory16(REG_IP + 2, FETCH_INSTR);
+							REG_IP <= temp;
+							beginReadMemory16(temp, FETCH_INSTR);
+
 						end if;
 					
 					WHEN FETCH_INPUT0 => -- use with memRead16, popMem, peekMem

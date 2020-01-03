@@ -25,40 +25,9 @@ ENTITY root IS
 	
 END ENTITY root;
 
-use work.rom.all;
+use work.generated.all;
 
-ARCHITECTURE rtl OF root IS	
-	COMPONENT UART_Sender IS
-		GENERIC (
-			clkfreq  : natural;
-			baudrate : natural
-		);
-		PORT (
-		  rst  : in  std_logic;
-			clk  : in  std_logic;
-			txd  : out std_logic;
-			bsy  : out std_logic;
-			data : in unsigned(7 downto 0);
-			send : in std_logic
-		);
-		
-	END COMPONENT UART_Sender;
-	
-	COMPONENT UART_Receiver IS
-		GENERIC (
-			clkfreq  : natural; -- frequency of 'clk' in Hz
-			baudrate : natural  -- basic symbol rate of the UART ("bit / sec")
-		);
-		PORT (
-			rst  : in  std_logic; -- asynchronous reset
-			clk  : in  std_logic; -- the clock for the uart operation.
-			rxd  : in  std_logic; -- uses logic levels, non-inverted
-			bsy  : out std_logic; -- is '1' when receiving a byte and '0' when not.
-			data : out unsigned(7 downto 0); -- the data to send. must be valid in the first clock cycle where send='1'
-			recv : out std_logic   -- when '1', data transmission is complete. this bit is only set for 1 clk cycle
-		);
-	END COMPONENT UART_Receiver;
-
+ARCHITECTURE rtl OF root IS
 	COMPONENT SPU_Mark_II
 	PORT(
 		rst             : IN std_logic;
@@ -73,36 +42,65 @@ ARCHITECTURE rtl OF root IS
 		);
 	END COMPONENT;
 
-	COMPONENT FIFO IS
+	COMPONENT Register_RAM IS
 		GENERIC (
-			width : natural := 16; -- width in bits
-			depth : natural := 8  -- number of elements in the fifo
+			address_width : natural := 8   -- number of address bits => 2**address_width => number of bytes
+		);
+
+		PORT (
+			rst             : in  std_logic; -- asynchronous reset
+			clk             : in  std_logic; -- system clock
+			bus_data_out    : out std_logic_vector(15 downto 0);
+			bus_data_in     : in  std_logic_vector(15 downto 0);
+			bus_address     : in std_logic_vector(address_width-1 downto 1);
+			bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+			bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+			bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+			bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+		);
+	
+	END COMPONENT Register_RAM;
+
+	COMPONENT Serial_Port IS
+		GENERIC (
+			clkfreq  : natural; -- frequency of 'clk' in Hz
+			baudrate : natural  -- basic symbol rate of the UART ("bit / sec")
 		);
 		PORT (
 			rst             : in  std_logic; -- asynchronous reset
 			clk             : in  std_logic; -- system clock
-			input           : in  std_logic_vector(width - 1 downto 0);
-			output          : out std_logic_vector(width - 1 downto 0);
-			insert          : in  std_logic;
-			remove          : in  std_logic;
-			empty           : out std_logic;
-			full            : out std_logic;
-			not_empty       : out std_logic
+			uart_txd        : out std_logic;
+			uart_rxd        : in  std_logic;
+			bus_data_out    : out std_logic_vector(15 downto 0);
+			bus_data_in     : in  std_logic_vector(15 downto 0);
+			bus_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
+			bus_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+			bus_request     : in  std_logic; -- when set to '1', the bus operation is requested
+			bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
 		);
-	END COMPONENT FIFO;
+	END COMPONENT Serial_Port;
 
-	SIGNAL bus_data_out :  std_logic_vector(15 downto 0);
+	COMPONENT ROM IS
+	PORT (
+		rst             : in  std_logic; -- asynchronous reset
+		clk             : in  std_logic; -- system clock
+		bus_data_out    : out std_logic_vector(15 downto 0);
+		bus_data_in     : in  std_logic_vector(15 downto 0);
+		bus_address     : in std_logic_vector(15 downto 1);
+		bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+		bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+		bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+	);
+	END COMPONENT ROM;
+
+	SIGNAL bus_data_out :  std_logic_vector(15 downto 0) := "0000000000000000";
 	SIGNAL bus_data_in :  std_logic_vector(15 downto 0);
-	SIGNAL bus_address :  std_logic_vector(15 downto 1);
-	SIGNAL bus_write :  std_logic;
-	SIGNAL bus_bls :  std_logic_vector(1 downto 0);
-	SIGNAL bus_request :  std_logic;
-	SIGNAL bus_acknowledge :  std_logic;
-
-	SIGNAL clkdiv : unsigned(31 downto 0) := to_unsigned(0, 32);
-	SIGNAL cpuclk : std_logic := '0';
-	
-	signal counter : unsigned(7 downto 0) := to_unsigned(0, 8);
+	SIGNAL bus_address :  std_logic_vector(15 downto 1) := "000000000000000";
+	SIGNAL bus_write :  std_logic := '0';
+	SIGNAL bus_bls :  std_logic_vector(1 downto 0) := "00";
+	SIGNAL bus_request :  std_logic := '0';
+	SIGNAL bus_acknowledge :  std_logic := '0';
 
 	TYPE SRAM_Mode_Type IS (OFF,READ,WRITE);
 
@@ -110,103 +108,56 @@ ARCHITECTURE rtl OF root IS
 	SIGNAL sram_data_out : std_logic_vector(7 downto 0);
 	SIGNAL sram_mode : SRAM_Mode_Type := off;
 	
-	signal next_is_sram : boolean := false;
-
-	SIGNAL uart_rx_fifo_input     : std_logic_vector(7 downto 0);
-	SIGNAL uart_rx_fifo_output    : std_logic_vector(7 downto 0);
-	SIGNAL uart_rx_fifo_insert    : std_logic := '0';
-	SIGNAL uart_rx_fifo_remove    : std_logic := '0';
-	SIGNAL uart_rx_fifo_full      : std_logic := '0';
-	SIGNAL uart_rx_fifo_empty     : std_logic := '0';
-	SIGNAL uart_rx_fifo_not_empty : std_logic := '0';
 	
-	SIGNAL uart_tx_fifo_input     : std_logic_vector(7 downto 0);
-	SIGNAL uart_tx_fifo_output    : std_logic_vector(7 downto 0);
-	SIGNAL uart_tx_fifo_insert    : std_logic := '0';
-	SIGNAL uart_tx_fifo_remove    : std_logic := '0';
-	SIGNAL uart_tx_fifo_full      : std_logic := '0';
-	SIGNAL uart_tx_fifo_empty     : std_logic := '0';
-	SIGNAL uart_tx_fifo_not_empty : std_logic := '0';
+	SIGNAL ram0_select : std_logic;
+	SIGNAL ram0_ack : std_logic;
+	SIGNAL ram0_out : std_logic_vector(15 downto 0);
+
+	SIGNAL uart0_select : std_logic;
+	SIGNAL uart0_ack : std_logic;
+	SIGNAL uart0_out : std_logic_vector(15 downto 0);
+
+	SIGNAL rom0_select : std_logic;
+	SIGNAL rom0_ack : std_logic;
+	SIGNAL rom0_out : std_logic_vector(15 downto 0);
+
+	SIGNAL rst : std_logic;
+	SIGNAL clk : std_logic;
+
+	SIGNAL clkdiv : unsigned(7 downto 0) := to_unsigned(0, 8);
 
 BEGIN	
-	sram_data_in <= sram_data;
-	sram_data <= sram_data_out when sram_mode = write else "ZZZZZZZZ";
-	
-	sram_we <= '0' when sram_mode = write else '1';
-	sram_oe <= '0' when sram_mode = read else '1';
-	sram_ce <= '0' when sram_mode /= off else '1';
+	rst <= extrst;
+	clk <= extclk;
 
-	UART_Sender0: UART_Sender
-		GENERIC MAP(
-			clkfreq => 12_000_000, 
-			baudrate => 19200 -- this is a *exakt* counter :)
-		)
-		PORT MAP(
-			rst => extrst,
-			clk => extclk,
-			txd => uart0_txd,
-			send => uart_tx_fifo_not_empty,
-			data => unsigned(uart_tx_fifo_output),
-			bsy => uart_tx_fifo_remove
-		)
-	;
-	
-	tx_fifo: FIFO
-		GENERIC MAP(
-			width => 8,
-			depth => 8
-		)
-		PORT MAP (
-			rst       => extrst,
-			clk       => extclk,
-			input     => uart_tx_fifo_input,
-			output    => uart_tx_fifo_output,
-			insert    => uart_tx_fifo_insert,
-			remove    => uart_tx_fifo_remove,
-			empty     => uart_tx_fifo_empty,
-			full      => uart_tx_fifo_full,
-			not_empty => uart_tx_fifo_not_empty
-		)
-	;
-	
-	UART_Receiver0: UART_Receiver
-		GENERIC MAP(
-			clkfreq => 12_000_000,
-			baudrate => 19200
-		)
-		PORT MAP(
-			rst => extrst,
-			clk => extclk,
-			rxd => uart0_rxd,
-			bsy => open,
-			std_logic_vector(data) => uart_rx_fifo_input,
-			recv => uart_rx_fifo_insert
-		)
-	;
-	
-	rx_fifo: FIFO
-		GENERIC MAP(
-			width => 8,
-			depth => 8
-		)
-		PORT MAP (
-			rst       => extrst,
-			clk       => extclk,
-			input     => uart_rx_fifo_input,
-			output    => uart_rx_fifo_output,
-			insert    => uart_rx_fifo_insert,
-			remove    => uart_rx_fifo_remove,
-			empty     => uart_rx_fifo_empty,
-			full      => uart_rx_fifo_full,
-			not_empty => uart_rx_fifo_not_empty
-		)
-	;
+	-- proc_clkdiv: process (clk,rst)
+	-- begin
+	-- 	if rst = '0' then
+	-- 		clk <= '0';
+	-- 		clkdiv <= to_unsigned(0, 8);
+	-- 	elsif rising_edge(clk) then
+	-- 		if clkdiv = 0 then
+	-- 			clkdiv <= to_unsigned(99, 8);
+	-- 			clk <= not clk;
+	-- 		else
+	-- 			clkdiv <= clkdiv - 1;
+	-- 		end if;
+	-- 	end if;
+	-- end process;
 
+		sram_data_in <= sram_data;
+		sram_data <= sram_data_out when sram_mode = write else "ZZZZZZZZ";
+	
+		sram_data_out <= (others => '0');
+		sram_addr <= (others => '0');
 
+		sram_we <= '0' when sram_mode = write else '1';
+		sram_oe <= '0' when sram_mode = read else '1';
+		sram_ce <= '0' when sram_mode /= off else '1';
 
 	cpu: SPU_Mark_II PORT MAP(
-		rst => extrst,
-		clk => cpuclk,
+		rst => rst,
+		clk => clk,
 		bus_data_out => bus_data_out,
 		bus_data_in => bus_data_in,
 		bus_address => bus_address,
@@ -216,106 +167,68 @@ BEGIN
 		bus_acknowledge => bus_acknowledge
 	);
 	
-	cpuclkdiv : PROCESS(extclk, extrst)
-	begin
-		if extrst = '0' then
-			clkdiv <= to_unsigned(0, clkdiv'length);
-		else
-			if rising_edge(extclk) then
-				if clkdiv = 0 then
-					clkdiv <= to_unsigned(1_200_000 - 1, clkdiv'length);
-					cpuclk <= not cpuclk;
-				else
-					clkdiv <= clkdiv - 1;
-				end if;
-			end if;
-		end if;
+	ram0 : Register_RAM
+		GENERIC MAP (address_width => 5)
+		PORT MAP (
+			rst             => rst,
+			clk             => clk,
+			bus_data_out    => ram0_out,
+			bus_data_in     => bus_data_out,
+			bus_address     => bus_address(4 downto 1),
+			bus_write       => bus_write,
+			bus_bls         => bus_bls,
+			bus_request     => ram0_select,
+			bus_acknowledge => ram0_ack
+		);
 
+	uart0 : Serial_Port
+		GENERIC MAP (clkfreq  => 12_000_000, baudrate => 19200)
+		PORT MAP (
+			rst             => rst,
+			clk             => clk,
+			uart_txd        => uart0_txd,
+			uart_rxd        => uart0_rxd,
+			bus_data_out    => uart0_out,
+			bus_data_in     => bus_data_out,
+			bus_write       => bus_write,
+			bus_bls         => bus_bls,
+		bus_request     => uart0_select,
+			bus_acknowledge => uart0_ack
+		);
+	
+	rom0 : ROM
+		PORT MAP (
+			rst             => rst,
+			clk             => clk,
+			bus_data_out    => rom0_out,
+			bus_data_in     => bus_data_out,
+			bus_address     => bus_address,
+			bus_write       => bus_write,
+			bus_bls         => bus_bls,
+			bus_request     => rom0_select,
+			bus_acknowledge => rom0_ack
+		);
+
+	rom0_select  <= bus_request when bus_address(15 downto 14) = "00" else '0'; -- 0x0***
+	uart0_select <= bus_request when bus_address(15 downto 14) = "01" else '0'; -- 0x4***
+	ram0_select  <= bus_request when bus_address(15)           = '1'  else '0'; -- 0x8***
+
+	bus_acknowledge <= rom0_ack  when bus_address(15 downto 14) = "00" else
+										 uart0_ack when bus_address(15 downto 14) = "01" else
+										 ram0_ack  when bus_address(15)           = '1'  else
+										 '0';
+										
+	 bus_data_in <= rom0_out  when bus_address(15 downto 14) = "00" else
+	 							 uart0_out when bus_address(15 downto 14) = "01" else
+	 							 ram0_out  when bus_address(15)           = '1'  else
+	 							 "0000000000000000";
+	
+	p0: process(clk, rst)
+	begin
+		if rising_edge(clk) then
+			leds(6 downto 0) <= (not bus_address(7 downto 1)) when bus_request = '1' else "1111111";
+			leds(7)          <= not bus_request;
+		end if;
 	end process;
-
-	fake_mem: PROCESS(cpuclk, extrst) is
-	begin
-		if extrst = '0' then
-				leds <= "11111111"; 
-				sram_addr <= "0000000000000000000";
-				sram_mode <= off;
-				next_is_sram <= false;
-		else
-			if rising_edge(cpuclk) then
-				if bus_request = '1' then
-					leds <= "0" & not bus_address(7 downto 1); -- display requested bus address
-
-					if next_is_sram then
-						-- SRAM operation
-
-						if bus_write = '0' then
-							bus_data_in <= "00000000" & sram_data_in;
-						end if;
-
-						sram_mode <= off;
-						bus_acknowledge <= '1';
-						next_is_sram <= false;
-
-					else
-						if bus_address(15) = '1' then
-							-- SRAM operation
-							sram_mode <= write when bus_write = '1' else read;
-							sram_addr <= "0000" & bus_address(14 downto 1) & "0";
-							if bus_write = '1' then
-								sram_data_out <= bus_data_out(7 downto 0);
-							end if;
-							next_is_sram <= true;
-							bus_acknowledge <= '0';
-						elsif bus_address = "010000000000000" then -- 0x4000, Debug Uart
-							
-							if bus_write = '1' then
-								if uart_tx_fifo_full = '0' then
-									uart_tx_fifo_input <= bus_data_out(7 downto 0);
-									uart_tx_fifo_insert <= '1';
-									bus_acknowledge <= '1';
-								end if;
-							else
-								if uart_rx_fifo_empty = '0' then
-									uart_rx_fifo_remove <= '1';
-									bus_data_in <= "00000000" & uart_rx_fifo_output;
-									bus_acknowledge <= '1';
-								else
-									bus_data_in <= "1111111111111111";
-									bus_acknowledge <= '1';
-								end if;
-							end if;
-
-						else
-							bus_acknowledge <= '1';
-							if bus_write = '1' then
-								-- ignore writes
-							else
-								bus_data_in <= builtin_rom(bus_address);
-							end if;
-						end if;
-					end if;
-				else
-					leds <= "11111111"; -- LEDs off
-					bus_acknowledge <= '0';
-					sram_mode <= off;
-					next_is_sram <= false;
-					uart_tx_fifo_insert <= '0';
-					uart_rx_fifo_remove <= '0';
-				end if;
-			end if;
-		end if;
-	END process;
-
-	-- copy_leds: PROCESS (extclk, extrst)
-	-- BEGIN
-	--   if extrst = '0' then
-	-- 		clkdiv <= to_unsigned(0, clkdiv'length);
-	-- 		cnt    <= to_unsigned(0, cnt'length);
-	-- 	else
-	-- 		if rising_edge(extclk) then
-	-- 			leds <= not std_logic_vector(uart_send_char);
-	-- 		end if;
-	-- 	end if;
-	-- END PROCESS copy_leds;
 	
 END ARCHITECTURE rtl ;

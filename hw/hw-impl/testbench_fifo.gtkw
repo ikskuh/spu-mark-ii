@@ -1,18 +1,17 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Tue Dec 31 12:48:04 2019
+[*] Thu Jan  2 10:21:20 2020
 [*]
 [dumpfile] "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/testbench_fifo.ghw"
-[dumpfile_mtime] "Tue Dec 31 12:47:45 2019"
-[dumpfile_size] 18400
+[dumpfile_mtime] "Thu Jan  2 10:21:11 2020"
+[dumpfile_size] 18396
 [savefile] "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/testbench_fifo.gtkw"
 [timestart] 0
 [size] 1920 1056
 [pos] -1 -1
-*-28.000000 260000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-28.000000 217000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.testbench_fifo.
-[treeopen] top.testbench_fifo.fifo0.
 [treeopen] top.testbench_fifo.fifo0.storage.
 [sst_width] 250
 [signals_width] 194

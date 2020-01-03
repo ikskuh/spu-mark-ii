@@ -24,6 +24,7 @@ IOBUF PORT "switches[3]" IO_TYPE=LVCMOS33 ;
 #LOCATE COMP "switches[1]" SITE "P1";
 #LOCATE COMP "switches[2]" SITE "M3";
 #LOCATE COMP "switches[3]" SITE "N1";
+FREQUENCY NET "extclk_c" 12.0 MHz;
 IOBUF PORT "extclk" IO_TYPE=LVCMOS33 ;
 LOCATE COMP "extclk" SITE "C8" ;
 IOBUF PORT "extrst" IO_TYPE=LVCMOS33 ;

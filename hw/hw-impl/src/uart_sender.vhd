@@ -12,6 +12,7 @@ ENTITY UART_Sender IS
 	  clk  : in  std_logic; -- the clock for the uart operation.
 		txd  : out std_logic; -- uses logic levels, non-inverted
 		bsy  : out std_logic; -- is '1' when sending a byte and '0' when not.
+		done : out std_logic; -- is '1' for a single clock cycle when the last bit was transferred
 		data : in unsigned(7 downto 0); -- the data to send. must be valid in the first clock cycle where send='1'
 		send : in std_logic   -- when '1', data transmission is started.
 	);
@@ -47,6 +48,7 @@ BEGIN
 			clkdiv <= to_unsigned(0, clkdiv'length);
 			state <= STATE_IDLE;
 			bsy <= '0';
+			done <= '0';
 		else
 			if rising_edge(clk) then
 				if state = STATE_IDLE then
@@ -55,6 +57,7 @@ BEGIN
 					-- prepare for first bit transmission
 					clkdiv <= to_unsigned(clk_limit, clkdiv'length);
 					
+					done <= '0';
 					txd <= '1';
 					if send = '1' then
 						data_buffer <= data;
@@ -85,7 +88,9 @@ BEGIN
 							WHEN STATE_STOP  => txd <= '1';            state <= STATE_DONE; -- we have to wait until our STOP bit is completly transferred!
 							
 							-- includes STATE_DONE!
-							WHEN OTHERS      =>                         state <= STATE_IDLE;
+							WHEN OTHERS      =>                         
+								state <= STATE_IDLE;
+								done <= '1';
 						END CASE;
 						
 					else

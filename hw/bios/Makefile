@@ -13,7 +13,7 @@ all: ../hw-impl/src/builtin-rom.vhd
 	objcopy -I ihex -O binary $< $@
 
 %.hex: %.asm
-	$(AS) -o $@ $<
+	$(AS) -s -o $@ $<
 
 make-vhd: make-vhd.zig
 	zig build-exe $^

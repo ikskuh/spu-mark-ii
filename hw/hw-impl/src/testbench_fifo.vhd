@@ -5,7 +5,7 @@ USE ieee.numeric_std.ALL;
 LIBRARY std;
 use std.textio.all;
 
-use work.rom.all;
+use work.generated.all;
 
 ENTITY testbench_fifo IS
 END testbench_fifo;
@@ -42,7 +42,7 @@ ARCHITECTURE behavior OF testbench_fifo IS
 BEGIN
 	fifo0: FIFO GENERIC MAP(
 		width => 4,
-		depth => 8
+		depth => 4
 	) PORT MAP (
 		rst => rst,
 		clk => clk,
@@ -56,19 +56,46 @@ BEGIN
 
 	);
 
-	clk <= not clk  after 20  ns; -- 25 MHz Taktfrequenz
+	clk <= not clk  after 10  ns; -- 25 MHz Taktfrequenz
 	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal: --__
 
 	tb : PROCESS
 	BEGIN
 
 		wait for 120 ns;
-		fifo_input <= "1010";
+
+		fifo_input <= "0001";
 		fifo_insert <= '1';
 		wait for 20 ns;
 		fifo_insert <= '0';
-
 		wait for 20 ns;
+
+		fifo_input <= "0010";
+		fifo_insert <= '1';
+		wait for 20 ns;
+		fifo_insert <= '0';
+		wait for 20 ns;
+
+		fifo_input <= "0011";
+		fifo_insert <= '1';
+		wait for 20 ns;
+		fifo_insert <= '0';
+		wait for 20 ns;
+
+		fifo_input <= "0100";
+		fifo_insert <= '1';
+		wait for 20 ns;
+		fifo_insert <= '0';
+		wait for 20 ns;
+
+		fifo_input <= "0101";
+		fifo_insert <= '1';
+		wait for 20 ns;
+		fifo_insert <= '0';
+		wait for 20 ns;
+		
+		-- start to clear the fifo
+
 		fifo_remove <= '1';
 		wait for 20 ns;
 		fifo_remove <= '0';

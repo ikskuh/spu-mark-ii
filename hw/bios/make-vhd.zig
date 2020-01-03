@@ -20,13 +20,13 @@ pub fn main() anyerror!u8
         \\USE IEEE.std_logic_1164.ALL;
         \\USE IEEE.numeric_std.ALL;
         \\
-        \\package ROM is
+        \\package generated is
         \\
         \\  function builtin_rom(addr : in std_logic_vector(15 downto 1)) return std_logic_vector;
         \\
         \\end package;
         \\
-        \\package body ROM is
+        \\package body generated is
         \\
         \\  function builtin_rom(addr : in std_logic_vector(15 downto 1)) return std_logic_vector is
         \\  begin

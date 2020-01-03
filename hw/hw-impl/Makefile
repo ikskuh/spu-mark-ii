@@ -1,5 +1,5 @@
 
-SOURCES=$(addprefix src/,fifo.vhd cpu.vhd builtin-rom.vhd testbench_fifo.vhd testbench_spu.vhd)
+SOURCES=$(addprefix src/,uart_sender.vhd uart_receiver.vhd register-ram.vhd fifo.vhd serial-port.vhd cpu.vhd builtin-rom.vhd rom.vhd testbench_fifo.vhd testbench_spu.vhd)
 
 OBJS=$(notdir $(SOURCES:.vhd=.o))
 
@@ -18,7 +18,7 @@ testbench_fifo: $(OBJS)
 	ghdl -r $< --vcd=$@ --stop-time=50us
 
 %.ghw: %
-	ghdl -r $< --wave=$@ --stop-time=50us
+	ghdl -r $< --wave=$@ --stop-time=150us
 
 clean: $(OBJS)
 	rm $^

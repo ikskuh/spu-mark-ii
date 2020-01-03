@@ -25,7 +25,7 @@ USE ieee.numeric_std.ALL;
 LIBRARY std;
 use std.textio.all;
 
-use work.rom.all;
+use work.generated.all;
 
 ENTITY testbench_spu IS
 END testbench_spu;
@@ -46,6 +46,58 @@ ARCHITECTURE behavior OF testbench_spu IS
 		);
 	END COMPONENT;
 
+	COMPONENT Register_RAM IS
+		GENERIC (
+			address_width : natural := 8   -- number of address bits => 2**address_width => number of bytes
+		);
+
+		PORT (
+			rst             : in  std_logic; -- asynchronous reset
+			clk             : in  std_logic; -- system clock
+			bus_data_out    : out std_logic_vector(15 downto 0);
+			bus_data_in     : in  std_logic_vector(15 downto 0);
+			bus_address     : in std_logic_vector(address_width-1 downto 1);
+			bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+			bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+			bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+			bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+		);
+	
+	END COMPONENT Register_RAM;
+
+	COMPONENT Serial_Port IS
+		GENERIC (
+			clkfreq  : natural; -- frequency of 'clk' in Hz
+			baudrate : natural  -- basic symbol rate of the UART ("bit / sec")
+		);
+		PORT (
+			rst             : in  std_logic; -- asynchronous reset
+			clk             : in  std_logic; -- system clock
+			uart_txd        : out std_logic;
+			uart_rxd        : in  std_logic;
+			bus_data_out    : out std_logic_vector(15 downto 0);
+			bus_data_in     : in  std_logic_vector(15 downto 0);
+			bus_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
+			bus_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+			bus_request     : in  std_logic; -- when set to '1', the bus operation is requested
+			bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+		);
+	END COMPONENT Serial_Port;
+
+	COMPONENT ROM IS
+	PORT (
+		rst             : in  std_logic; -- asynchronous reset
+		clk             : in  std_logic; -- system clock
+		bus_data_out    : out std_logic_vector(15 downto 0);
+		bus_data_in     : in  std_logic_vector(15 downto 0);
+		bus_address     : in std_logic_vector(15 downto 1);
+		bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+		bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+		bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+	);
+	END COMPONENT ROM;
+
 	SIGNAL rst :  std_logic := '1';
 	SIGNAL clk :  std_logic := '0';
 	SIGNAL bus_data_out :  std_logic_vector(15 downto 0);
@@ -56,129 +108,116 @@ ARCHITECTURE behavior OF testbench_spu IS
 	SIGNAL bus_request :  std_logic;
 	SIGNAL bus_acknowledge :  std_logic;
 
-
-	SUBTYPE CPU_WORD IS std_logic_vector(15 downto 0);
-	
-	CONSTANT NUL : CPU_WORD := "0000000000000000";
-
-	CONSTANT INP_ZERO : std_logic_vector(1 downto 0) := "00";
-	CONSTANT INP_IMM  : std_logic_vector(1 downto 0) := "01";
-	CONSTANT INP_PEEK : std_logic_vector(1 downto 0) := "10";
-	CONSTANT INP_POP  : std_logic_vector(1 downto 0) := "11";
-
-	CONSTANT OUT_DISCARD : std_logic_vector(1 downto 0) := "00";
-	CONSTANT OUT_PUSH    : std_logic_vector(1 downto 0) := "01";
-	CONSTANT OUT_JMP     : std_logic_vector(1 downto 0) := "10";
-	CONSTANT OUT_RJMP    : std_logic_vector(1 downto 0) := "11";
-
-	CONSTANT CON_ALWAYS  : std_logic_vector(2 downto 0) := "000";
-	CONSTANT CON_ZERO    : std_logic_vector(2 downto 0) := "001";
-	CONSTANT CON_NONZERO : std_logic_vector(2 downto 0) := "010";
-	CONSTANT CON_GZ      : std_logic_vector(2 downto 0) := "011";
-	CONSTANT CON_LZ      : std_logic_vector(2 downto 0) := "100";
-	CONSTANT CON_GEZ     : std_logic_vector(2 downto 0) := "101";
-	CONSTANT CON_LEZ     : std_logic_vector(2 downto 0) := "110";
-
-	CONSTANT FLAG_NO     : std_logic_vector(0 downto 0) := "0";
-	CONSTANT FLAG_YES    : std_logic_vector(0 downto 0) := "1";
-
-	CONSTANT CMD_COPY    : std_logic_vector(4 downto 0) := "00000";
-	CONSTANT CMD_IPGET   : std_logic_vector(4 downto 0) := "00001"; -- EXEC_IPGET; -- ipget
-	CONSTANT CMD_GET     : std_logic_vector(4 downto 0) := "00010"; -- EXEC_GET; -- get 
-	CONSTANT CMD_SET     : std_logic_vector(4 downto 0) := "00011"; -- EXEC_SET; -- set
-	CONSTANT CMD_STORE8  : std_logic_vector(4 downto 0) := "00100"; -- EXEC_STORE8; -- store8
-	CONSTANT CMD_STORE16 : std_logic_vector(4 downto 0) := "00101"; -- EXEC_STORE16; -- store16
-	CONSTANT CMD_LOAD8   : std_logic_vector(4 downto 0) := "00110"; -- EXEC_LOAD8; -- load8
-	CONSTANT CMD_LOAD16  : std_logic_vector(4 downto 0) := "00111"; -- EXEC_LOAD16; -- load16
-	-- CONSTANT CMD_ : CPU_WORD := "01000"; -- RESET;           -- RESERVED
-	-- CONSTANT CMD_ : CPU_WORD := "01001"; -- RESET;           -- RESERVED
-	CONSTANT CMD_FRGET   : std_logic_vector(4 downto 0) := "01010"; -- EXEC_FRGET; -- frget
-	CONSTANT CMD_FRSET   : std_logic_vector(4 downto 0) := "01011"; -- EXEC_FRSET; -- frset
-	CONSTANT CMD_BPGET   : std_logic_vector(4 downto 0) := "01100"; -- EXEC_BPGET; -- bpget
-	CONSTANT CMD_BPSET   : std_logic_vector(4 downto 0) := "01101"; -- EXEC_BPSET; -- bpset
-	CONSTANT CMD_SPGET   : std_logic_vector(4 downto 0) := "01110"; -- EXEC_SPGET; -- spget
-	CONSTANT CMD_SPSET   : std_logic_vector(4 downto 0) := "01111"; -- EXEC_SPSET; -- spset
-	CONSTANT CMD_ADD     : std_logic_vector(4 downto 0) := "10000"; -- EXEC_ADD;        -- add
-	CONSTANT CMD_SUB     : std_logic_vector(4 downto 0) := "10001"; -- EXEC_SUB;        -- sub
-	CONSTANT CMD_MUL     : std_logic_vector(4 downto 0) := "10010"; -- EXEC_MUL; -- mul
-	CONSTANT CMD_DIV     : std_logic_vector(4 downto 0) := "10011"; -- EXEC_DIV; -- div
-	CONSTANT CMD_MOD     : std_logic_vector(4 downto 0) := "10100"; -- EXEC_MOD; -- mod
-	CONSTANT CMD_AND     : std_logic_vector(4 downto 0) := "10101"; -- EXEC_AND; -- and
-	CONSTANT CMD_OR      : std_logic_vector(4 downto 0) := "10110"; -- EXEC_OR; -- or
-	CONSTANT CMD_XOR     : std_logic_vector(4 downto 0) := "10111"; -- EXEC_XOR; -- xor
-	CONSTANT CMD_NOT     : std_logic_vector(4 downto 0) := "11000"; -- EXEC_NOT; -- not
-	CONSTANT CMD_NEG     : std_logic_vector(4 downto 0) := "11001"; -- EXEC_NEG; -- neg
-	CONSTANT CMD_ROL     : std_logic_vector(4 downto 0) := "11010"; -- EXEC_ROL; -- rol
-	CONSTANT CMD_ROR     : std_logic_vector(4 downto 0) := "11011"; -- EXEC_ROR; -- ror
-	CONSTANT CMD_BSWAP   : std_logic_vector(4 downto 0) := "11100"; -- EXEC_BSWAP; -- bswap
-	CONSTANT CMD_ASR     : std_logic_vector(4 downto 0) := "11101"; -- EXEC_ASR; -- asr
-	CONSTANT CMD_LSL     : std_logic_vector(4 downto 0) := "11110"; -- EXEC_LSL; -- lsl
-	CONSTANT CMD_LSR     : std_logic_vector(4 downto 0) := "11111"; -- EXEC_LSR; -- lsr
-
-	TYPE RAM_Type IS ARRAY(0 to 31) OF std_logic_vector(15 downto 0);
-
-	SIGNAL simulated_ram : RAM_Type;
-
 	SIGNAL first_access : boolean := false;
+
+	SIGNAL ram0_select : std_logic := '0';
+	SIGNAL ram0_ack : std_logic := '0';
+	SIGNAL ram0_out : std_logic_vector(15 downto 0);
+
+	SIGNAL uart0_select : std_logic := '0';
+	SIGNAL uart0_ack : std_logic := '0';
+	SIGNAL uart0_out : std_logic_vector(15 downto 0);
+
+	SIGNAL rom0_select : std_logic := '0';
+	SIGNAL rom0_ack : std_logic := '0';
+	SIGNAL rom0_out : std_logic_vector(15 downto 0);
+
+	SIGNAL uart0_txd : std_logic;
+
 BEGIN
 
--- Please check and add your generic clause manually
-	uut: SPU_Mark_II PORT MAP(
-		rst => rst,
-		clk => clk,
-		bus_data_out => bus_data_out,
-		bus_data_in => bus_data_in,
-		bus_address => bus_address,
-		bus_write => bus_write,
-		bus_bls => bus_bls,
-		bus_request => bus_request,
-		bus_acknowledge => bus_acknowledge
-	);
+	uut: SPU_Mark_II
+		PORT MAP(
+			rst => rst,
+			clk => clk,
+			bus_data_out => bus_data_out,
+			bus_data_in => bus_data_in,
+			bus_address => bus_address,
+			bus_write => bus_write,
+			bus_bls => bus_bls,
+			bus_request => bus_request,
+			bus_acknowledge => bus_acknowledge
+		);
 
--- *** Test Bench - User Defined Section ***
+	ram0 : Register_RAM
+		GENERIC MAP (address_width => 8)
+		PORT MAP (
+			rst             => rst,
+			clk             => clk,
+			bus_data_out    => ram0_out,
+			bus_data_in     => bus_data_out, -- must be muxed!
+			bus_address     => bus_address(7 downto 1),
+			bus_write       => bus_write,
+			bus_bls         => bus_bls,
+			bus_request     => ram0_select,
+			bus_acknowledge => ram0_ack
+		);
 
+	uart0 : Serial_Port
+		GENERIC MAP (clkfreq  => 12_000_000, baudrate => 1_920_000)
+		PORT MAP (
+			rst             => rst,
+			clk             => clk,
+			uart_txd        => uart0_txd,
+			uart_rxd        => '1',
+			bus_data_out    => uart0_out,
+			bus_data_in     => bus_data_out,
+			bus_write       => bus_write,
+			bus_bls         => bus_bls,
+			bus_request     => uart0_select,
+			bus_acknowledge => uart0_ack
+		);
+	
+	rom0 : ROM
+		PORT MAP (
+			rst             => rst,
+			clk             => clk,
+			bus_data_out    => rom0_out,
+			bus_data_in     => bus_data_out, -- must be muxed!
+			bus_address     => bus_address,
+			bus_write       => bus_write,
+			bus_bls         => bus_bls,
+			bus_request     => rom0_select,
+			bus_acknowledge => rom0_ack
+		);
+	
 	clk <= not clk  after 83.333 ns;  -- 12 MHz Taktfrequenz
-	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal: --__
+	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal: --
+
+	rom0_select  <= bus_request when bus_address(15 downto 14) = "00" else '0'; -- 0x0***
+	uart0_select <= bus_request when bus_address(15 downto 14) = "01" else '0'; -- 0x4***
+	ram0_select  <= bus_request when bus_address(15)           = '1'  else '0'; -- 0x8***
+
+	bus_acknowledge <= rom0_ack  when bus_address(15 downto 14) = "00" else
+										 uart0_ack when bus_address(15 downto 14) = "01" else
+										 ram0_ack  when bus_address(15)           = '1'  else
+										 '0';
+										
+	bus_data_in <= rom0_out  when bus_address(15 downto 14) = "00" else
+								 uart0_out when bus_address(15 downto 14) = "01" else
+								 ram0_out  when bus_address(15)           = '1'  else
+								 "0000000000000000";
+
 
 	tb : PROCESS(clk, rst)
 		variable temp : std_logic_vector(15 downto 0);
 	BEGIN
 		if rst = '0' then
-			bus_acknowledge <= '0';
+			
 		else
 			if rising_edge(clk) then
 				if bus_request = '1' then
-					bus_acknowledge <= '1';
 					if bus_write = '1' then
 						if first_access then
-							report "bus write at " & to_hstring(unsigned(bus_address) & "0") & " <= " & to_hstring(unsigned(bus_data_out));
+							-- report "bus write at " & to_hstring(unsigned(bus_address) & "0") & " <= " & to_hstring(unsigned(bus_data_out));
 						end if;
-						if bus_address(15) = '1' then
-							simulated_ram(to_integer(unsigned(bus_address(6 downto 1)))) <= bus_data_out;
-						else
-							if bus_address = "010000000000000" and first_access then -- 0x4000
-								report "serial output: " & to_hstring(unsigned(bus_data_out));
-							end if;
-						end if;
-						-- ignore writes
 					else 
-						if bus_address(15) = '1' then
-							temp := simulated_ram(to_integer(unsigned(bus_address(6 downto 1))));
-						else
-							if bus_address = "010000000000000" then -- 0x4000
-								temp := "0000000011111111"; -- read 0xFF
-							else
-								temp := builtin_rom(bus_address);
-							end if;
-						end if;
-						bus_data_in <= temp;
-						if first_access then
-							report "bus read at " & to_hstring(unsigned(bus_address) & "0") & " => " & to_hstring(unsigned(temp));						
+						if not first_access then
+							-- report "bus read at " & to_hstring(unsigned(bus_address) & "0") & " => " & to_hstring(unsigned(bus_data_in));						
 						end if;
 					end if;
 					first_access <= false;
 				else
-					bus_acknowledge <= '0';
 					first_access <= true;
 				end if;
 			end if;
