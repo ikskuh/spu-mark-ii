@@ -49,6 +49,7 @@ BEGIN
 			state <= STATE_IDLE;
 			bsy <= '0';
 			done <= '0';
+			txd <= '1';
 		else
 			if rising_edge(clk) then
 				if state = STATE_IDLE then

@@ -254,7 +254,7 @@ BEGIN
 		procedure beginMemInput(address : in CPU_WORD; bls : std_logic_vector(1 downto 0); stateAfter : FSM_State) is
 		begin
 			mem_req     <= '1';
-			mem_bls     <= "11";
+			mem_bls     <= bls;
 			mem_write   <= '0';
 			mem_address <= std_logic_vector(address(15 downto 1));
 			state_after_memory <= stateAfter;
@@ -264,7 +264,7 @@ BEGIN
 		procedure beginMemOutput(address : in CPU_WORD; bls : std_logic_vector(1 downto 0); value : CPU_WORD; stateAfter : FSM_STATE) is
 		begin
 			mem_req      <= '1';
-			mem_bls      <= "11";
+			mem_bls      <= bls;
 			mem_write    <= '1';
 			mem_address  <= std_logic_vector(address(15 downto 1));
 			mem_data_out <= std_logic_vector(value);
