@@ -1,5 +1,5 @@
 
-SOURCES=$(addprefix src/,sram-controller.vhd uart_sender.vhd uart_receiver.vhd register-ram.vhd fifo.vhd serial-port.vhd cpu.vhd builtin-rom.vhd rom.vhd soc.vhd root.vhd testbench_fifo.vhd testbench_spu.vhd)
+SOURCES=$(addprefix src/,debug-port-in.vhd debug-port-out.vhd sram-controller.vhd uart_sender.vhd uart_receiver.vhd register-ram.vhd fifo.vhd serial-port.vhd cpu.vhd builtin-rom.vhd rom.vhd soc.vhd root.vhd testbench_fifo.vhd testbench_spu.vhd)
 
 OBJS=$(notdir $(SOURCES:.vhd=.o))
 

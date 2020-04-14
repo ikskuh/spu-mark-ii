@@ -19,7 +19,11 @@ ARCHITECTURE behavior OF testbench_spu IS
 		sram_data : inout std_logic_vector(7 downto 0);
 		sram_we   : out std_logic;
 		sram_oe   : out std_logic;
-		sram_ce   : out std_logic
+		sram_ce   : out std_logic;
+		dbg_miso_clk  : in  std_logic;
+		dbg_miso_data : in  std_logic;
+		dbg_mosi_clk  : out std_logic;
+		dbg_mosi_data : out std_logic
 	);
 	END COMPONENT SOC;
 
@@ -33,6 +37,12 @@ ARCHITECTURE behavior OF testbench_spu IS
 	SIGNAL sram_we   : std_logic;
 	SIGNAL sram_oe   : std_logic;
 	SIGNAL sram_ce   : std_logic;
+
+
+	SIGNAL dbg_miso_clk  : std_logic;
+	SIGNAL dbg_miso_data : std_logic;
+	SIGNAL dbg_mosi_clk  : std_logic;
+	SIGNAL dbg_mosi_data : std_logic;
 BEGIN
 
 	glue: SOC
@@ -47,7 +57,11 @@ BEGIN
 			sram_data => sram_data,
 			sram_we   => sram_we,
 			sram_oe   => sram_oe,
-			sram_ce   => sram_ce
+			sram_ce   => sram_ce,
+			dbg_miso_clk  => dbg_miso_clk ,
+			dbg_miso_data => dbg_miso_data,
+			dbg_mosi_clk  => dbg_mosi_clk ,
+			dbg_mosi_data => dbg_mosi_data
 		);
 	
 	clk <= not clk  after 41.666666 ns;  -- 12 MHz Taktfrequenz
@@ -60,6 +74,38 @@ BEGIN
 		else
 			sram_data <= "ZZZZZZZZ";
 		end if;
+	end process;
+
+	dbg_fake: process
+		variable msg : std_logic_vector(7 downto 0) := "01100101";
+	begin
+		dbg_miso_clk  <= '0';
+		dbg_miso_data <= '0'; 
+		wait for 500 ns;
+
+		-- Code is MSB first, 8 bit, data on rising edge, clk active=high
+		for i in 7 downto 0  loop
+			dbg_miso_clk  <= '1';
+			dbg_miso_data <= msg(i); 
+			wait for 100 ns;
+
+			dbg_miso_clk  <= '0';
+			dbg_miso_data <= '0'; 
+			wait for 100 ns;
+		end loop; 
+
+			for i in 5 downto 0  loop
+				dbg_miso_clk  <= '1';
+				dbg_miso_data <= msg(i); 
+				wait for 100 ns;
+	
+				dbg_miso_clk  <= '0';
+				dbg_miso_data <= '0'; 
+				wait for 100 ns;
+			end loop; 
+			
+			wait for 1200 us;
+
 	end process;
 
 END;

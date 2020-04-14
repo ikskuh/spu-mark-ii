@@ -56,8 +56,8 @@ BEGIN
 
 	);
 
-	clk <= not clk  after 10  ns; -- 25 MHz Taktfrequenz
-	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal: --__
+	clk <= not clk  after 10  ns; -- 100 MHz Taktfrequenz
+	rst <= '0', '1' after 100 ns; -- erzeugt Resetsignal:
 
 	tb : PROCESS
 	BEGIN

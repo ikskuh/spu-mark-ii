@@ -2,7 +2,7 @@
 <BaliProject version="3.2" title="spumark2" device="LCMXO3LF-6900C-6BG256I" default_implementation="firstdesign">
     <Options/>
     <Implementation title="firstdesign" dir="firstdesign" description="firstdesign" synthesis="lse" default_strategy="Strategy1">
-        <Options def_top="root" top="root"/>
+        <Options def_top="SRAM_Controller" top="root"/>
         <Source name="src/cpu.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>

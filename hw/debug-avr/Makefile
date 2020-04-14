@@ -8,8 +8,8 @@ APPBAUD=19200
 
 DEFINES=F_CPU=$(F_CPU)ULL UART_BAUD=$(APPBAUD)ULL
 FLAGS=-mmcu=$(MCU)
-CFLAGS=$(FLAGS) $(addprefix -D,$(DEFINES)) -Os
-LFLAGS=$(FLAGS)
+CFLAGS=$(FLAGS) $(addprefix -D,$(DEFINES)) -O3
+LFLAGS=$(FLAGS) -O3
 
 CC=avr-gcc
 LD=avr-gcc
