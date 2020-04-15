@@ -40,9 +40,9 @@ ARCHITECTURE rtl OF root IS
 			sram_we   : out std_logic;
 			sram_oe   : out std_logic;
 			sram_ce   : out std_logic;
-			dbg_miso_clk  : in  std_logic;
+			-- dbg_miso_clk  : in  std_logic;
 			dbg_miso_data : in  std_logic;
-			dbg_mosi_clk  : out std_logic;
+			-- dbg_mosi_clk  : out std_logic;
 			dbg_mosi_data : out std_logic
 		);
 	END COMPONENT SOC;
@@ -61,9 +61,9 @@ BEGIN
 			sram_we       => sram_we,
 			sram_oe       => sram_oe,
 			sram_ce       => sram_ce,
-			dbg_miso_clk  => dbg_miso_clk ,
+			-- dbg_miso_clk  => dbg_miso_clk ,
 			dbg_miso_data => dbg_miso_data,
-			dbg_mosi_clk  => dbg_mosi_clk ,
+			-- dbg_mosi_clk  => dbg_mosi_clk ,
 			dbg_mosi_data => dbg_mosi_data
 		);
 	

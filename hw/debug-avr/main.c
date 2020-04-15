@@ -76,6 +76,11 @@ ISR(TIMER1_COMPA_vect)
 
 int main()
 {
+  UCSR0A = 0;
+  UCSR0B = 0;
+  UCSR0C = 0;
+  while (true)
+    ;
   UCSR0A = 0;                             // Single Speed, Kein Multiprozessormodus
   UCSR0B = (1 << RXEN0) | (1 << TXEN0);   // Sender und Empfänger anschalten
   UCSR0C = (1 << UCSZ01) | (1 << UCSZ00); // 8N1

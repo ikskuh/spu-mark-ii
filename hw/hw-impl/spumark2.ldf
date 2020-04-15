@@ -36,6 +36,12 @@
         <Source name="src/soc.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
+        <Source name="src/debug-port-out.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="src/debug-port-in.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
         <Source name="programmer-conf.xcf" type="Programming Project File" type_short="Programming">
             <Options/>
         </Source>

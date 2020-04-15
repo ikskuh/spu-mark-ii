@@ -20,9 +20,9 @@ ARCHITECTURE behavior OF testbench_spu IS
 		sram_we   : out std_logic;
 		sram_oe   : out std_logic;
 		sram_ce   : out std_logic;
-		dbg_miso_clk  : in  std_logic;
+		-- dbg_miso_clk  : in  std_logic;
 		dbg_miso_data : in  std_logic;
-		dbg_mosi_clk  : out std_logic;
+		-- dbg_mosi_clk  : out std_logic;
 		dbg_mosi_data : out std_logic
 	);
 	END COMPONENT SOC;
@@ -58,9 +58,9 @@ BEGIN
 			sram_we   => sram_we,
 			sram_oe   => sram_oe,
 			sram_ce   => sram_ce,
-			dbg_miso_clk  => dbg_miso_clk ,
+			-- dbg_miso_clk  => dbg_miso_clk ,
 			dbg_miso_data => dbg_miso_data,
-			dbg_mosi_clk  => dbg_mosi_clk ,
+			-- dbg_mosi_clk  => dbg_mosi_clk ,
 			dbg_mosi_data => dbg_mosi_data
 		);
 	
@@ -77,7 +77,7 @@ BEGIN
 	end process;
 
 	dbg_fake: process
-		variable msg : std_logic_vector(7 downto 0) := "01100101";
+		variable msg : std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(character'pos('S'), 8));
 	begin
 		dbg_miso_clk  <= '0';
 		dbg_miso_data <= '0'; 
@@ -93,18 +93,6 @@ BEGIN
 			dbg_miso_data <= '0'; 
 			wait for 100 ns;
 		end loop; 
-
-			for i in 5 downto 0  loop
-				dbg_miso_clk  <= '1';
-				dbg_miso_data <= msg(i); 
-				wait for 100 ns;
-	
-				dbg_miso_clk  <= '0';
-				dbg_miso_data <= '0'; 
-				wait for 100 ns;
-			end loop; 
-			
-			wait for 1200 us;
 
 	end process;
 

@@ -3,3 +3,4 @@
 *.hex
 *.exe
 assembler/assembler
+zig-cache
