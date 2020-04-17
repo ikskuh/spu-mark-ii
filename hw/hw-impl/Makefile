@@ -18,7 +18,7 @@ testbench_fifo: $(OBJS)
 	ghdl -r $< --vcd=$@ --stop-time=50us
 
 %.ghw: %
-	ghdl -r $< --wave=$@ --stop-time=500us
+	ghdl -r $< --wave=$@ --stop-time=2500us
 
 clean: $(OBJS)
 	rm $^

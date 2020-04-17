@@ -1,19 +1,18 @@
 [*]
-[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Sun Jan  5 09:49:29 2020
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Thu Apr 16 14:56:29 2020
 [*]
 [dumpfile] "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/testbench_spu.ghw"
-[dumpfile_mtime] "Sun Jan  5 09:44:27 2020"
-[dumpfile_size] 69799
+[dumpfile_mtime] "Thu Apr 16 14:55:48 2020"
+[dumpfile_size] 174163
 [savefile] "/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/testbench_spu.gtkw"
 [timestart] 0
 [size] 1920 1056
 [pos] -1 -1
-*-31.000000 16249935000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-37.000000 232900000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.testbench_spu.
 [treeopen] top.testbench_spu.glue.
-[treeopen] top.testbench_spu.glue.ram1.
 [treeopen] top.testbench_spu.glue.uart0.tx_fifo.
 [treeopen] top.testbench_spu.glue.uart0.uart_tx.
 [sst_width] 295
@@ -23,6 +22,8 @@
 @28
 top.testbench_spu.glue.rst
 top.testbench_spu.glue.clk
+@420
+top.testbench_spu.glue.busmaster
 @200
 -
 @22
@@ -34,6 +35,12 @@ top.testbench_spu.glue.clk
 top.testbench_spu.glue.bus_write
 top.testbench_spu.glue.bus_request
 top.testbench_spu.glue.bus_acknowledge
+@200
+-
+@28
+top.testbench_spu.dbg_mosi_data
+@29
+top.testbench_spu.dbg_miso_data
 @200
 -
 @28
@@ -80,7 +87,6 @@ top.testbench_spu.glue.uart0.uart_tx.send
 @28
 top.testbench_spu.glue.uart0.uart_tx.bsy
 top.testbench_spu.glue.uart0.uart_tx.done
-@29
 top.testbench_spu.glue.uart0.uart_tx_blocker
 @200
 -

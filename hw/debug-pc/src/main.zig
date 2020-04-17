@@ -5,7 +5,7 @@ extern fn configure_serial(fd: c_int) u8;
 extern fn flush_serial(fd: c_int) void;
 
 pub fn main() anyerror!void {
-    var serial = try std.fs.cwd().openFile("/dev/ttyUSB2", .{ .read = true, .write = true });
+    var serial = try std.fs.cwd().openFile("/dev/ttyUSB0", .{ .read = true, .write = true });
     defer serial.close();
 
     if (configure_serial(serial.handle) != 0)

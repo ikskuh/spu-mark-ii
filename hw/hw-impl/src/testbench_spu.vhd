@@ -77,22 +77,37 @@ BEGIN
 	end process;
 
 	dbg_fake: process
-		variable msg : std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(character'pos('S'), 8));
+
+		constant baud : natural := 19_200;
+		constant delay : time := (1_000_000_000 / baud) * 1 ns;
+
+		procedure writeSerial(value: integer) is
+			constant payload : std_logic_vector := std_logic_vector(to_unsigned(value, 8));
+		begin
+
+			dbg_miso_data <= '0';
+			wait for delay;
+
+			for i in 0 to 7 loop
+
+				dbg_miso_data <= payload(i);
+				wait for delay;
+
+			end loop;
+			dbg_miso_data <= '1';
+			wait for delay;
+
+		end procedure;		
+
 	begin
-		dbg_miso_clk  <= '0';
-		dbg_miso_data <= '0'; 
-		wait for 500 ns;
+		dbg_miso_data <= '1'; -- default state
 
-		-- Code is MSB first, 8 bit, data on rising edge, clk active=high
-		for i in 7 downto 0  loop
-			dbg_miso_clk  <= '1';
-			dbg_miso_data <= msg(i); 
-			wait for 100 ns;
+		wait for 100 ns;
 
-			dbg_miso_clk  <= '0';
-			dbg_miso_data <= '0'; 
-			wait for 100 ns;
-		end loop; 
+		writeSerial(16#42#); -- write byte
+		writeSerial(16#00#); -- 0x8000
+		writeSerial(16#80#); -- ?
+		writeSerial(16#55#); -- bit pattern
 
 	end process;
 

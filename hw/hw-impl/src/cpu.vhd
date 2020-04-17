@@ -439,8 +439,8 @@ BEGIN
 							if mem_write = '0' then
 								case mem_bls is
 									when "00"   => mem_data_in <= NUL_BITS;
-									when "01"   => mem_data_in <= "00000000" & mem_data_in(7 downto 0);
-									when "10"   => mem_data_in <= "00000000" & mem_data_in(15 downto 8);
+									when "01"   => mem_data_in <= "00000000" & bus_data_in(7 downto 0);
+									when "10"   => mem_data_in <= "00000000" & bus_data_in(15 downto 8);
 									when "11"   => mem_data_in <= bus_data_in;
 									when others => mem_data_in <= NUL_BITS;
 								end case;

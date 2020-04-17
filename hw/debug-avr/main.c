@@ -79,6 +79,8 @@ int main()
   UCSR0A = 0;
   UCSR0B = 0;
   UCSR0C = 0;
+  PORTD = 0x00;
+  DDRD = 0x00;
   while (true)
     ;
   UCSR0A = 0;                             // Single Speed, Kein Multiprozessormodus
