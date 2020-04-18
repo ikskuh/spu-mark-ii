@@ -1,11 +1,35 @@
 const std = @import("std");
+const argsParser = @import("args");
+const ihex = @import("ihex");
 
 extern fn configure_serial(fd: c_int) u8;
 
 extern fn flush_serial(fd: c_int) void;
 
-pub fn main() anyerror!void {
-    var serial = try std.fs.cwd().openFile("/dev/ttyUSB0", .{ .read = true, .write = true });
+pub fn main() anyerror!u8 {
+    const cli_args = try argsParser.parseForCurrentProcess(struct {
+        // This declares long options for double hyphen
+        @"port-name": []const u8 = "/dev/ttyUSB0",
+
+        // This declares short-hand options for single hyphen
+        pub const shorthands = .{
+            .P = "port-name",
+        };
+    }, std.heap.page_allocator);
+    defer cli_args.deinit();
+
+    if (cli_args.positionals.len != 0) {
+        try std.io.getStdOut().outStream().writeAll("Positional arguments are not allowed.\n");
+        return 1;
+    }
+
+    var serial = std.fs.cwd().openFile(cli_args.options.@"port-name", .{ .read = true, .write = true }) catch |err| switch (err) {
+        error.FileNotFound => {
+            try std.io.getStdOut().outStream().print("The serial port {} does not exist.\n", .{cli_args.options.@"port-name"});
+            return 1;
+        },
+        else => return err,
+    };
     defer serial.close();
 
     if (configure_serial(serial.handle) != 0)
@@ -108,6 +132,66 @@ pub fn main() anyerror!void {
             } else |err| {
                 try stdout.print("failed to parse address: {}'\n", .{err});
             }
+        } else if (std.mem.eql(u8, cmd, "load")) {
+            try stdout.writeAll("hex-file = ");
+            var filepath = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
+                break;
+            };
+
+            if (std.fs.cwd().openFile(filepath, .{ .read = true, .write = false })) |file| {
+                defer file.close();
+
+                const HexParser = struct {
+                    const Self = @This();
+                    const Error = error{InvalidHexFile} || std.os.WriteError;
+
+                    input: *const @TypeOf(serin),
+                    output: *const @TypeOf(serout),
+
+                    fn verify(p: *const Self, offset: u32, data: []const u8) Error!void {
+                        if (offset + data.len >= 0x10000)
+                            return error.InvalidHexFile;
+                    }
+
+                    fn load(p: *const Self, base: u32, data: []const u8) Error!void {
+                        std.debug.assert(base + data.len < 0x10000);
+                        for (data) |value, offset| {
+                            try p.output.writeByte('B');
+                            try p.output.writeIntLittle(u16, @intCast(u16, base + offset));
+                            try p.output.writeIntLittle(u8, value);
+                        }
+                    }
+                };
+
+                const parseMode = ihex.ParseMode{
+                    .pedantic = true,
+                };
+
+                const parser = HexParser{
+                    .input = &serin,
+                    .output = &serout,
+                };
+
+                if (ihex.parseData(file.inStream(), parseMode, &parser, HexParser.Error, HexParser.verify)) |_| {
+                    try file.seekTo(0);
+
+                    try stdout.writeAll("starting transfer...\n");
+                    const entry_point = try ihex.parseData(file.inStream(), parseMode, &parser, HexParser.Error, HexParser.load);
+                    if (entry_point) |ep| {
+                        try stdout.print("hex loading done, entry point = 0x{X}\n", .{ep});
+                    } else {
+                        try stdout.writeAll("hex loading done.\n");
+                    }
+                } else |err| switch (err) {
+                    error.InvalidHexFile => try stdout.print("invalid hex file: {}\n", .{filepath}),
+                    else => return err,
+                }
+            } else |err| switch (err) {
+                error.FileNotFound => {
+                    try stdout.print("file {} not found.\n", .{filepath});
+                },
+                else => return err,
+            }
         } else if (std.mem.eql(u8, cmd, "bench")) {
             {
                 var i: usize = 0;
@@ -152,4 +236,6 @@ pub fn main() anyerror!void {
         }
     }
     try stdout.writeAll("end of debugging session. have a nice day!\n");
+
+    return 0;
 }
