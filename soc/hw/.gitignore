@@ -16,3 +16,8 @@ testbench
 *.sort
 work-*.cf
 testbench_*
+debugging/
+*.lst
+*.sty
+testbench_fifo
+testbench_spu
