@@ -1,0 +1,6 @@
+[submodule "tools/modules/zig-args"]
+	path = tools/modules/zig-args
+	url = https://github.com/masterQ32/zig-args
+[submodule "tools/modules/zig-ihex"]
+	path = tools/modules/zig-ihex
+	url = https://github.com/MasterQ32/zig-ihex

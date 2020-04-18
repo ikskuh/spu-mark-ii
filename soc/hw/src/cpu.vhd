@@ -321,7 +321,7 @@ BEGIN
 
 		-- starts to push the value and will change to stateAfter.
 		-- stateAfter must use endWriteMemory to complete the transfer.
-		procedure beginPush(value : in CPU_WORD; stateAfter : FSM_State) is
+		procedure beginPush(value : in CPU_WORD; stateAfter : in FSM_State) is
 		begin
 			beginWriteMemory16(REG_SP - 2, value, stateAfter);
 			REG_SP <= REG_SP - 2;

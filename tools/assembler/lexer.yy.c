@@ -1,6 +1,6 @@
-#line 1 "lexer.yy.c"
+#line 1 "assembler/lexer.yy.c"
 
-#line 3 "lexer.yy.c"
+#line 3 "assembler/lexer.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -1276,8 +1276,8 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "lexer.l"
-#line 2 "lexer.l"
+#line 1 "assembler/lexer.l"
+#line 2 "assembler/lexer.l"
 #include <stdio.h>
 #include "assembler.h"
 
@@ -1318,14 +1318,14 @@ int escapeChar(char c)
 	}
 }
 
-#line 1321 "lexer.yy.c"
+#line 1321 "assembler/lexer.yy.c"
 
-#line 56 "lexer.l"
+#line 56 "assembler/lexer.l"
 ///////////////////////////////////////////////////////////////////////////////
 char string_buf[MAX_STR_CONST];
 char *string_buf_ptr;
-#line 1327 "lexer.yy.c"
-#line 1328 "lexer.yy.c"
+#line 1327 "assembler/lexer.yy.c"
+#line 1328 "assembler/lexer.yy.c"
 
 #define INITIAL 0
 #define STRING 1
@@ -1546,10 +1546,10 @@ YY_DECL
 		}
 
 	{
-#line 60 "lexer.l"
+#line 60 "assembler/lexer.l"
 
 
-#line 1552 "lexer.yy.c"
+#line 1552 "assembler/lexer.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1619,353 +1619,353 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 62 "lexer.l"
+#line 62 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_ORG); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 63 "lexer.l"
+#line 63 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_DB); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 64 "lexer.l"
+#line 64 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_DW); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 65 "lexer.l"
+#line 65 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_ALIGN); }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 66 "lexer.l"
+#line 66 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCII); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 67 "lexer.l"
+#line 67 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_ASCIIZ); }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 68 "lexer.l"
+#line 68 "assembler/lexer.l"
 { return MKTOKEN(TOK_DIRECTIVE, DIR_EQU); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 70 "lexer.l"
+#line 70 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_ALWAYS); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 71 "lexer.l"
+#line 71 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_ZERO); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 72 "lexer.l"
+#line 72 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_NONZERO); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 73 "lexer.l"
+#line 73 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_GREATER); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 74 "lexer.l"
+#line 74 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_LESS); }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 75 "lexer.l"
+#line 75 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_LEQUAL); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 76 "lexer.l"
+#line 76 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_GEQUAL); }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 77 "lexer.l"
+#line 77 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_EX, EXEC_NEVER); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 79 "lexer.l"
+#line 79 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I0, INPUT_ZERO); }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 80 "lexer.l"
+#line 80 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I0, INPUT_ARG); }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 81 "lexer.l"
+#line 81 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I0, INPUT_PEEK); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 82 "lexer.l"
+#line 82 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I0, INPUT_POP); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 84 "lexer.l"
+#line 84 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I1, INPUT_ZERO); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 85 "lexer.l"
+#line 85 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I1, INPUT_ARG); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 86 "lexer.l"
+#line 86 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I1, INPUT_PEEK); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 87 "lexer.l"
+#line 87 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_I1, INPUT_POP); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 89 "lexer.l"
+#line 89 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_OUT, OUTPUT_DISCARD); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 90 "lexer.l"
+#line 90 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_OUT, OUTPUT_PUSH); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 91 "lexer.l"
+#line 91 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_OUT, OUTPUT_JUMP); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 92 "lexer.l"
+#line 92 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_OUT, OUTPUT_RJUMP); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 94 "lexer.l"
+#line 94 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_FLAG, 0); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 95 "lexer.l"
+#line 95 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_FLAG, 1); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 97 "lexer.l"
+#line 97 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_COPY); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 98 "lexer.l"
+#line 98 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_CPGET); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 99 "lexer.l"
+#line 99 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_GET); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 100 "lexer.l"
+#line 100 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_SET); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 101 "lexer.l"
+#line 101 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_STOR8); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 102 "lexer.l"
+#line 102 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_STOR16); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 103 "lexer.l"
+#line 103 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_LOAD8); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 104 "lexer.l"
+#line 104 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_LOAD16); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 105 "lexer.l"
+#line 105 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_BPGET); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 106 "lexer.l"
+#line 106 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_BPSET); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 107 "lexer.l"
+#line 107 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_SPGET); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 108 "lexer.l"
+#line 108 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_SPSET); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 109 "lexer.l"
+#line 109 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_ADD); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 110 "lexer.l"
+#line 110 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_SUB); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 111 "lexer.l"
+#line 111 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_MUL); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 112 "lexer.l"
+#line 112 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_DIV); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 113 "lexer.l"
+#line 113 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_MOD); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 114 "lexer.l"
+#line 114 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_AND); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 115 "lexer.l"
+#line 115 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_OR); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 116 "lexer.l"
+#line 116 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_XOR); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 117 "lexer.l"
+#line 117 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_NOT); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 118 "lexer.l"
+#line 118 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_NEG); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 119 "lexer.l"
+#line 119 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_ROL); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 120 "lexer.l"
+#line 120 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_ROR); }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 121 "lexer.l"
+#line 121 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_ASR); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 122 "lexer.l"
+#line 122 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_LSL); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 123 "lexer.l"
+#line 123 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_LSR); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 124 "lexer.l"
+#line 124 "assembler/lexer.l"
 { return MKTOKEN(TOK_MOD_CMD, CMD_BSWAP); }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 126 "lexer.l"
+#line 126 "assembler/lexer.l"
 { return MKTOKEN(TOK_COMMA, 0); }
 	YY_BREAK
 case 59:
 /* rule 59 can match eol */
 YY_RULE_SETUP
-#line 127 "lexer.l"
+#line 127 "assembler/lexer.l"
 { return MKTOKEN(TOK_NEWLINE, 0); }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 128 "lexer.l"
+#line 128 "assembler/lexer.l"
 { return MKTOKEN(TOK_NEWLINE, 0); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 130 "lexer.l"
+#line 130 "assembler/lexer.l"
 { return MKTOKEN(TOK_LABEL, registerString(yytext, strlen(yytext) - 1)); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 131 "lexer.l"
+#line 131 "assembler/lexer.l"
 { return MKTOKEN(TOK_IDENTIFIER, registerString(yytext, strlen(yytext))); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 133 "lexer.l"
+#line 133 "assembler/lexer.l"
 { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 2)); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 134 "lexer.l"
+#line 134 "assembler/lexer.l"
 { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 8)); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 135 "lexer.l"
+#line 135 "assembler/lexer.l"
 { return MKTOKEN(TOK_NUMBER, strtol(yytext+2, NULL, 16)); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 136 "lexer.l"
+#line 136 "assembler/lexer.l"
 { return MKTOKEN(TOK_NUMBER, atoi(yytext)); }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 138 "lexer.l"
+#line 138 "assembler/lexer.l"
 { return MKTOKEN(TOK_NUMBER, escapeChar(yytext[2])); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 139 "lexer.l"
+#line 139 "assembler/lexer.l"
 { return MKTOKEN(TOK_NUMBER, yytext[1]); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 141 "lexer.l"
+#line 141 "assembler/lexer.l"
 { string_buf_ptr = string_buf; BEGIN(STRING); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 143 "lexer.l"
+#line 143 "assembler/lexer.l"
 { BEGIN(INITIAL);
 																	*string_buf_ptr = '\0';
 																	return MKTOKEN(TOK_STRING, registerString(string_buf, strlen(string_buf)));
@@ -1974,12 +1974,12 @@ YY_RULE_SETUP
 case 71:
 /* rule 71 can match eol */
 YY_RULE_SETUP
-#line 147 "lexer.l"
+#line 147 "assembler/lexer.l"
 { _abort(); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 148 "lexer.l"
+#line 148 "assembler/lexer.l"
 {
 																	/* octal escape sequence */
 																	unsigned result;
@@ -1991,12 +1991,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 156 "lexer.l"
+#line 156 "assembler/lexer.l"
 { *string_buf_ptr++ = escapeChar(yytext[1]); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 157 "lexer.l"
+#line 157 "assembler/lexer.l"
 { char *yptr = yytext;
 																	while ( *yptr )
 																		*string_buf_ptr++ = *yptr++;
@@ -2004,25 +2004,25 @@ YY_RULE_SETUP
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 162 "lexer.l"
+#line 162 "assembler/lexer.l"
 { /* ignore whitespace */ }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 164 "lexer.l"
+#line 164 "assembler/lexer.l"
 { /* ignore comments */ }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 166 "lexer.l"
+#line 166 "assembler/lexer.l"
 { fprintf(stderr, "unknown char: '%s'\n", yytext); _abort(); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 168 "lexer.l"
+#line 168 "assembler/lexer.l"
 ECHO;
 	YY_BREAK
-#line 2025 "lexer.yy.c"
+#line 2025 "assembler/lexer.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRING):
 	yyterminate();
@@ -3042,7 +3042,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 168 "lexer.l"
+#line 168 "assembler/lexer.l"
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -1,9 +1,9 @@
 
-AS=../../assembler/assembler
+AS=../../tools/zig-cache/bin/assembler
 
-all: ../hw-impl/src/builtin-rom.vhd
+all: ../hw/src/builtin-rom.vhd
 
-../hw-impl/src/builtin-rom.vhd: main.bin make-vhd
+../hw/src/builtin-rom.vhd: main.bin make-vhd
 	./make-vhd $@ $<
 
 %.vhd: %.bin make-vhd
