@@ -220,6 +220,8 @@ ARCHITECTURE rtl OF SOC IS
 
   SIGNAL led_state : std_logic_vector(7 downto 0);
 
+  SIGNAL cpu_halted : boolean;
+
   -- Debug Interface
 
   SIGNAL dbg_state : TDebugState;
@@ -479,7 +481,7 @@ BEGIN
         -- Priority-encoded bus requests
         if dbg_mem_request = '1' then
           busmaster <= Debug;
-        elsif cpu_request = '1' then
+        elsif cpu_request = '1' and not cpu_halted then
           busmaster <= Processor;
         end if;
       else
@@ -578,6 +580,7 @@ BEGIN
       dbg_mem_bls <= "00";
       dbg_mem_request <= '0';
       sync_rst <= '1';
+      cpu_halted <= false;
     end procedure;
 
   BEGIN
@@ -613,6 +616,12 @@ BEGIN
 
               when 'R' => -- 'R'eset system
                 sync_rst <= '0';
+
+              when 'H' => -- 'H'alt system
+                cpu_halted <= true;
+               
+              when 'h' => -- un'h'alt system
+                cpu_halted <= false;
 
               when others => -- 'E'rror
                 dbgSendChar(Idle, 'E');

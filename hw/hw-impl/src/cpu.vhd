@@ -3,7 +3,6 @@ USE IEEE.std_logic_1164.ALL;
 USE IEEE.numeric_std.ALL;
 	
 ENTITY SPU_Mark_II IS
-
 	PORT (
 		rst             : in  std_logic; -- asynchronous reset
 	  clk             : in  std_logic; -- system clock
@@ -524,10 +523,10 @@ BEGIN
 						finish_instruction(unsigned(REG_IP) + unsigned(REG_I0(14 downto 1) & "0"));
 						
 					when EXEC_GET =>
-						state <= RESET; -- not implemented yet
+						beginReadMemory16(REG_BP + (REG_I0(14 downto 0) & "0"), EXEC_LOAD_PROCESSING);
 
 					when EXEC_SET =>
-						state <= RESET; -- not implemented yet
+						beginWriteMemory16(REG_BP + (REG_I0(14 downto 0) & "0"), REG_I1, EXEC_STORE_PROCESSING);
 					
 					when EXEC_STORE8 =>
 						beginWriteMemory8(REG_I0, REG_I1(7 downto 0), EXEC_STORE_PROCESSING);

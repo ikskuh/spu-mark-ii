@@ -15,4 +15,4 @@ loop:
 	[ex:nonzero] st8 0x4000 [i1:peek]
 	pop
 	jmp loop
-end:
+end:ß
