@@ -43,7 +43,7 @@ The MMU configuration is mapped into the physical address space at a system-defi
 | `0x01C` |    2 | R/W    | Page 14 Descriptor    |
 | `0x01E` |    2 | R/W    | Page 15 Descriptor    |
 | `0x020` |    2 | RO     | Page Fault Register   |
-| `0x020` |    2 | RO     | Write Fault Register  |
+| `0x022` |    2 | RO     | Write Fault Register  |
 
 Each page descriptor is 16 bit wide and organized in the following manner:
 

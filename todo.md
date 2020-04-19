@@ -13,6 +13,9 @@ x Add enable/disable for different bus masters
 - Implement get/set opcodes
 
 ## Tooling Changes
-- Add ihex loader to debug-pc
+x Add ihex loader to debug-pc
 - Support new debug features
-- Create small boot
+- Create small boot rom
+
+## Documentation Change
+- Document stack growth direction (downwards stack)
