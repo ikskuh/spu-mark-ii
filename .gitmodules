@@ -4,3 +4,6 @@
 [submodule "tools/modules/zig-ihex"]
 	path = tools/modules/zig-ihex
 	url = https://github.com/MasterQ32/zig-ihex
+[submodule "tools/modules/zig-serial"]
+	path = tools/modules/zig-serial
+	url = https://github.com/MasterQ32/zig-serial

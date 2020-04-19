@@ -1,6 +1,7 @@
 const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
+const zig_serial = @import("serial");
 
 extern fn configure_serial_linux(fd: c_int) u8;
 extern fn flush_serial_linux(fd: c_int) void;
@@ -61,7 +62,13 @@ pub fn main() anyerror!u8 {
     };
     defer serial.close();
 
-    try configure_serial(serial);
+    try zig_serial.configureSerialPort(serial, zig_serial.SerialConfig{
+        .baud_rate = 19200,
+        .parity = .none,
+        .stop_bits = .one,
+        .handshake = .none,
+        .word_size = 8,
+    });
 
     const stdin = std.io.getStdIn().inStream();
     const stdout = std.io.getStdOut().outStream();
@@ -78,7 +85,7 @@ pub fn main() anyerror!u8 {
             break;
         };
 
-        flush_serial(serial);
+        try zig_serial.flushSerialPort(serial, true, true);
 
         if (std.mem.eql(u8, cmd, "quit")) {
             break;

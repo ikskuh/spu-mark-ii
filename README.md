@@ -25,7 +25,7 @@ Short feature list:
 The *Ashet Home Computer* is a computer built on top of the *SPU Mark II* cpu and
 provides a small environment to use the cpu.
 
-### Plannes Features
+### Planned Features
 - [MMU](documentation/simple-mmu.md)
 - Video Output (either FBAS or VGA)
 - Audio Output (signed 16 bit PCM)

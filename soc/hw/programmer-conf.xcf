@@ -19,8 +19,8 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/felix/projects/lowlevel/spu-mark-2/hw/hw-impl/firstdesign/spumark2_firstdesign.bit</File>
-			<FileTime>04/17/20 16:01:49</FileTime>
+			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.bit</File>
+			<FileTime>04/19/20 19:38:13</FileTime>
 			<Operation>SRAM Erase,Program,Verify</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -30,7 +30,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>0x00000000</Usercode>
+				<Usercode>0x12345678</Usercode>
 				<AccessMode>SRAM</AccessMode>
 			</Option>
 		</Device>

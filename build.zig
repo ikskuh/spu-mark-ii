@@ -9,6 +9,10 @@ const packages = struct {
         .name = "ihex",
         .path = "./tools/modules/zig-ihex/ihex.zig",
     };
+    const serial = std.build.Pkg{
+        .name = "serial",
+        .path = "./tools/modules/zig-serial/serial.zig",
+    };
 };
 
 pub fn build(b: *std.build.Builder) !void {
@@ -22,16 +26,9 @@ pub fn build(b: *std.build.Builder) !void {
     test_step.dependOn(&b.addTest("tools/hex2bin/main.zig").step);
 
     const debugger = b.addExecutable("debugger", "tools/debugger/main.zig");
-    if (target.getOsTag() == .linux) {
-        debugger.addCSourceFile("tools/debugger/serial-support-linux.c", &[_][]const u8{});
-    } else if (target.getOsTag() == .windows) {
-        debugger.addCSourceFile("tools/debugger/serial-support-windows.c", &[_][]const u8{});
-    } else {
-        @panic("Unsupported os!");
-    }
-    debugger.linkLibC();
     debugger.addPackage(packages.args);
     debugger.addPackage(packages.ihex);
+    debugger.addPackage(packages.serial);
     debugger.setTarget(target);
     debugger.setBuildMode(mode);
     debugger.install();
