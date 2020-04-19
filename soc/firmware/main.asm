@@ -2,15 +2,16 @@
 	spset 0x6020    ; 16 Element Stack
 	
 	push startup_msg
-	ipget 2
+	push _after
 	jmp puts
+_after:
 	pop
 	
 	st8 0x8000, 0x00
 loop:
 	ld8 0x8000 [f:yes]
 	[ex:nonzero] st8 0x4000 [i1:peek]
-	[ex:nonzero] st8 0x8000 0x00
+	[ex:nonzero] st8 0x8000, 0x00
 	pop
 	ld8 0x4000 [f:yes]
 	[ex:gequal] st8 0x4000 [i1:peek]
@@ -25,9 +26,9 @@ puts:
 	spget
 	bpset
 	
-	st8 0x4000 'A'
-	st8 0x4000 'B'
-	st8 0x4000 'C'
+	st8 0x4000, 'A'
+	st8 0x4000, 'B'
+	st8 0x4000, 'C'
 
 	bpget
 	spset

@@ -5,7 +5,7 @@
 #include <errno.h>   /* ERROR Number Definitions           */
 #include <stdint.h>
 
-uint8_t configure_serial(int fd)
+uint8_t configure_serial_linux(int fd)
 {
   struct termios SerialPortSettings; /* Create the structure                          */
 
@@ -42,7 +42,7 @@ uint8_t configure_serial(int fd)
   return error;
 }
 
-void flush_serial(int fd)
+void flush_serial_linux(int fd)
 {
   tcflush(fd, TCIOFLUSH);
 }

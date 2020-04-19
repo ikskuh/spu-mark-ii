@@ -2,14 +2,38 @@ const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
 
-extern fn configure_serial(fd: c_int) u8;
+extern fn configure_serial_linux(fd: c_int) u8;
+extern fn flush_serial_linux(fd: c_int) void;
 
-extern fn flush_serial(fd: c_int) void;
+extern fn configure_serial_windows(hComm: std.os.windows.HANDLE) u8;
+extern fn flush_serial_windows(hComm: std.os.windows.HANDLE) void;
+
+fn configure_serial(serial: std.fs.File) !void {
+    if (std.builtin.os.tag == .linux) {
+        if (configure_serial_linux(serial.handle) != 0)
+            return error.InvalidConfiguration;
+    } else if (std.builtin.os.tag == .windows) {
+        if (configure_serial_windows(serial.handle) != 0)
+            return error.InvalidConfiguration;
+    } else {
+        @compileError("Unsupported OS!");
+    }
+}
+
+fn flush_serial(serial: std.fs.File) void {
+    if (std.builtin.os.tag == .linux) {
+        flush_serial_linux(serial.handle);
+    } else if (std.builtin.os.tag == .windows) {
+        flush_serial_windows(serial.handle);
+    } else {
+        @compileError("Unsupported OS!");
+    }
+}
 
 pub fn main() anyerror!u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
-        @"port-name": []const u8 = "/dev/ttyUSB0",
+        @"port-name": ?[]const u8 = if (std.builtin.os.tag == .linux) "/dev/ttyUSB0" else null,
 
         // This declares short-hand options for single hyphen
         pub const shorthands = .{
@@ -23,7 +47,12 @@ pub fn main() anyerror!u8 {
         return 1;
     }
 
-    var serial = std.fs.cwd().openFile(cli_args.options.@"port-name", .{ .read = true, .write = true }) catch |err| switch (err) {
+    if (cli_args.options.@"port-name" == null) {
+        try std.io.getStdOut().outStream().writeAll("Serial port name is required.\n");
+        return 1;
+    }
+
+    var serial = std.fs.cwd().openFile(cli_args.options.@"port-name".?, .{ .read = true, .write = true }) catch |err| switch (err) {
         error.FileNotFound => {
             try std.io.getStdOut().outStream().print("The serial port {} does not exist.\n", .{cli_args.options.@"port-name"});
             return 1;
@@ -32,8 +61,7 @@ pub fn main() anyerror!u8 {
     };
     defer serial.close();
 
-    if (configure_serial(serial.handle) != 0)
-        return error.InvalidConfiguration;
+    try configure_serial(serial);
 
     const stdin = std.io.getStdIn().inStream();
     const stdout = std.io.getStdOut().outStream();
@@ -50,7 +78,7 @@ pub fn main() anyerror!u8 {
             break;
         };
 
-        flush_serial(serial.handle);
+        flush_serial(serial);
 
         if (std.mem.eql(u8, cmd, "quit")) {
             break;

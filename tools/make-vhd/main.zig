@@ -1,13 +1,37 @@
 const std = @import("std");
+const argsParser = @import("args");
 
 pub fn main() anyerror!u8 {
-    if (std.os.argv.len != 3) {
-        std.debug.warn("Expects 2 args, found {}!\n", .{std.os.argv.len});
+    const cli_args = try argsParser.parseForCurrentProcess(struct {
+        // This declares long options for double hyphen
+        output: ?[]const u8 = null,
+        help: bool = false,
+
+        // This declares short-hand options for single hyphen
+        pub const shorthands = .{
+            .o = "output",
+            .h = "help",
+        };
+    }, std.heap.page_allocator);
+    defer cli_args.deinit();
+
+    if (cli_args.options.help or cli_args.positionals.len != 1 or cli_args.options.output == null) {
+        try std.io.getStdOut().writeAll(
+            \\ make-vhd [-h] [-o outfile] infile.bin
+            \\ -h, --help    Outputs this help text
+            \\ -o, --output  Defines the name of the output file, required
+            \\
+            \\ Converts a binary blob into a VHDL lookup table for easier
+            \\ inclusion in synthesis over different projects.
+            \\
+        );
+        return if (cli_args.options.help) @as(u8, 0) else 1; // when we explicitly call help, we succeed
     }
-    const infile = try std.fs.cwd().openFile(std.mem.spanZ(std.os.argv[2]), .{ .read = true, .write = false });
+
+    const infile = try std.fs.cwd().openFile(cli_args.positionals[0], .{ .read = true, .write = false });
     defer infile.close();
 
-    const outfile = try std.fs.cwd().createFile(std.mem.spanZ(std.os.argv[1]), .{ .exclusive = false, .read = false });
+    const outfile = try std.fs.cwd().createFile(cli_args.options.output.?, .{ .exclusive = false, .read = false });
     defer outfile.close();
 
     var istream = infile.inStream();
@@ -40,7 +64,7 @@ pub fn main() anyerror!u8 {
             else => return err,
         };
 
-        // HACK: If address is in RAM, emit it into VHDL
+        // HACK: If address is not in RAM, emit it into VHDL
         if (addr < 0x8000) {
             const word = @bitCast(u16, bits);
             if (word != 0) {
