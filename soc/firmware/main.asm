@@ -7,6 +7,8 @@
 _after:
 	pop
 	
+	push 1000
+
 	st8 0x8000, 0x00
 loop:
 	ld8 0x8000 [f:yes]
@@ -16,21 +18,38 @@ loop:
 	ld 0x4000 [f:yes]
 	[ex:gequal] st8 0x4000 [i1:peek]
 	pop
-	jmp loop
+
+	push 0xFFFF
+delay:
+	sub 1 [f:yes]
+	[ex:nonzero] jmp delay
+	pop
+
+	st8 0x4000, '!'
+
+	sub 1 [f:yes]
+	[ex:nonzero] jmp loop
+	pop
+
+.dw 0x2000 ; invalid instruction
 
 startup_msg:
 	.asciiz "Hello, World!\r\n"
 
 puts:
-	; bpget
-	; spget
-	; bpset
+	bpget
+	spget
+	bpset
 	
-	st8 0x4000, 'A'
-	st8 0x4000, 'B'
-	st8 0x4000, 'C'
+	get 2 ; arg 1
+puts_loop:
+	ld8 [i0:peek] [f:yes]
+	[ex:nonzero] st8 0x4000
+	[ex:nonzero] add 1
+	[ex:nonzero] jmp puts_loop
+	pop
 
-	; bpget
-	; spset
-	; bpget
+	bpget
+	spset
+	bpset
 	ret

@@ -40,9 +40,11 @@ pub fn main() !u8 {
 
     emu.ip = cli_args.options.@"entry-point";
 
+    var timer = try std.time.Timer.start();
     emu.run() catch |err| {
+        const time = timer.read();
         try std.io.getStdOut().outStream().print(
-            "\n{}: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={}\n",
+            "\n{}: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={} TIME={}ns COUNT={} IPS={}\n",
             .{
                 @errorName(err),
                 emu.ip,
@@ -51,6 +53,9 @@ pub fn main() !u8 {
                 @bitCast(u16, emu.fr),
                 emu.bus_addr,
                 @tagName(emu.stage),
+                time,
+                emu.count,
+                std.time.second * emu.count / time,
             },
         );
         return err;
@@ -88,6 +93,8 @@ pub const Emulator = struct {
 
     bus_addr: u16,
     stage: Stage,
+
+    count: u64 = 0,
 
     pub fn init() Self {
         return Self{
@@ -207,6 +214,7 @@ pub const Emulator = struct {
             .less_than_zero => !self.fr.zero and self.fr.negative,
             .greater_or_equal_zero => self.fr.zero or !self.fr.negative,
             .less_or_equal_zero => self.fr.zero or self.fr.negative,
+            else => return error.BadInstruction,
         };
 
         if (execute) {
@@ -262,6 +270,7 @@ pub const Emulator = struct {
                 .asr => (input0 & 0x8000) | (input0 >> 1),
                 .lsl => input0 << 1,
                 .lsr => input0 >> 1,
+                .undefined0, .undefined1 => return error.BadInstruction,
                 else => return error.UnimplementedInstruction,
             };
 
@@ -290,6 +299,7 @@ pub const Emulator = struct {
     pub fn run(self: *Self) !void {
         while (true) {
             try self.executeSingle();
+            self.count += 1;
         }
     }
 
@@ -341,8 +351,8 @@ pub const Command = enum(u5) {
     store16 = 5,
     load8 = 6,
     load16 = 7,
-    // ??? = 8,
-    // ??? = 9,
+    undefined0 = 8,
+    undefined1 = 9,
     frget = 10,
     frset = 11,
     bpget = 12,
