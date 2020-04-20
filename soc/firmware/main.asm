@@ -7,8 +7,6 @@
 _after:
 	pop
 	
-	push 1000
-
 	st8 0x8000, 0x00
 loop:
 	ld8 0x8000 [f:yes]
@@ -19,17 +17,7 @@ loop:
 	[ex:gequal] st8 0x4000 [i1:peek]
 	pop
 
-	push 0xFFFF
-delay:
-	sub 1 [f:yes]
-	[ex:nonzero] jmp delay
-	pop
-
-	st8 0x4000, '!'
-
-	sub 1 [f:yes]
-	[ex:nonzero] jmp loop
-	pop
+	jmp loop
 
 .dw 0x2000 ; invalid instruction
 
