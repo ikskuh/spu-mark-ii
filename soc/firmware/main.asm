@@ -13,7 +13,7 @@ loop:
 	[ex:nonzero] st8 0x4000 [i1:peek]
 	[ex:nonzero] st8 0x8000, 0x00
 	pop
-	ld8 0x4000 [f:yes]
+	ld 0x4000 [f:yes]
 	[ex:gequal] st8 0x4000 [i1:peek]
 	pop
 	jmp loop
@@ -22,15 +22,15 @@ startup_msg:
 	.asciiz "Hello, World!\r\n"
 
 puts:
-	bpget
-	spget
-	bpset
+	; bpget
+	; spget
+	; bpset
 	
 	st8 0x4000, 'A'
 	st8 0x4000, 'B'
 	st8 0x4000, 'C'
 
-	bpget
-	spset
-	bpget
+	; bpget
+	; spset
+	; bpget
 	ret

@@ -89,22 +89,6 @@ pub fn build(b: *std.build.Builder) !void {
     make_vhd.setBuildMode(mode);
     make_vhd.install();
 
-    {
-        const emulate_cmd = emulator.run();
-        emulate_cmd.step.dependOn(b.getInstallStep());
-
-        const emulate_step = b.step("emulate", "Run the emulator");
-        emulate_step.dependOn(&emulate_cmd.step);
-    }
-
-    {
-        const debug_cmd = debugger.run();
-        debug_cmd.step.dependOn(b.getInstallStep());
-
-        const debug_step = b.step("debug", "Run the debugger");
-        debug_step.dependOn(&debug_cmd.step);
-    }
-
     const assemble_step = assembler.run();
     assemble_step.addArgs(&[_][]const u8{
         "-o",
@@ -129,4 +113,18 @@ pub fn build(b: *std.build.Builder) !void {
     });
 
     b.getInstallStep().dependOn(&refresh_cmd.step);
+
+    const emulate_cmd = emulator.run();
+    emulate_cmd.step.dependOn(&assemble_step.step);
+    emulate_cmd.addArgs(&[_][]const u8{
+        "./soc/firmware/firmware.hex",
+    });
+
+    const emulate_step = b.step("emulate", "Run the emulator");
+    emulate_step.dependOn(&emulate_cmd.step);
+
+    const debug_cmd = debugger.run();
+
+    const debug_step = b.step("debug", "Run the debugger");
+    debug_step.dependOn(&debug_cmd.step);
 }
