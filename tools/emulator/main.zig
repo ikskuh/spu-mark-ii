@@ -127,7 +127,6 @@ pub const Emulator = struct {
 
     fn writeByte(self: *Self, address: u16, value: u8) !void {
         return switch (address) {
-            0x0000...0x3FFF => self.rom[address] = value,
             0x4000...0x4FFF => try SerialEmulator.write(value),
             0x6000...0x6FFF => self.ram0[address - 0x6000] = value,
             0x8000...0xFFFF => self.ram1[address - 0x8000] = value,
@@ -157,7 +156,6 @@ pub const Emulator = struct {
         if ((address & 1) != 0)
             return error.UnalignedAccess;
         return switch (address) {
-            0x0000...0x3FFF => std.mem.writeIntLittle(u16, self.rom[address..][0..2], value),
             0x4000...0x4FFF => try SerialEmulator.write(value),
             0x6000...0x6FFF => std.mem.writeIntLittle(u16, self.ram0[address - 0x6000 ..][0..2], value),
             0x8000...0xFFFF => std.mem.writeIntLittle(u16, self.ram1[address - 0x8000 ..][0..2], value),
@@ -193,19 +191,6 @@ pub const Emulator = struct {
         self.stage = .decode;
         const instruction = @bitCast(Instruction, try self.fetch());
 
-        const input0 = switch (instruction.input0) {
-            .zero => @as(u16, 0),
-            .immediate => try self.fetch(),
-            .peek => try self.peek(),
-            .pop => try self.pop(),
-        };
-        const input1 = switch (instruction.input1) {
-            .zero => @as(u16, 0),
-            .immediate => try self.fetch(),
-            .peek => try self.peek(),
-            .pop => try self.pop(),
-        };
-
         const execute = switch (instruction.condition) {
             .always => true,
             .when_zero => self.fr.zero,
@@ -218,7 +203,21 @@ pub const Emulator = struct {
         };
 
         if (execute) {
+            const input0 = switch (instruction.input0) {
+                .zero => @as(u16, 0),
+                .immediate => try self.fetch(),
+                .peek => try self.peek(),
+                .pop => try self.pop(),
+            };
+            const input1 = switch (instruction.input1) {
+                .zero => @as(u16, 0),
+                .immediate => try self.fetch(),
+                .peek => try self.peek(),
+                .pop => try self.pop(),
+            };
+
             self.stage = .execute;
+
             const output = switch (instruction.command) {
                 .copy => input0,
                 .ipget => self.ip,
@@ -293,6 +292,9 @@ pub const Emulator = struct {
             //     \\output={}
             //     \\
             // , .{ instruction, input0, input1, output });
+        } else {
+            if (instruction.input0 == .immediate) self.ip +%= 2;
+            if (instruction.input1 == .immediate) self.ip +%= 2;
         }
     }
 
@@ -305,7 +307,7 @@ pub const Emulator = struct {
 
     const LoaderError = error{InvalidAddress};
     fn loadHexRecord(self: *Self, base: u32, data: []const u8) LoaderError!void {
-        std.debug.warn("load {}+{}: {X}\n", .{ base, data.len, data });
+        // std.debug.warn("load {}+{}: {X}\n", .{ base, data.len, data });
         for (data) |byte, offset| {
             const address = base + offset;
             switch (address) {

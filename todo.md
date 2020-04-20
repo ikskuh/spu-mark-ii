@@ -16,6 +16,7 @@ x Add enable/disable for different bus masters
 x Add ihex loader to debug-pc
 - Support new debug features
 - Create small boot rom
+x Implement simple emulator for Ashet implementation
 
 ## Documentation Change
 - Document stack growth direction (downwards stack)
