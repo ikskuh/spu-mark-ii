@@ -40,8 +40,59 @@ pub fn main() !u8 {
 
     emu.ip = cli_args.options.@"entry-point";
 
+    const stdin = std.io.getStdIn();
+    const termios_bak = if (std.builtin.os.tag == .linux) blk: {
+        const original = try std.os.tcgetattr(stdin.handle);
+
+        var modified_raw = original;
+
+        const IGNBRK = 0o0000001;
+        const BRKINT = 0o0000002;
+        const PARMRK = 0o0000010;
+        const ISTRIP = 0o0000040;
+        const INLCR = 0o0000100;
+        const IGNCR = 0o0000200;
+        const ICRNL = 0o0000400;
+        const IXON = 0o0002000;
+
+        const OPOST = 0o0000001;
+
+        const ECHO = 0o0000010;
+        const ECHONL = 0o0000100;
+        const ICANON = 0o0000002;
+        const ISIG = 0o0000001;
+        const IEXTEN = 0o0100000;
+
+        const CSIZE = 0o0000060;
+        const PARENB = 0o0000400;
+
+        const CS8 = 0o0000060;
+
+        // Note that this will also disable break signals!
+        modified_raw.iflag &= ~@as(std.os.tcflag_t, IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+        modified_raw.oflag &= ~@as(std.os.tcflag_t, OPOST);
+        modified_raw.lflag &= ~@as(std.os.tcflag_t, ISIG | ECHO | ECHONL | ICANON | IEXTEN);
+        modified_raw.cflag &= ~@as(std.os.tcflag_t, CSIZE | PARENB);
+        modified_raw.cflag |= CS8;
+
+        try std.os.tcsetattr(stdin.handle, .NOW, modified_raw);
+
+        break :blk original;
+    } else {};
+
+    defer if (std.builtin.os.tag == .linux) {
+        std.os.tcsetattr(stdin.handle, .NOW, termios_bak) catch {
+            std.debug.warn("Failed to reset stdin. Please call stty sane to get back a proper terminal experience!\n", .{});
+        };
+    };
+
     var timer = try std.time.Timer.start();
     emu.run() catch |err| {
+        // reset terminal before outputting error messages
+        if (std.builtin.os.tag == .linux) {
+            try std.os.tcsetattr(stdin.handle, .NOW, termios_bak);
+        }
+
         const time = timer.read();
         try std.io.getStdOut().outStream().print(
             "\n{}: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={} TIME={}ns COUNT={} IPS={}\n",
@@ -66,6 +117,23 @@ pub fn main() !u8 {
 
 pub const SerialEmulator = struct {
     pub fn read() !u16 {
+        const stdin = std.io.getStdIn();
+        if (std.builtin.os.tag == .linux) {
+            var fds = [1]std.os.pollfd{
+                .{
+                    .fd = stdin.handle,
+                    .events = std.os.POLLIN,
+                    .revents = 0,
+                },
+            };
+            _ = try std.os.poll(&fds, 1);
+            if ((fds[0].revents & std.os.POLLIN) != 0) {
+                const val = @as(u16, try stdin.inStream().readByte());
+                if (val == 0x03) // CTRL_C
+                    return error.UserBreak;
+                return val;
+            }
+        }
         return 0xFFFF;
     }
 
