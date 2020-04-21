@@ -288,7 +288,7 @@ pub const Emulator = struct {
 
             const output = switch (instruction.command) {
                 .copy => input0,
-                .ipget => self.ip,
+                .ipget => self.ip +% 2 *% input0,
                 .get => try self.readWord(self.bp + 2 *% input0),
                 .set => blk: {
                     try self.writeWord(self.bp + 2 *% input0, input1);

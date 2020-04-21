@@ -95,7 +95,7 @@ char *string_buf_ptr;
 \[{ws}f{ws}:{ws}yes{ws}\]       { return MKTOKEN(TOK_MOD_FLAG, 1); }
 
 \[{ws}cmd{ws}:{ws}copy{ws}\]    { return MKTOKEN(TOK_MOD_CMD, CMD_COPY); }
-\[{ws}cmd{ws}:{ws}cpget{ws}\]   { return MKTOKEN(TOK_MOD_CMD, CMD_CPGET); }
+\[{ws}cmd{ws}:{ws}ipget{ws}\]   { return MKTOKEN(TOK_MOD_CMD, CMD_IPGET); }
 \[{ws}cmd{ws}:{ws}get{ws}\]     { return MKTOKEN(TOK_MOD_CMD, CMD_GET); }
 \[{ws}cmd{ws}:{ws}set{ws}\]     { return MKTOKEN(TOK_MOD_CMD, CMD_SET); }
 \[{ws}cmd{ws}:{ws}stor8{ws}\]   { return MKTOKEN(TOK_MOD_CMD, CMD_STOR8); }
