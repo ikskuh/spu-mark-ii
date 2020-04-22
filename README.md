@@ -9,7 +9,7 @@ from the 80ies.
 
 ## SPU Mark II
 
-![](./documentation/spu-mk-ii-logo-small.png)
+<img align="right" src="./documentation/spu-mk-ii-logo-small.png">
 
 The SPU Mark II is a 16 bit *RISC*ish cpu that uses the [stack machine](https://en.wikipedia.org/wiki/Stack_machine)
 approach instead of a [register machine](https://en.wikipedia.org/wiki/Register_machine) approach.
