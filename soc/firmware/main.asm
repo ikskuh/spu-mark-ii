@@ -12,8 +12,9 @@
 ;   ; pop args/retval here
 ;
 bios_jumptable:
-	.dw puts ; fn puts(str: [*:0]const u8) void
-	.dw clear_screen
+	.dw serial_clear_screen
+	.dw serial_puts ; fn puts(str: [*:0]const u8) void
+	.dw serial_read_line
 
 
 ; =============================================================================
@@ -28,7 +29,7 @@ bios_entrypoint:
 	
 	push bios_startup_msg
 	ipget 2
-	jmp puts
+	jmp serial_puts
 	pop
 
 ; go into the bios mainmenu
@@ -72,10 +73,11 @@ bios_mainmenu_waitkey:
 	st 0x4000, '\b'
 	jmp bios_mainmenu_waitkey
 
+
 bios_helpmenu:
 	push bios_helpmenu_msg
 	ipget 2
-	jmp puts
+	jmp serial_puts
 	pop
 
 	jmp bios_mainmenu
@@ -93,7 +95,7 @@ bios_helpmenu_msg:
 
 bios_start_app:
 	ipget 2
-	jmp clear_screen
+	jmp serial_clear_screen
 
 	; clear stack to inital value
 	spset 0x6020
@@ -104,8 +106,9 @@ bios_start_app:
 ; BIOS Functionality
 ; =============================================================================
 
-; fn puts(str: [*:0]const u8) void
-puts:
+; fn(str: [*:0]const u8) void
+; prints a string to the serial terminal
+serial_puts:
 	bpget
 	spget
 	bpset
@@ -123,7 +126,9 @@ puts_loop:
 	bpset
 	ret
 
-clear_screen:
+; fn() void
+; clears the serial terminal
+serial_clear_screen:
  ; Home Cursor
 	st 0x4000, 0x1B
 	st 0x4000, '['
@@ -136,12 +141,31 @@ clear_screen:
 
 	ret
 
+; fn(str: *u8, len: u16) void
+; reads a line from the serial terminal. Allows the user to edit the text
+; with backspace and correct the input by that.
+; Maximum string length is determined by `len` and the string is guaranteed
+; to be zero-terminated in the end.
+; User can both enter text and confirm with `Return` or cancel input by
+; pressing `Escape`, then an empty string will be returned.
+serial_read_line:
+	bpget
+	spget
+	bpset
+
+
+
+	bpget
+	spset
+	bpset
+	ret
+
 ; Example application
 .org 0x8000
 
 	push app_msg
 	ipget 2
-	ld 0x0004 [out:jmp]
+	ld 0x0006 [out:jmp]
 	pop
 
 app_loop:
