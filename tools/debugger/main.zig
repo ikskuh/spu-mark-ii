@@ -76,7 +76,7 @@ pub fn main() anyerror!u8 {
     const serin = serial.inStream();
     const serout = serial.outStream();
 
-    var inputbuf: [64]u8 = undefined;
+    var inputbuf: [256]u8 = undefined;
     while (true) {
         try stdout.writeAll(">");
 
@@ -89,9 +89,12 @@ pub fn main() anyerror!u8 {
 
         if (std.mem.eql(u8, cmd, "quit")) {
             break;
-        }
-        if (std.mem.eql(u8, cmd, "reset")) {
+        } else if (std.mem.eql(u8, cmd, "reset")) {
             try serout.writeByte('R');
+        } else if (std.mem.eql(u8, cmd, "halt")) {
+            try serout.writeByte('H');
+        } else if (std.mem.eql(u8, cmd, "resume")) {
+            try serout.writeByte('h');
         } else if (std.mem.eql(u8, cmd, "write8")) {
             try stdout.writeAll("address = ");
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
@@ -164,6 +167,29 @@ pub fn main() anyerror!u8 {
                 try stdout.print("value   = {x}\n", .{
                     value,
                 });
+            } else |err| {
+                try stdout.print("failed to parse address: {}'\n", .{err});
+            }
+        } else if (std.mem.eql(u8, cmd, "watch16")) {
+            try stdout.writeAll("address = ");
+            var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
+                break;
+            };
+            if (std.fmt.parseInt(u16, addrstr, 16)) |addr| {
+                var last: ?u16 = null;
+                while (true) {
+                    try serout.writeByte('w');
+                    try serout.writeIntLittle(u16, addr);
+
+                    const value = try serin.readIntLittle(u16);
+
+                    if (last == null or last.? != value) {
+                        try stdout.print("value   = {x}\n", .{
+                            value,
+                        });
+                    }
+                    last = value;
+                }
             } else |err| {
                 try stdout.print("failed to parse address: {}'\n", .{err});
             }

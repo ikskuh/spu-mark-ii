@@ -72,37 +72,34 @@ BEGIN
 	rst <= extrst;
 	clk <= extclk;
 
-	vga: VGA_Driver
-		PORT MAP (
-			clk            => clk,
-			rst            => rst,
-			vga_r          => vga_r,
-			vga_g          => vga_g,
-			vga_b          => vga_b,
-			vga_hs         => vga_hs,
-			vga_vs         => vga_vs
-		);
-
-	leds(3 downto 0) <= not switches(3 downto 0);
-
-	-- glue: SOC
+	-- vga: VGA_Driver
 	-- 	PORT MAP (
-	-- 		leds          => leds,
-	-- 		switches      => switches,
-	-- 		extclk        => clk,
-	-- 		extrst        => rst,
-	-- 		uart0_rxd     => uart0_rxd,
-	-- 		uart0_txd     => uart0_txd,
-	-- 		sram_addr     => sram_addr,
-	-- 		sram_data     => sram_data,
-	-- 		sram_we       => sram_we,
-	-- 		sram_oe       => sram_oe,
-	-- 		sram_ce       => sram_ce,
-	-- 		dbg_miso_data => dbg_miso_data,
-	-- 		dbg_mosi_data => dbg_mosi_data
+	-- 		clk            => clk,
+	-- 		rst            => rst,
+	-- 		vga_r          => vga_r,
+	-- 		vga_g          => vga_g,
+	-- 		vga_b          => vga_b,
+	-- 		vga_hs         => vga_hs,
+	-- 		vga_vs         => vga_vs
 	-- 	);
 
+	-- leds(3 downto 0) <= not switches(3 downto 0);
 
+	glue: SOC
+		PORT MAP (
+			leds          => leds,
+			switches      => switches,
+			extclk        => clk,
+			extrst        => rst,
+			uart0_rxd     => uart0_rxd,
+			uart0_txd     => uart0_txd,
+			sram_addr     => sram_addr,
+			sram_data     => sram_data,
+			sram_we       => sram_we,
+			sram_oe       => sram_oe,
+			sram_ce       => sram_ce,
+			dbg_miso_data => dbg_miso_data,
+			dbg_mosi_data => dbg_mosi_data
+		);
 
-	
 END ARCHITECTURE rtl ;

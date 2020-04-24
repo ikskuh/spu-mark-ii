@@ -48,8 +48,6 @@ BEGIN
 					else
 						bsy <= '0';
 					end if;
-	
-
 				else
 					-- this path here is clocked with `baud` Hz instead of the base frequency
 					if clkdiv = 0 then
@@ -77,9 +75,13 @@ BEGIN
 							WHEN BIT7  => data_buffer(7) <= rxd; state <= STOP;
 							
 							WHEN STOP  =>
-								recv <= '1';
-								data <= data_buffer;
-								state <= IDLE;
+								-- when we received a valid stop bit, send data,
+								-- else: discard
+								if rxd = '1' then
+									recv <= '1';
+									data <= data_buffer;
+									state <= IDLE;
+								end if;
 						END CASE;
 						
 					else

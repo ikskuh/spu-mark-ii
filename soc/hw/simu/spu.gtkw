@@ -1,0 +1,23 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Fri Apr 24 14:14:43 2020
+[*]
+[dumpfile] "/home/felix/projects/lowlevel/spu-mark-2/soc/hw/simu/testbench_spu.ghw"
+[dumpfile_mtime] "Fri Apr 24 14:06:24 2020"
+[dumpfile_size] 1009531
+[savefile] "/home/felix/projects/lowlevel/spu-mark-2/soc/hw/simu/spu.gtkw"
+[timestart] 0
+[size] 1920 1056
+[pos] -1 -1
+*-30.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.testbench_spu.
+[sst_width] 211
+[signals_width] 112
+[sst_expanded] 1
+[sst_vpaned_height] 310
+@28
+top.testbench_spu.clk
+top.testbench_spu.rst
+[pattern_trace] 1
+[pattern_trace] 0

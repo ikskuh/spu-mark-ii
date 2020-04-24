@@ -90,12 +90,12 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 	ALIAS INSTR_FLAG : std_logic                    is REG_INSTR(7);
 	ALIAS INSTR_OUT  : std_logic_vector(1 downto 0) is REG_INSTR(9 downto 8);
 	ALIAS INSTR_CMD  : std_logic_vector(4 downto 0) is REG_INSTR(14 downto 10);
+
+	ALIAS FLAG_Z     : std_logic is REG_FR(0);
+	ALIAS FLAG_N     : std_logic is REG_FR(1);
+	ALIAS FLAG_I     : std_logic_vector(3 downto 0) is REG_FR(5 downto 2);
+
 	
-	ALIAS FLAG_Z : std_logic is REG_FR(0);
-	ALIAS FLAG_N : std_logic is REG_FR(0);
-	ALIAS FLAG_I : std_logic_vector(3 downto 0) is REG_FR(5 downto 2);
-
-
 	SIGNAL mem_bls      : std_logic_vector(1 downto 0) := "00";
 	SIGNAL mem_req      : std_logic := '0';
 	SIGNAL mem_write    : std_logic := '0';
@@ -334,20 +334,8 @@ BEGIN
 		begin
 			report "finalize instruction: " & to_hstring(output);
 			if INSTR_FLAG = '1' then
-				if output(15 downto 15) = 1 then
-					FLAG_N <= '1';
-					report "modify flag N -> 1";
-				else
-					FLAG_N <= '0';
-					report "modify flag N -> 0";
-				end if;
-				if output = 0 then
-					FLAG_Z <= '1';
-					report "modify flag Z -> 1";
-				else
-					FLAG_Z <= '0';
-					report "modify flag Z -> 0";
-				end if;
+				FLAG_N <= '1' when output >= 16#8000# else '0';
+				FLAG_Z <= '1' when output =  0        else '0';
 			end if;
 
 			case INSTR_OUT is
@@ -401,16 +389,16 @@ BEGIN
 				when "010" => return FLAG_Z = '0';
 				
 				-- is greater zero
-				when "011" => return FLAG_Z = '0' and FLAG_N = '0';
+				when "011" => return (FLAG_Z = '0') and (FLAG_N = '0');
 				
 				-- is less than zero
-				when "100" => return FLAG_Z = '0' and FLAG_N = '1';
+				when "100" => return (FLAG_Z = '0') and (FLAG_N = '1');
 				
 				-- is greater or equal zero
-				when "101" => return FLAG_Z = '1' or FLAG_N = '0';
+				when "101" => return (FLAG_Z = '1') or (FLAG_N = '0');
 				
 				-- is less or equal zero
-				when "110" => return FLAG_Z = '1' or FLAG_N = '1';
+				when "110" => return (FLAG_Z = '1') or (FLAG_N = '1');
 				
 				when others => return false;
 			end case;

@@ -17,9 +17,7 @@ ENTITY SOC IS
     sram_we       : out   std_logic;
     sram_oe       : out   std_logic;
     sram_ce       : out   std_logic;
-    -- dbg_miso_clk  : in    std_logic;
     dbg_miso_data : in    std_logic;
-    -- dbg_mosi_clk  : out   std_logic;
     dbg_mosi_data : out   std_logic
   );
 END ENTITY SOC;
@@ -289,15 +287,6 @@ BEGIN
 
   -- Entities
 
-  -- dbg_in0: DebugPortReceiver PORT MAP (
-  -- 	rst => rst,
-  -- 	clk => clk,	
-  -- 	dbg_clk => dbg_miso_clk,
-  -- 	dbg_data => dbg_miso_data,
-  -- 	rcv_data => dbg_data_in,
-  -- 	rcv => dbg_rxd_done
-  -- );
-
   dbg_rx: UART_Receiver
   GENERIC MAP(clkfreq => clkfreq,  baudrate => 19_200)
   PORT MAP(
@@ -307,23 +296,7 @@ BEGIN
     bsy => open,
     std_logic_vector(data) => dbg_data_in,
     recv => dbg_rxd_done
-  )
-;
-
-  -- dbg_out0: DebugPortSender
-  -- GENERIC MAP (
-  -- 	freq_clk => 12_000_000, -- MHz
-  -- 	baud     =>     19_200  -- Baud
-  -- )
-  -- PORT MAP (
-  -- 	rst => rst,
-  -- 	clk => clk,	
-  -- 	dbg_clk => dbg_mosi_clk,
-  -- 	dbg_data => dbg_mosi_data,
-  -- 	txd_data => dbg_data_out,
-  -- 	txd => dbg_txd,
-  -- 	complete => dbg_txd_done
-  -- );
+  );
 
   dbg_tx: UART_Sender
     GENERIC MAP(clkfreq => clkfreq,  baudrate => 19_200)
@@ -335,8 +308,7 @@ BEGIN
       data => unsigned(dbg_data_out),
       bsy => open,
       done => dbg_txd_done
-    )
-  ;
+    );
   
   -- Bus Masters
 

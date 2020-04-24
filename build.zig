@@ -13,6 +13,10 @@ const packages = struct {
         .name = "serial",
         .path = "./tools/modules/zig-serial/serial.zig",
     };
+    const spumk2 = std.build.Pkg{
+        .name = "spu-mk2",
+        .path = "./tools/common/spu-mk2.zig",
+    };
 };
 
 pub fn build(b: *std.build.Builder) !void {
@@ -29,6 +33,7 @@ pub fn build(b: *std.build.Builder) !void {
     debugger.addPackage(packages.args);
     debugger.addPackage(packages.ihex);
     debugger.addPackage(packages.serial);
+    debugger.addPackage(packages.spumk2);
     debugger.setTarget(target);
     debugger.setBuildMode(mode);
     debugger.install();
@@ -36,9 +41,18 @@ pub fn build(b: *std.build.Builder) !void {
     const emulator = b.addExecutable("emulator", "tools/emulator/main.zig");
     emulator.addPackage(packages.args);
     emulator.addPackage(packages.ihex);
+    emulator.addPackage(packages.spumk2);
     emulator.setTarget(target);
     emulator.setBuildMode(mode);
     emulator.install();
+
+    const disassembler = b.addExecutable("disassembler", "tools/disassembler/main.zig");
+    disassembler.addPackage(packages.args);
+    disassembler.addPackage(packages.ihex);
+    disassembler.addPackage(packages.spumk2);
+    disassembler.setTarget(target);
+    disassembler.setBuildMode(mode);
+    disassembler.install();
 
     const assembler_sources = [_][]const u8{
         "tools/assembler/main.c",
@@ -63,7 +77,7 @@ pub fn build(b: *std.build.Builder) !void {
 
     const assembler = b.addExecutable("assembler", null);
     assembler.step.dependOn(&flexfile.step);
-    assembler.addIncludeDir("tools/include");
+    assembler.addIncludeDir("tools/common");
 
     for (assembler_sources) |src| {
         assembler.addCSourceFile(src, &[_][]const u8{
