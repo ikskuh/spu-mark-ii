@@ -19,6 +19,10 @@ const packages = struct {
     };
 };
 
+const examples = [_][]const u8{
+    "apps/hello-world/main",
+};
+
 pub fn build(b: *std.build.Builder) !void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
@@ -102,6 +106,16 @@ pub fn build(b: *std.build.Builder) !void {
     make_vhd.setTarget(target);
     make_vhd.setBuildMode(mode);
     make_vhd.install();
+
+    inline for (examples) |src_file| {
+        const step = assembler.run();
+        step.addArgs(&[_][]const u8{
+            "-o",
+            src_file ++ ".hex",
+            src_file ++ ".asm",
+        });
+        b.getInstallStep().dependOn(&step.step);
+    }
 
     const assemble_step = assembler.run();
     assemble_step.addArgs(&[_][]const u8{
