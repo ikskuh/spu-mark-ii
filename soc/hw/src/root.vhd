@@ -15,11 +15,15 @@ ENTITY root IS
 		sram_we       : out std_logic;
 		sram_oe       : out std_logic;
 		sram_ce       : out std_logic;
-		clk_dbg       : out std_logic;
 		dbg_miso_clk  : in  std_logic;
 		dbg_miso_data : in  std_logic;
 		dbg_mosi_clk  : out std_logic;
-		dbg_mosi_data : out std_logic
+		dbg_mosi_data : out std_logic;
+		vga_r         : out std_logic;
+		vga_g         : out std_logic;
+		vga_b         : out std_logic;
+		vga_hs        : out std_logic;
+		vga_vs        : out std_logic
 	);
 	
 END ENTITY root;
@@ -44,23 +48,61 @@ ARCHITECTURE rtl OF root IS
 			dbg_mosi_data : out std_logic
 		);
 	END COMPONENT SOC;
+
+	COMPONENT VGA_Driver IS
+	PORT (
+		clk           : in  std_logic;
+		rst           : in  std_logic;
+		vga_r         : out std_logic;
+		vga_g         : out std_logic;
+		vga_b         : out std_logic;
+		vga_hs        : out std_logic;
+		vga_vs        : out std_logic
+	);
+	END COMPONENT VGA_Driver;
+
+	SIGNAL clk : std_logic;
+	SIGNAL rst : std_logic;
+
+	SIGNAL vga_hs_raw : std_logic;
+	SIGNAL vga_vs_raw : std_logic;
+
 BEGIN
-	clk_dbg <= extclk;
-	glue: SOC
+
+	rst <= extrst;
+	clk <= extclk;
+
+	vga: VGA_Driver
 		PORT MAP (
-			leds          => leds,
-			switches      => switches,
-			extclk        => extclk,
-			extrst        => extrst,
-			uart0_rxd     => uart0_rxd,
-			uart0_txd     => uart0_txd,
-			sram_addr     => sram_addr,
-			sram_data     => sram_data,
-			sram_we       => sram_we,
-			sram_oe       => sram_oe,
-			sram_ce       => sram_ce,
-			dbg_miso_data => dbg_miso_data,
-			dbg_mosi_data => dbg_mosi_data
+			clk            => clk,
+			rst            => rst,
+			vga_r          => vga_r,
+			vga_g          => vga_g,
+			vga_b          => vga_b,
+			vga_hs         => vga_hs,
+			vga_vs         => vga_vs
 		);
+
+	leds(3 downto 0) <= not switches(3 downto 0);
+
+	-- glue: SOC
+	-- 	PORT MAP (
+	-- 		leds          => leds,
+	-- 		switches      => switches,
+	-- 		extclk        => clk,
+	-- 		extrst        => rst,
+	-- 		uart0_rxd     => uart0_rxd,
+	-- 		uart0_txd     => uart0_txd,
+	-- 		sram_addr     => sram_addr,
+	-- 		sram_data     => sram_data,
+	-- 		sram_we       => sram_we,
+	-- 		sram_oe       => sram_oe,
+	-- 		sram_ce       => sram_ce,
+	-- 		dbg_miso_data => dbg_miso_data,
+	-- 		dbg_mosi_data => dbg_mosi_data
+	-- 	);
+
+
+
 	
 END ARCHITECTURE rtl ;
