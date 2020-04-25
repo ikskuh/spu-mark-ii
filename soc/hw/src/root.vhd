@@ -15,15 +15,14 @@ ENTITY root IS
 		sram_we       : out std_logic;
 		sram_oe       : out std_logic;
 		sram_ce       : out std_logic;
-		dbg_miso_clk  : in  std_logic;
 		dbg_miso_data : in  std_logic;
-		dbg_mosi_clk  : out std_logic;
 		dbg_mosi_data : out std_logic;
 		vga_r         : out std_logic;
 		vga_g         : out std_logic;
 		vga_b         : out std_logic;
 		vga_hs        : out std_logic;
-		vga_vs        : out std_logic
+		vga_vs        : out std_logic;
+		logic_dbg     : out std_logic_vector(7 downto 0)
 	);
 	
 END ENTITY root;
@@ -45,7 +44,8 @@ ARCHITECTURE rtl OF root IS
 			sram_oe   : out std_logic;
 			sram_ce   : out std_logic;
 			dbg_miso_data : in  std_logic;
-			dbg_mosi_data : out std_logic
+			dbg_mosi_data : out std_logic;
+			logic_dbg     : out std_logic_vector(7 downto 0)
 		);
 	END COMPONENT SOC;
 
@@ -99,7 +99,8 @@ BEGIN
 			sram_oe       => sram_oe,
 			sram_ce       => sram_ce,
 			dbg_miso_data => dbg_miso_data,
-			dbg_mosi_data => dbg_mosi_data
+			dbg_mosi_data => dbg_mosi_data,
+			logic_dbg     => logic_dbg
 		);
 
 END ARCHITECTURE rtl ;

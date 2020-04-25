@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="embedded_function_block" module="embedded_function_block" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 04 25 13:30:32.960" version="1.2" type="Module" synthesis="lse" source_format="VHDL">
+  <Package>
+		<File name="embedded_function_block.lpc" type="lpc" modified="2020 04 25 13:30:31.000"/>
+		<File name="embedded_function_block.vhd" type="top_level_vhdl" modified="2020 04 25 13:30:31.000"/>
+		<File name="embedded_function_block_tmpl.vhd" type="template_vhdl" modified="2020 04 25 13:30:31.000"/>
+  </Package>
+</DiamondModule>

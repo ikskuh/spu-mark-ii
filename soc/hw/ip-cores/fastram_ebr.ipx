@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="fastram_ebr" module="fastram_ebr" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 04 25 12:44:07.470" version="7.5" type="Module" synthesis="lse" source_format="VHDL">
+  <Package>
+		<File name="" type="mem" modified="2020 04 25 12:44:07.000"/>
+		<File name="fastram_ebr.lpc" type="lpc" modified="2020 04 25 12:44:04.000"/>
+		<File name="fastram_ebr.vhd" type="top_level_vhdl" modified="2020 04 25 12:44:05.000"/>
+		<File name="fastram_ebr_tmpl.vhd" type="template_vhdl" modified="2020 04 25 12:44:05.000"/>
+		<File name="tb_fastram_ebr_tmpl.vhd" type="testbench_vhdl" modified="2020 04 25 12:44:05.000"/>
+  </Package>
+</DiamondModule>

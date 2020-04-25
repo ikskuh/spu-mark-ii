@@ -31,11 +31,11 @@ ARCHITECTURE rtl OF FIFO IS
   TYPE Storage_Type IS ARRAY (0 to depth - 1) OF WORD_Type;
 
   signal storage : Storage_Type;
-  signal head : INDEX_Type := 0;
-  signal tail : INDEX_Type := 0;
+  signal head : INDEX_Type;
+  signal tail : INDEX_Type;
 
-  signal inserting : std_logic := '0';
-  signal removing : std_logic := '0';
+  signal inserting : std_logic;
+  signal removing : std_logic;
 
   -- Increment and wrap
   function incr(index : in index_type) return index_type is

@@ -1,0 +1,44 @@
+[Device]
+Family=machxo3lf
+PartType=LCMXO3LF-6900C
+PartName=LCMXO3LF-6900C-6BG256I
+SpeedGrade=6
+Package=CABGA256
+OperatingCondition=IND
+Status=S
+
+[IP]
+VendorName=Lattice Semiconductor Corporation
+CoreType=LPM
+CoreStatus=Demo
+CoreName=Multiplier
+CoreRevision=4.9
+ModuleName=hw_mult_16
+SourceFormat=VHDL
+ParameterFileVersion=1.0
+Date=04/25/2020
+Time=12:46:37
+
+[Parameters]
+Verilog=0
+VHDL=1
+EDIF=1
+Destination=Synplicity
+Expression=BusA(0 to 7)
+Order=Big Endian [MSB:LSB]
+IO=0
+pmi_implemenntation=LUT
+pmi_const_coeff=No
+pmi_coeff_value=2
+pmi_ram_mult=No
+pmi_dataa_width=16
+pmi_datab_width=16
+pmi_datap_width=32
+pmi_signa=Signed
+pmi_signb=Signed
+pmi_additional_pipeline=0
+pmi_input_reg=Yes
+pmi_output_reg=Yes
+
+[Command]
+cmd_line= -w -n hw_mult_16 -lang vhdl -synth lse -bus_exp 7 -bb -arch xo3c00f -type dspmult -simple_portname -pfu_mult -widtha 16 -widthb 16 -widthp 32 -signed -PL_stages 0 -input_reg -output_reg -clk0 -ce0 -rst0

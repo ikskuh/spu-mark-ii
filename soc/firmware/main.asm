@@ -23,7 +23,7 @@ bios_jumptable:
 ; fn bios_entrypoint() noreturn
 ; this restarts the computer
 bios_entrypoint:
-	spset 0x6100    ; 128 Element Stack
+	spset 0xC000    ; 128 Element Stack
 
 	push bios_startup_msg
 	ipget 2

@@ -18,7 +18,8 @@ ENTITY SOC IS
     sram_oe       : out   std_logic;
     sram_ce       : out   std_logic;
     dbg_miso_data : in    std_logic;
-    dbg_mosi_data : out   std_logic
+    dbg_mosi_data : out   std_logic;
+    logic_dbg     : out   std_logic_vector(7 downto 0)
   );
 END ENTITY SOC;
 
@@ -56,8 +57,21 @@ ARCHITECTURE rtl OF SOC IS
       bus_request     : in std_logic; -- when set to '1', the bus operation is requested
       bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
     );
-
   END COMPONENT Register_RAM;
+
+  COMPONENT FastRAM IS
+  PORT (
+    rst             : in  std_logic; -- asynchronous reset
+    clk             : in  std_logic; -- system clock
+    bus_data_out    : out std_logic_vector(15 downto 0);
+    bus_data_in     : in  std_logic_vector(15 downto 0);
+    bus_address     : in std_logic_vector(15 downto 1);
+    bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+    bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+    bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+    bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+  );
+  END COMPONENT FastRAM;
 
   COMPONENT Serial_Port IS
     GENERIC (
@@ -327,7 +341,7 @@ BEGIN
   -- Bus Slaves
 
   ram0 : Register_RAM
-    GENERIC MAP (address_width => 5)
+    GENERIC MAP(address_width => 5)
     PORT MAP (
       rst             => rst,
       clk             => clk,
@@ -395,6 +409,15 @@ BEGIN
   clk <= extclk;
 
   leds(7 downto 0) <= not led_state;
+
+  logic_dbg(0) <= extclk;
+  logic_dbg(1) <= extrst;
+  logic_dbg(2) <= bus_write;
+  logic_dbg(3) <= bus_acknowledge;
+  logic_dbg(4) <= rom0_select;
+  logic_dbg(5) <= uart0_select;
+  logic_dbg(6) <= ram0_select;
+  logic_dbg(7) <= ram1_select;
 
   -- Bus Combinatorics (Bus Slaves)
 
@@ -553,6 +576,7 @@ BEGIN
       dbg_mem_request <= '0';
       sync_rst <= '1';
       cpu_halted <= false;
+      led_state <= "00000000";
     end procedure;
 
   BEGIN

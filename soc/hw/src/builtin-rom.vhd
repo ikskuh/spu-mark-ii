@@ -19,7 +19,7 @@ package body generated is
       when 16#0006# => return "0000000101111110";
       when 16#0008# => return "0000000111000110";
       when 16#000A# => return "0011110000001000";
-      when 16#000C# => return "0110000100000000";
+      when 16#000C# => return "1100000000000000";
       when 16#000E# => return "0000000100001000";
       when 16#0010# => return "0000000000100000";
       when 16#0012# => return "0000010100001000";

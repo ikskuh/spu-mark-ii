@@ -1,23 +1,45 @@
 [*]
 [*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Fri Apr 24 14:14:43 2020
+[*] Sat Apr 25 13:08:05 2020
 [*]
 [dumpfile] "/home/felix/projects/lowlevel/spu-mark-2/soc/hw/simu/testbench_spu.ghw"
-[dumpfile_mtime] "Fri Apr 24 14:06:24 2020"
-[dumpfile_size] 1009531
+[dumpfile_mtime] "Sat Apr 25 12:55:16 2020"
+[dumpfile_size] 29238
 [savefile] "/home/felix/projects/lowlevel/spu-mark-2/soc/hw/simu/spu.gtkw"
 [timestart] 0
 [size] 1920 1056
 [pos] -1 -1
-*-30.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-30.000000 2374999962 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.testbench_spu.
-[sst_width] 211
-[signals_width] 112
+[treeopen] top.testbench_spu.glue.
+[treeopen] top.testbench_spu.glue.ram0.
+[sst_width] 287
+[signals_width] 239
 [sst_expanded] 1
-[sst_vpaned_height] 310
+[sst_vpaned_height] 322
 @28
 top.testbench_spu.clk
 top.testbench_spu.rst
+@200
+-
+@22
+#{top.testbench_spu.glue.sim_bus_address[15:0]} top.testbench_spu.glue.sim_bus_address[15] top.testbench_spu.glue.sim_bus_address[14] top.testbench_spu.glue.sim_bus_address[13] top.testbench_spu.glue.sim_bus_address[12] top.testbench_spu.glue.sim_bus_address[11] top.testbench_spu.glue.sim_bus_address[10] top.testbench_spu.glue.sim_bus_address[9] top.testbench_spu.glue.sim_bus_address[8] top.testbench_spu.glue.sim_bus_address[7] top.testbench_spu.glue.sim_bus_address[6] top.testbench_spu.glue.sim_bus_address[5] top.testbench_spu.glue.sim_bus_address[4] top.testbench_spu.glue.sim_bus_address[3] top.testbench_spu.glue.sim_bus_address[2] top.testbench_spu.glue.sim_bus_address[1] top.testbench_spu.glue.sim_bus_address[0]
+@28
+top.testbench_spu.glue.bus_request
+top.testbench_spu.glue.bus_acknowledge
+top.testbench_spu.glue.bus_write
+@200
+-
+@28
+top.testbench_spu.glue.cpu_request
+top.testbench_spu.glue.dbg_mem_request
+@200
+-
+@28
+top.testbench_spu.glue.rom0_select
+top.testbench_spu.glue.uart0_select
+top.testbench_spu.glue.ram0_select
+top.testbench_spu.glue.ram1_select
 [pattern_trace] 1
 [pattern_trace] 0

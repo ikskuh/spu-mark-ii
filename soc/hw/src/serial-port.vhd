@@ -77,23 +77,23 @@ ARCHITECTURE rtl OF Serial_Port IS
 
   SIGNAL uart_rx_fifo_input     : std_logic_vector(7 downto 0);
   SIGNAL uart_rx_fifo_output    : std_logic_vector(7 downto 0);
-  SIGNAL uart_rx_fifo_insert    : std_logic := '0';
-  SIGNAL uart_rx_fifo_remove    : std_logic := '0';
-  SIGNAL uart_rx_fifo_full      : std_logic := '0';
-  SIGNAL uart_rx_fifo_empty     : std_logic := '0';
-  SIGNAL uart_rx_fifo_not_empty : std_logic := '0';
+  SIGNAL uart_rx_fifo_insert    : std_logic;
+  SIGNAL uart_rx_fifo_remove    : std_logic;
+  SIGNAL uart_rx_fifo_full      : std_logic;
+  SIGNAL uart_rx_fifo_empty     : std_logic;
+  SIGNAL uart_rx_fifo_not_empty : std_logic;
 
   SIGNAL uart_tx_fifo_input     : std_logic_vector(7 downto 0);
   SIGNAL uart_tx_fifo_output    : std_logic_vector(7 downto 0);
-  SIGNAL uart_tx_fifo_insert    : std_logic := '0';
-  SIGNAL uart_tx_fifo_remove    : std_logic := '0';
-  SIGNAL uart_tx_fifo_full      : std_logic := '0';
-  SIGNAL uart_tx_fifo_empty     : std_logic := '0';
-  SIGNAL uart_tx_fifo_not_empty : std_logic := '0';
+  SIGNAL uart_tx_fifo_insert    : std_logic;
+  SIGNAL uart_tx_fifo_remove    : std_logic;
+  SIGNAL uart_tx_fifo_full      : std_logic;
+  SIGNAL uart_tx_fifo_empty     : std_logic;
+  SIGNAL uart_tx_fifo_not_empty : std_logic;
 
-  SIGNAL uart_tx_send           : std_logic := '0';
+  SIGNAL uart_tx_send           : std_logic;
 
-  SIGNAL uart_tx_blocker        : std_logic := '0';
+  SIGNAL uart_tx_blocker        : std_logic;
   SIGNAL uart_tx_done           : std_logic;
 
 begin

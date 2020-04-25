@@ -1,0 +1,52 @@
+[Device]
+Family=machxo3lf
+PartType=LCMXO3LF-6900C
+PartName=LCMXO3LF-6900C-6BG256I
+SpeedGrade=6
+Package=CABGA256
+OperatingCondition=IND
+Status=S
+
+[IP]
+VendorName=Lattice Semiconductor Corporation
+CoreType=LPM
+CoreStatus=Demo
+CoreName=RAM_DQ
+CoreRevision=7.5
+ModuleName=fastram_ebr
+SourceFormat=VHDL
+ParameterFileVersion=1.0
+Date=04/25/2020
+Time=14:19:28
+
+[Parameters]
+Verilog=0
+VHDL=1
+EDIF=1
+Destination=Synplicity
+Expression=BusA(0 to 7)
+Order=Big Endian [MSB:LSB]
+IO=0
+Address=4096
+Data=16
+enByte=1
+ByteSize=8
+OutputEn=0
+ClockEn=0
+Optimization=Speed
+Reset=Sync
+Reset1=Sync
+Init=0
+MemFile=
+MemFormat=orca
+EnECC=0
+Pipeline=0
+Write=WriteThrough
+init_data=0
+no_init=0
+
+[FilesGenerated]
+=mem
+
+[Command]
+cmd_line= -w -n fastram_ebr -lang vhdl -synth lse -bus_exp 7 -bb -arch xo3c00f -type ramdq -device LCMXO3LF-6900C -addr_width 12 -data_width 16 -num_words 4096 -byte 8 -cascade -1 -mem_init0 -writemode WRITETHROUGH
