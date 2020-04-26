@@ -3,7 +3,6 @@
 ; by using ROM routines, then returns to the BIOS.
 .org 0x8000
 
-app_main:
 	push app_msg
 	ipget 2
 	ld 0x0006 [out:jmp]
