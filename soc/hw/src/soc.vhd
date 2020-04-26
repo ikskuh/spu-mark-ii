@@ -340,14 +340,15 @@ BEGIN
 
   -- Bus Slaves
 
-  ram0 : Register_RAM
-    GENERIC MAP(address_width => 5)
+  ram0 : FastRAM
+    -- GENERIC MAP(address_width => 5)
     PORT MAP (
       rst             => rst,
       clk             => clk,
       bus_data_out    => ram0_out,
       bus_data_in     => bus_data_out,
-      bus_address     => bus_address(4 downto 1),
+      --bus_address     => bus_address(4 downto 1),
+      bus_address     => bus_address,
       bus_write       => bus_write,
       bus_bls         => bus_bls,
       bus_request     => ram0_select,

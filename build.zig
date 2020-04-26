@@ -21,6 +21,7 @@ const packages = struct {
 
 const examples = [_][]const u8{
     "apps/hello-world/main",
+    "apps/ascii-printer/main",
 };
 
 pub fn build(b: *std.build.Builder) !void {

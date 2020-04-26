@@ -10,6 +10,10 @@
   - 256×128 pixel output
   - 8-Color RGB (RGB111)
   - Pixel Fetch Pipeline with buffering for bus delays
+- Finalize blitter design (see blitter.md)
+- Make bus mastering configurable
+- Implement MMU
+- 
 
 ## Tooling Changes
 x Add ihex loader to debug-pc

@@ -3,6 +3,7 @@
 ; by using ROM routines, then returns to the BIOS.
 .org 0x8000
 
+app_main:
 	push app_msg
 	ipget 2
 	ld 0x0006 [out:jmp]
@@ -13,8 +14,8 @@ app_loop:
 	[ex:less] jmp app_loop [i1:pop]
 	pop
 
-	ret
+  ret
 
 app_msg:
-.asciiz "Hello, World!\r\n"
+.asciiz "\rHello, World!"
 .align 2

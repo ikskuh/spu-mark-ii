@@ -23,7 +23,7 @@ bios_jumptable:
 ; fn bios_entrypoint() noreturn
 ; this restarts the computer
 bios_entrypoint:
-	spset 0xC000    ; 128 Element Stack
+	spset 0x6100    ; 128 Element Stack
 
 	push bios_startup_msg
 	ipget 2
@@ -47,8 +47,11 @@ bios_startup_msg:
 ; the main menu of the Ashet BIOS
 ; 
 bios_mainmenu:
+	st 0x4000, '\r'
 	st 0x4000, '>'
 	st 0x4000, ' '
+	st 0x4000, ' '
+	st 0x4000, '\b'
 
 bios_mainmenu_waitkey:
 	ld 0x4000 [f:yes]
@@ -66,10 +69,7 @@ bios_mainmenu_waitkey:
 
 	; we don't know the command, so just clear the input
 	; and restart
-	st 0x4000, '\b'
-	st 0x4000, ' '
-	st 0x4000, '\b'
-	jmp bios_mainmenu_waitkey
+	jmp bios_mainmenu
 
 
 bios_helpmenu:
@@ -123,6 +123,7 @@ puts_loop:
 	spset
 	bpset
 	ret
+
 
 ; fn() void
 ; clears the serial terminal
