@@ -70,7 +70,7 @@ fn processRecord(out: *const std.io.OutStream(std.fs.File, std.os.WriteError, st
                 .@"or" => "or       ",
                 .xor => "xor      ",
                 .not => "not      ",
-                .neg => "neg      ",
+                .signext => "signext  ",
                 .rol => "rol      ",
                 .ror => "ror      ",
                 .bswap => "bswap    ",

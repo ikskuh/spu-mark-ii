@@ -86,7 +86,7 @@ The cpu only allows aligned memory access for word access. Unaligned word access
 ### CPU Registers
 
 #### Stack Pointer (*SP*)
-16 bit register storing the address of the topmost value of the stack.
+16 bit register storing the address of the topmost value of the stack. The stack grows downwards, so a *push* operation decrements the `SP` by two and then stores a value to the decremented address. A *pop* or *peek* operation reads the value from `SP`, and for *pop*, `SP` will be incremented by 2.
 
 | Bit Fields | Description               |
 | ---------- | ------------------------- |
@@ -96,12 +96,12 @@ The cpu only allows aligned memory access for word access. Unaligned word access
 Initial Value: *Undefined*
 
 #### Base Pointer (*BP*)
-16 bit register pointing to the address of the stack frame. This may be used for indirect addressing and is meant for indexing values on the stack via the `GET` and `SET` commands. The `BP` register is similar to a *"frame pointer"* or *"index register"*.
+16 bit register that may be used for indirect addressing via `GET` and `SET` commands and may be used as a *frame pointer* or *index register*.
 
 | Bit Fields | Description                 |
 | ---------- | --------------------------- |
 | `[0]`      | reserved, must be zero      |
-| `[15:1]`   | aligned stack frame address |
+| `[15:1]`   | aligned address             |
 
 Initial Value: *Undefined*
 
@@ -122,8 +122,9 @@ Initial Value: *Undefined*
 | --------- | ---------- | ------------------------------------------------ |
 | `[0]`     | **Z**      | Zero Flag                                        |
 | `[1]`     | **N**      | Negative Flag                                    |
-| `[5:2]`   | **I[3:0]** | Interrupt Enabled bitfield for interrupts 4 to 7 |
-| `[15:6]`  | -          | Reserved, must be *0*.                           |
+| `[3:2]`   | -          | Reserved, must be *0*.                           |
+| `[7:4]`   | **I[3:0]** | Interrupt Enabled bitfield for interrupts 4 to 7 |
+| `[15:8]`  | -          | Reserved, must be *0*.                           |
 
 Initial Value: `0x0000`
 
@@ -225,40 +226,44 @@ For *Jump Relative*, the instruction pointer will point to the next instruction 
 
 Commands are what define the core behaviour of the opcode. They allow arithmetics, modification of memory, changing system registers and so on.
 
-| Value           | Name    | Short Description                                            | Pseudo-Code                                        |
-| --------------- | ------- | ------------------------------------------------------------ | -------------------------------------------------- |
-| `00000`₂  (0₁₀) | COPY    | Copies `input0` to `output`.                                 | `output = input0`                                  |
-| `00001`₂  (1₁₀) | IPGET   | Gets a pointer to the next instruction after the current opcode. | `output = IP + 2 * input0`                         |
-| `00010`₂  (2₁₀) | GET     | Gets a value from the stack.                                 | `output = MEM16[BP + 2 * input0]`                  |
-| `00011`₂  (3₁₀) | SET     | Sets a value on the stack                                    | `output = input1; MEM16[BP + 2 * input0] = input1` |
-| `00100`₂  (4₁₀) | STORE8  | Stores a byte in memory                                      | `output = input1 & 0xFF; MEM8[input0] = input1`    |
-| `00101`₂  (5₁₀) | STORE16 | Stores a word in memory                                      | `output = input1; MEM16[input0] = input1`          |
-| `00110`₂  (6₁₀) | LOAD8   | Loads a byte from memory                                     | `output = MEM8[input0]`                            |
-| `00111`₂  (7₁₀) | LOAD16  | Loads a word from memory                                     | `output = MEM16[input0]`                           |
-| `01000`₂  (8₁₀) | ???     | *Reserved*                                                   | Invokes undefined behavior                         |
-| `01001`₂  (9₁₀) | ???     | *Reserved*                                                   | Invokes undefined behavior                         |
-| `01010`₂ (10₁₀) | FRGET   | Gets the flag register                                       | `output = (FL & ~input1)`                          |
-| `01011`₂ (11₁₀) | FRSET   | Sets the flag register                                       | `output = FL₀; FL₁ = (input0 & ~input1) | (FL & input1)` |
-| `01100`₂ (12₁₀) | BPGET   | Gets the base pointer                                        | `output = BP`                                      |
-| `01101`₂ (13₁₀) | BPSET   | Sets the base pointer                                        | `output = BP₀; BP₁ = input0`                             |
-| `01110`₂ (14₁₀) | SPGET   | Gets the stack pointer                                       | `output = SP`                                      |
-| `01111`₂ (15₁₀) | SPSET   | Sets the stack pointer                                       | `output = SP₀; SP₁ = input0`                             |
-| `10000`₂ (16₁₀) | ADD     | Adds the two inputs                                          | `output = input0 + input1`                         |
-| `10001`₂ (17₁₀) | SUB     | Subtracts `input1` from `input0`                             | `output = input0 - input1`                         |
-| `10010`₂ (18₁₀) | MUL     | Multiplies `input0` and `input1`                             | `output = input0 * input1`                         |
-| `10011`₂ (19₁₀) | DIV     | Divides `input0` by `input1`                                 | `output = input0 / input1`                         |
-| `10100`₂ (20₁₀) | MOD     | Divides `input0` by `input1` and returns the remainder.      | `output = input0 % input1`                         |
-| `10101`₂ (21₁₀) | AND     | Combines the bits in `input0` and `input1` with AND          | `output = input0 & input1`                         |
-| `10110`₂ (22₁₀) | OR      | Combines the bits in `input0` and `input1` with inclusive OR | `output = input0 | input1`                         |
-| `10111`₂ (23₁₀) | XOR     | Combines the bits in `input0` and `input1` with exclusive OR | `output = input0 ^ input1`                         |
-| `11000`₂ (24₁₀) | NOT     | Inverts all bits in `input0`                                 | `output = ~input0`                                 |
-| `11001`₂ (25₁₀) | NEG     | Returns the negative of `input0`.                            | `output = -input0`                                 |
-| `11010`₂ (26₁₀) | ROL     | Rotates `input0` to the left                                 | `output = concat(input0[14:0], input0[15])`        |
-| `11011`₂ (27₁₀) | ROR     | Rotates `input0` to the right                                | `output = concat(input0[0], input0[15:1])`         |
-| `11100`₂ (28₁₀) | BSWAP   | Swaps the bytes of `input0`                                  | `output = concat(input0[7:0], input0[15:8])`       |
-| `11101`₂ (29₁₀) | ASR     | Arithmetic shift right of `input0`                           | `output = concat(input0[15], input0[15:1])`        |
-| `11110`₂ (30₁₀) | LSL     | Logical shift left of `input0`                               | `output = concat(input0[14:0], '0')`               |
-| `11111`₂ (31₁₀) | LSR     | Logical shift right of `input0`                              | `output = concat('0', input0[15:1])`               |
+Some hints on notation:
+- `MEM16[x]` is the 16 bit word at address `x`
+- `MEM8[x]` is the 8 bit word at address `x`
+
+| Value           | Name    | Pseudo-Code                                                        |
+|-----------------|---------|--------------------------------------------------------------------|
+| `00000`₂  (0₁₀) | COPY    | `output = input0`                                                  |
+| `00001`₂  (1₁₀) | IPGET   | `output = IP + 2 * input0`                                         |
+| `00010`₂  (2₁₀) | GET     | `output = MEM16[BP + 2 * input0]`                                  |
+| `00011`₂  (3₁₀) | SET     | `output = input1; MEM16[BP + 2 * input0] = input1`                 |
+| `00100`₂  (4₁₀) | STORE8  | `output = input1 & 0xFF; MEM8[input0] = input1`                    |
+| `00101`₂  (5₁₀) | STORE16 | `output = input1; MEM16[input0] = input1`                          |
+| `00110`₂  (6₁₀) | LOAD8   | `output = MEM8[input0]`                                            |
+| `00111`₂  (7₁₀) | LOAD16  | `output = MEM16[input0]`                                           |
+| `01000`₂  (8₁₀) | ???     | Invokes undefined behavior                                         |
+| `01001`₂  (9₁₀) | ???     | Invokes undefined behavior                                         |
+| `01010`₂ (10₁₀) | FRGET   | `output = (FR & ~input1)`                                          |
+| `01011`₂ (11₁₀) | FRSET   | `output = FR₀; FR₁ = (input0 & ~input1) | (FR & input1)`           |
+| `01100`₂ (12₁₀) | BPGET   | `output = BP`                                                      |
+| `01101`₂ (13₁₀) | BPSET   | `output = BP₀; BP₁ = input0`                                       |
+| `01110`₂ (14₁₀) | SPGET   | `output = SP`                                                      |
+| `01111`₂ (15₁₀) | SPSET   | `output = SP₀; SP₁ = input0`                                       |
+| `10000`₂ (16₁₀) | ADD     | `output = input0 + input1`                                         |
+| `10001`₂ (17₁₀) | SUB     | `output = input0 - input1`                                         |
+| `10010`₂ (18₁₀) | MUL     | `output = input0 * input1`                                         |
+| `10011`₂ (19₁₀) | DIV     | `output = input0 / input1`                                         |
+| `10100`₂ (20₁₀) | MOD     | `output = input0 % input1`                                         |
+| `10101`₂ (21₁₀) | AND     | `output = input0 & input1`                                         |
+| `10110`₂ (22₁₀) | OR      | `output = input0 | input1`                                         |
+| `10111`₂ (23₁₀) | XOR     | `output = input0 ^ input1`                                         |
+| `11000`₂ (24₁₀) | NOT     | `output = ~input0`                                                 |
+| `11001`₂ (25₁₀) | SIGNEXT | `output = if(input[7] = 1) (0xFF00 | input0) else (input0 & 0xFF)` |
+| `11010`₂ (26₁₀) | ROL     | `output = concat(input0[14:0], input0[15])`                        |
+| `11011`₂ (27₁₀) | ROR     | `output = concat(input0[0], input0[15:1])`                         |
+| `11100`₂ (28₁₀) | BSWAP   | `output = concat(input0[7:0], input0[15:8])`                       |
+| `11101`₂ (29₁₀) | ASR     | `output = concat(input0[15], input0[15:1])`                        |
+| `11110`₂ (30₁₀) | LSL     | `output = concat(input0[14:0], '0')`                               |
+| `11111`₂ (31₁₀) | LSR     | `output = concat('0', input0[15:1])`                               |
 
 `MUL`, `DIV` and `MOD` use signed values as input and output. It is not possible to get the upper 16 bit of the multiplication result.
 
@@ -272,56 +277,86 @@ When accessing memory with alignment, the least significant address bit is reser
 
 This pseudocode documents what the CPU does in detail when execution a single instruction.
 
-```
-- If RST interrupt is triggered
-	- Set IP to the Routine Pointer for interrupt 0.
-	- Clear the Interrupt Register and Flag Register
-- Else if any other interrupt triggered
-	- Push current IP
-	- Set IP to lowest interrupt triggered entrypoint stored at the Routine Pointer
-	- Clear interrupt triggered bit and mask the interrupt in the flag register
-- Fetch Instruction
-- Increment IP
-- Check Execution
-	- yes: continue
-	- no: next, increment IP for i0, i1
-- Gather Input 0
-- Gather Input 1
-- Execute CMD
-- Check result:
-	- push: push result
-	- discard: nothing
-	- jmp: jump to result
-	- rjmp: jump to IP+2*result
-- Check flags:
-	- yes: Writeback Flags
-	- no: leave unchanged
+```py
+if (IR & 1) != 0:
+	IP := fetch(0x0000)
+	FR := 0x0000
+	IR := 0x0000
+
+while IR != 0:
+	intr_bit := indexOfHighestSetBit(IR)
+	IR &= ~(1<<intr_bit)         # clear "interrupt triggered"
+	if intr_bit < 4 or (FR & (1<<intr_bit)) != 0: # if interrupt is not masked
+		push(IP)
+		IP := fetch(2 * intr_bit)   # fetch ISR handler
+		if intr_bit >= 4:           # if interrupt is maskable
+			FR &= ~(1<<intr_bit)      # unmask interrupt
+
+instruction := fetch(IP)
+IP += 2
+
+if isExecuted(instruction, FR):
+	input0 := fetchInput(instruction.input0)
+	input1 := fetchInput(instruction.input1)
+	
+	output := instruction.command(input0, input1)
+	
+	select instruction.output:
+		when 'push':
+			push(output)
+		when 'discard':
+			# ignore
+		when 'jmp':
+			IP := output
+		when 'rjmp':		
+			IP += 2 * output
+
+	if instruction.modifyFlags:
+		FR.Z = (output == 0x0000)
+		FR.N = (output >= 0x8000)
+else
+	if instruction.input0 == IMM:
+		IP += 2
+	if instruction.input1 == IMM:
+		IP += 2
 ```
 
 > TODO: Add handling of `BUS` fault!
 
 For the non-interrupt version, the state machine is simpler:
 
-```
-- If RST is high
-	- Set IP to 0x0000
-	- Clear the Flag Register
-- Fetch Instruction
-- Increment IP
-- Check Execution
-	- yes: continue
-	- no: next, increment IP for i0, i1
-- Gather Input 0
-- Gather Input 1
-- Execute CMD
-- Check result:
-	- push: push result
-	- discard: nothing
-	- jmp: jump to result
-	- rjmp: jump to IP+2*result
-- Check flags:
-	- yes: Writeback Flags
-	- no: leave unchanged
+```py
+if RST is high:
+	IP := 0x0000
+	FR := 0x0000
+
+instruction := fetch(IP)
+IP += 2
+
+if isExecuted(instruction, FR):
+	input0 := fetchInput(instruction.input0)
+	input1 := fetchInput(instruction.input1)
+	
+	output := instruction.command(input0, input1)
+	
+	select instruction.output:
+		when 'push':
+			push(output)
+		when 'discard':
+			# ignore
+		when 'jmp':
+			IP := output
+		when 'rjmp':		
+			IP += 2 * output
+
+	if instruction.modifyFlags:
+		FR.Z = (output == 0x0000)
+		FR.N = (output >= 0x8000)
+else
+	if instruction.input0 == IMM:
+		IP += 2
+	if instruction.input1 == IMM:
+		IP += 2
 ```
 
 

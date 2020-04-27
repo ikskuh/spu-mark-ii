@@ -53,7 +53,7 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 		EXEC_OR,
 		EXEC_XOR,
 		EXEC_NOT,
-		EXEC_NEG,
+		EXEC_SIGNEXT,
 		EXEC_ROL,
 		EXEC_ROR,
 		EXEC_BSWAP,
@@ -132,7 +132,7 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 			when "10110" => return EXEC_OR; -- or
 			when "10111" => return EXEC_XOR; -- xor
 			when "11000" => return EXEC_NOT; -- not
-			when "11001" => return EXEC_NEG; -- neg
+			when "11001" => return EXEC_SIGNEXT; -- signext
 			when "11010" => return EXEC_ROL; -- rol
 			when "11011" => return EXEC_ROR; -- ror
 			when "11100" => return EXEC_BSWAP; -- bswap
@@ -582,8 +582,16 @@ BEGIN
 					when EXEC_NOT =>
 						finish_instruction(not REG_I0);
 
-					when EXEC_NEG =>
-						finish_instruction(unsigned(-signed(REG_I0)));
+					when EXEC_SIGNEXT =>
+						finish_instruction(REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7)
+						                 & REG_I0(7 downto 0));
 
 					when EXEC_ROL =>
 						finish_instruction(REG_I0(14 downto 0) & REG_I0(15));

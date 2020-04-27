@@ -69,7 +69,7 @@ typedef uint8_t byte_t;
 #define CMD_OR 22
 #define CMD_XOR 23
 #define CMD_NOT 24
-#define CMD_NEG 25
+#define CMD_SIGNEXT 25
 #define CMD_ROL 26
 #define CMD_ROR 27
 #define CMD_BSWAP 28

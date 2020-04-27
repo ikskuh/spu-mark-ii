@@ -333,7 +333,10 @@ pub const Emulator = struct {
                 .@"or" => input0 | input1,
                 .xor => input0 ^ input1,
                 .not => ~input0,
-                .neg => ~input0 +% 1,
+                .signext => if ((input0 & 0x80) != 0)
+                    (input0 & 0xFF) | 0xFF00
+                else
+                    (input0 & 0xFF),
                 .rol => (input0 << 1) | (input0 >> 15),
                 .ror => (input0 >> 1) | (input0 << 15),
                 .bswap => (input0 << 8) | (input0 >> 8),

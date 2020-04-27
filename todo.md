@@ -13,7 +13,6 @@
 - Finalize blitter design (see blitter.md)
 - Make bus mastering configurable
 - Implement MMU
-- 
 
 ## Tooling Changes
 x Add ihex loader to debug-pc
@@ -25,12 +24,4 @@ x Add ihex loader to debug-pc
   - redefine some mnemonics and modifiers
 
 ## Documentation Change
-- Document stack growth direction (downwards stack)
-- Document that most instructions (`ipget`, ...) now supports offsets (Misses in "Gets a pointer to the next instruction after the current opcode")
-- Explain difference between *stack frame* and *stack* or search better word for *stack frame*
-- Explain intended use of `get`, `set` and `BP` in [AN001 - Calling Conventions](./documentation/app-notes/AN002 - Standard Calling Convention.md)
-- input1[7:0] instead of input1 and 0xFF
-- `FL` is now `FR`
-- Improve pseudo code specification, maybe use more python-like or something
 - Write about common patterns in AN000
-- Write AN001
