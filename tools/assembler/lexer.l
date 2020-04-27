@@ -74,7 +74,7 @@ char *string_buf_ptr;
 \[{ws}ex{ws}:{ws}less{ws}\]     { return MKTOKEN(TOK_MOD_EX, EXEC_LESS); }
 \[{ws}ex{ws}:{ws}lequal{ws}\]   { return MKTOKEN(TOK_MOD_EX, EXEC_LEQUAL); }
 \[{ws}ex{ws}:{ws}gequal{ws}\]   { return MKTOKEN(TOK_MOD_EX, EXEC_GEQUAL); }
-\[{ws}ex{ws}:{ws}never{ws}\]    { return MKTOKEN(TOK_MOD_EX, EXEC_NEVER); }
+\[{ws}ex{ws}:{ws}overflow{ws}\] { return MKTOKEN(TOK_MOD_EX, EXEC_OVERFLOW); }
 
 \[{ws}i0{ws}:{ws}zero{ws}\]     { return MKTOKEN(TOK_MOD_I0, INPUT_ZERO); }
 \[{ws}i0{ws}:{ws}arg{ws}\]      { return MKTOKEN(TOK_MOD_I0, INPUT_ARG); }

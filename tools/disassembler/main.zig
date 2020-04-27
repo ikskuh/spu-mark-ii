@@ -27,7 +27,7 @@ fn processRecord(out: *const std.io.OutStream(std.fs.File, std.os.WriteError, st
                 .less_than_zero => " < 0",
                 .greater_or_equal_zero => ">= 0",
                 .less_or_equal_zero => "<= 0",
-                .undefined0 => "INVALID",
+                .overflow => "ovfl",
             });
             try out.writeAll(" ");
             try out.writeAll(switch (instr.input0) {

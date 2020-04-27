@@ -93,7 +93,9 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 
 	ALIAS FLAG_Z     : std_logic is REG_FR(0);
 	ALIAS FLAG_N     : std_logic is REG_FR(1);
-	ALIAS FLAG_I     : std_logic_vector(3 downto 0) is REG_FR(5 downto 2);
+	ALIAS FLAG_C     : std_logic is REG_FR(2);
+	ALIAS FLAG_CE    : std_logic is REG_FR(3);
+	ALIAS FLAG_I     : std_logic_vector(3 downto 0) is REG_FR(7 downto 4);
 
 	
 	SIGNAL mem_bls      : std_logic_vector(1 downto 0) := "00";
@@ -406,6 +408,9 @@ BEGIN
 		END;
 
 		variable temp : CPU_WORD;
+		variable arith_temp : unsigned(16 downto 0);
+
+		constant arith_padding : std_logic_vector(15 downto 0) := "0000000000000000";
 
 	BEGIN
 	  if rst = '0' then
@@ -556,10 +561,14 @@ BEGIN
 						REG_SP <= REG_I0;
 
 					WHEN EXEC_ADD =>
-						finish_instruction(REG_I0 + REG_I1);
+						arith_temp := ("0" & REG_I0) + ("0" & REG_I1) + unsigned(arith_padding & (FLAG_C and FLAG_CE));
+						FLAG_C <= std_logic(arith_temp(16));
+						finish_instruction(arith_temp(15 downto 0));
 						
 					WHEN EXEC_SUB =>
-						finish_instruction(REG_I0 - REG_I1);
+						arith_temp := ("0" & REG_I0) - ("0" & REG_I1) - unsigned(arith_padding & (FLAG_C and FLAG_CE));
+						FLAG_C <= std_logic(arith_temp(16));
+						finish_instruction(arith_temp(15 downto 0));
 					
 					when EXEC_MUL =>
 						state <= RESET; -- not implemented yet

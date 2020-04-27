@@ -4,20 +4,26 @@
   - 320×240 VGA resolution
   - 256×128 pixel output
   - 8-Color RGB (RGB111)
-  - Pixel Fetch Pipeline with buffering for bus delays
+  - Use 4 bit dual port frame buffer RAM 
 - Finalize blitter design (see blitter.md)
+- Finalize blitter design (see sprite-unit.md)
 - Make bus mastering configurable
 - Implement MMU
-- Implement carry+appendix bit in CPU
 
 ## Tooling Changes
 - Support new debug features
 - Create small boot rom
+  - add monitor features
+    - hex dump
+    - read/write adresses
+  - ihex serial loader
 - Rewrite assembler with support for new features:
   - (recursive) include files
-  - simple assembler macros
   - redefine some mnemonics and modifiers
-- Implement carry+appendix bit in assembler + emulator
+  - allow expression evaluation
 
 ## Documentation Change
 - Write about common patterns in AN000
+
+## Website
+- Fill website with contents

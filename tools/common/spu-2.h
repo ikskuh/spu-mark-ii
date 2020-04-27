@@ -37,7 +37,7 @@ typedef uint8_t byte_t;
 #define EXEC_LESS 4
 #define EXEC_GEQUAL 5
 #define EXEC_LEQUAL 6
-#define EXEC_NEVER 7
+#define EXEC_OVERFLOW 7
 
 #define OUTPUT_DISCARD 0
 #define OUTPUT_PUSH 1

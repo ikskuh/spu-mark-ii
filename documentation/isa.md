@@ -195,7 +195,7 @@ These two fields define what arguments are provided to the executed command.
 
 #### Flag Modification
 
-When the flag modification is enabled, the current flags will be overwritten by this command. Otherwise the flags stay as they were before the instruction.
+When the flag modification is enabled, the current `N` and `Z` flags will be overwritten by this command. Otherwise the flags stay as they were before the instruction.
 
 | Value      | Enumeration | Description                                            |
 |------------|-------------|--------------------------------------------------------|
@@ -204,11 +204,13 @@ When the flag modification is enabled, the current flags will be overwritten by 
 
 The flags are modified according to this table:
 
-| Flag  | Condition          |
-|-------|--------------------|
-| **Z** | `output[15:0] = 0` |
-| **N** | `output[15] = 1`   |
-| **I** | unchanged          |
+| Flag   | Condition          |
+|--------|--------------------|
+| **Z**  | `output[15:0] = 0` |
+| **N**  | `output[15] = 1`   |
+| **C**  | unchanged          |
+| **CE** | unchanged          |
+| **I**  | unchanged          |
 
 #### Result Output
 
@@ -270,7 +272,7 @@ Some hints on notation:
 
 `ADD` and `SUB` will add/subtract 1 more if the *Carry* and *Carry Enabled* flag are both set.
 
-`ADD`, `SUB`, `MUL` will modify the *Carry* flag, even if *Carry Enabled* is false:
+`ADD`, `SUB`, `MUL` will modify the *Carry* flag, even if *Carry Enabled* flag or *Modify Flags* instruction field is disabled:
 
 - When `ADD` is overflowing and setting a virtual 17th bit, carry will be set
 - When `SUB` is overflowing and setting a virtual 17th bit, carry will be set

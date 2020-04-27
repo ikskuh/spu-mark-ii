@@ -270,7 +270,7 @@ pub const Emulator = struct {
             .less_than_zero => !self.fr.zero and self.fr.negative,
             .greater_or_equal_zero => self.fr.zero or !self.fr.negative,
             .less_or_equal_zero => self.fr.zero or self.fr.negative,
-            else => return error.BadInstruction,
+            .overflow => self.fr.carry,
         };
 
         if (execute) {
@@ -324,9 +324,21 @@ pub const Emulator = struct {
                     self.sp = input0;
                     break :blk self.sp;
                 },
-                .add => input0 +% input1,
-                .sub => input0 -% input1,
-                .mul => input0 *% input1,
+                .add => blk: {
+                    var result: u16 = undefined;
+                    self.fr.carry = @addWithOverflow(u16, input0, input1, &result);
+                    break :blk result;
+                },
+                .sub => blk: {
+                    var result: u16 = undefined;
+                    self.fr.carry = @subWithOverflow(u16, input0, input1, &result);
+                    break :blk result;
+                },
+                .mul => blk: {
+                    var result: u16 = undefined;
+                    self.fr.carry = @mulWithOverflow(u16, input0, input1, &result);
+                    break :blk result;
+                },
                 .div => input0 / input1,
                 .mod => input0 % input1,
                 .@"and" => input0 & input1,
@@ -344,7 +356,6 @@ pub const Emulator = struct {
                 .lsl => input0 << 1,
                 .lsr => input0 >> 1,
                 .undefined0, .undefined1 => return error.BadInstruction,
-                else => return error.UnimplementedInstruction,
             };
 
             self.stage = .postprocess;

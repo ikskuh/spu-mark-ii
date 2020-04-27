@@ -6,7 +6,7 @@ pub const ExecutionCondition = enum(u3) {
     less_than_zero = 4,
     greater_or_equal_zero = 5,
     less_or_equal_zero = 6,
-    undefined0,
+    overflow = 7,
 };
 
 pub const InputBehaviour = enum(u2) {
@@ -71,9 +71,11 @@ pub const Instruction = packed struct {
 pub const FlagRegister = packed struct {
     zero: bool,
     negative: bool,
+    carry: bool,
+    carry_enabled: bool,
     interrupt0_enabled: bool,
     interrupt1_enabled: bool,
     interrupt2_enabled: bool,
     interrupt3_enabled: bool,
-    reserved: u10 = 0,
+    reserved: u8 = 0,
 };
