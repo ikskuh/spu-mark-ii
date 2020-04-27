@@ -1,8 +1,3 @@
-## ISA Changes
-- sign extend instruction
-- carry bit
-- remove `NEG` command, it can be implemented by using `sub` with one input = ZERO
-
 ## SOC Changes
 - Design and calculate GPU
   - Add basic VGA module (only "background color")
@@ -13,15 +8,16 @@
 - Finalize blitter design (see blitter.md)
 - Make bus mastering configurable
 - Implement MMU
+- Implement carry+appendix bit in CPU
 
 ## Tooling Changes
-x Add ihex loader to debug-pc
 - Support new debug features
 - Create small boot rom
 - Rewrite assembler with support for new features:
   - (recursive) include files
   - simple assembler macros
   - redefine some mnemonics and modifiers
+- Implement carry+appendix bit in assembler + emulator
 
 ## Documentation Change
 - Write about common patterns in AN000

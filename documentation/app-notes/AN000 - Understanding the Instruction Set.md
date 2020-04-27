@@ -69,3 +69,8 @@ from the stack whereas *peek* will keep the stack pointer itself untouched.
 
 > TODO: Explain how some coding patters are and how
 > to write basic code for the processor.
+
+```asm
+; Check an an 8 bit value
+sgxt [f:yes] [out:discard]
+```

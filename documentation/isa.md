@@ -122,7 +122,8 @@ Initial Value: *Undefined*
 | --------- | ---------- | ------------------------------------------------ |
 | `[0]`     | **Z**      | Zero Flag                                        |
 | `[1]`     | **N**      | Negative Flag                                    |
-| `[3:2]`   | -          | Reserved, must be *0*.                           |
+| `[2]`     | **C**      | Carry                                            |
+| `[3]`     | **CE**     | Carry Enable                                     |
 | `[7:4]`   | **I[3:0]** | Interrupt Enabled bitfield for interrupts 4 to 7 |
 | `[15:8]`  | -          | Reserved, must be *0*.                           |
 
@@ -166,16 +167,16 @@ This field determines when the command is executed or ignored. The execution is 
 
 This allows conditional execution of all possible opcodes.
 
-| Value        | Enumeration | Description                                                  |
-| ------------ | ----------- | ------------------------------------------------------------ |
-| `000`₂ (0₁₀)  | Always      | The command is always executed                              |
-| `001`₂ (1₁₀)  | =0          | The command is executed when result is zero (`Z=1`)          |
-| `010`₂ (2₁₀)  | ≠0          | The command is executed when result is not zero (`Z=0`)      |
-| `011`₂ (3₁₀)  | >0          | The command is executed when result is positive (`Z=0` and `N=0`) |
-| `100`₂ (4₁₀)  | <0          | The command is executed when result is less than zero (`N=1`) |
+| Value        | Enumeration | Description                                                              |
+|--------------|-------------|--------------------------------------------------------------------------|
+| `000`₂ (0₁₀) | Always      | The command is always executed                                           |
+| `001`₂ (1₁₀) | =0          | The command is executed when result is zero (`Z=1`)                      |
+| `010`₂ (2₁₀) | ≠0          | The command is executed when result is not zero (`Z=0`)                  |
+| `011`₂ (3₁₀) | >0          | The command is executed when result is positive (`Z=0` and `N=0`)        |
+| `100`₂ (4₁₀) | <0          | The command is executed when result is less than zero (`N=1`)            |
 | `101`₂ (5₁₀) | ≥0          | The command is executed when result is zero or positive (`Z=1` or `N=0`) |
 | `110`₂ (6₁₀) | ≤0          | The command is executed when result is zero or negative (`Z=1` or `N=1`) |
-| `111`₂ (7₁₀) | *Reserved*  | Reserved for future use (invokes undefined behavior). |
+| `111`₂ (7₁₀) | Overflow    | The command is executed when *Carry* is set.                             |
 
 #### Argument Input 0 and 1
 
@@ -248,8 +249,8 @@ Some hints on notation:
 | `01101`₂ (13₁₀) | BPSET   | `output = BP₀; BP₁ = input0`                                       |
 | `01110`₂ (14₁₀) | SPGET   | `output = SP`                                                      |
 | `01111`₂ (15₁₀) | SPSET   | `output = SP₀; SP₁ = input0`                                       |
-| `10000`₂ (16₁₀) | ADD     | `output = input0 + input1`                                         |
-| `10001`₂ (17₁₀) | SUB     | `output = input0 - input1`                                         |
+| `10000`₂ (16₁₀) | ADD     | `output = input0 + input1 + (C & CE)`                              |
+| `10001`₂ (17₁₀) | SUB     | `output = input0 - input1 - (C & CE)`                              |
 | `10010`₂ (18₁₀) | MUL     | `output = input0 * input1`                                         |
 | `10011`₂ (19₁₀) | DIV     | `output = input0 / input1`                                         |
 | `10100`₂ (20₁₀) | MOD     | `output = input0 % input1`                                         |
@@ -266,6 +267,16 @@ Some hints on notation:
 | `11111`₂ (31₁₀) | LSR     | `output = concat('0', input0[15:1])`                               |
 
 `MUL`, `DIV` and `MOD` use signed values as input and output. It is not possible to get the upper 16 bit of the multiplication result.
+
+`ADD` and `SUB` will add/subtract 1 more if the *Carry* and *Carry Enabled* flag are both set.
+
+`ADD`, `SUB`, `MUL` will modify the *Carry* flag, even if *Carry Enabled* is false:
+
+- When `ADD` is overflowing and setting a virtual 17th bit, carry will be set
+- When `SUB` is overflowing and setting a virtual 17th bit, carry will be set
+- When `MUL` is overflowig and setting any bits in the upper half of the virtual 32 bit result, carry will be set.
+
+In all other cases when one of the carry modifying command is invoked, carry is cleared. Other commands then those specified above will not modify carry in any way.
 
 ### Memory Access
 
@@ -428,6 +439,21 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 
 ## Changelog
 
+### v1.9
+- Introduces the concept of *Carry*
+- Adds new execution modifier *Overflow* that allows checking for carry
+- Changes `ADD` and `SUB` to respect the *Carry* and *Carry Enable* bit
+- Changes `ADD`, `SUB` and `MUL` to change the *Carry* bit
+
+### v1.8
+
+- Removes `NEG` command
+- Replaces free command slot with `SIGNEXT`
+- Changes pseudo code for *Fetch-Execute-Cycle* examples to a python-like language
+- Improves register description for `BP`
+- Improves register description for `SP`
+- Adds some clarification on the pseudo code in the *Command* table
+
 ### v1.7
 
 - Makes `frset`, `spset`, `bpset` return the previous value instead of the newly set.
@@ -460,8 +486,6 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 - Adds interrupt descriptions.
 - Makes `BUS` interrupt an external interrupt for a MMU
 - Makes `BUS`  prevent all effects from the current instruction
-- 
-
 
 ### v1.2
 
