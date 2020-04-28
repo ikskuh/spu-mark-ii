@@ -1,8 +1,3 @@
-# Standard Calling Convention
-
-The Standard Calling Convention (*SCC*) is the default calling convention
-used for all *SPU Mark II* code.
-
 ## Call Site
 
 The caller of a function follows this procedure:

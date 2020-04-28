@@ -1,0 +1,6 @@
+---
+title: Writing efficient code
+author:
+  - Felix "xq" Queißner
+date: April 28, 2020
+abstract: The <i>SPU Mark II</i> allows one to write very compact and efficient code. In this document, you learn about different tricks on how to do this.

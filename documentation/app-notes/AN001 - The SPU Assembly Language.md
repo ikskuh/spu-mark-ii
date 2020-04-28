@@ -1,11 +1,4 @@
-# The SPU Assembly Language
-
-## Introduction
-
-The highly flexible nature of the instruction set of the *SPU Mark II* makes it
-different to put all possible instructions into useful mnemonics. So the assembly
-language allows the coder to put modifiers on each instruction. These modifiers
-allow to change any field of the instruction they are put on.
+## Example
 
 ```asm
 ; fn(str: [*:0]const u8) void
@@ -57,8 +50,19 @@ label_a:
 label_b: ; has the same address as label_a
 ```
 
-The rules for valid label names is quite easy: All latin letters (`A`…`Z`, `a`…`z`), underscore (`_`) and digits (`0`…`9`). The only
-restriction is that a label name *must not* start with a digit.
+The rules for valid label names is quite easy: All latin letters (`A`…`Z`, `a`…`z`), underscore (`_`) and digits (`0`…`9`). The only restriction is that a label name *must not* start with a digit.
+
+Label names may also start with a `.`, following the same rules as directives. A label named this way must not have the same name as a directive. These labels are called *local* and are only valid between two normal labels:
+
+```asm
+my_function_a: ; global label
+	…
+.loop:         ; local label
+	jmp .loop
+	…
+
+my_function_b: ; global label, .loop does not exist anymore at this position.
+```
 
 ### Mnemonics
 
@@ -263,6 +267,57 @@ Note that all symbols used in the expression for `.space` must be known when `.s
 ```asm
 scratch_buffer:
 	.space 0x1000 ; 4kB of scratch buffer space
+```
+
+#### `.include`
+
+Takes a single string operand that specifies a file name that will be included into the assembly process at this point. This allows to structure programs into several files and create libraries.
+
+**main.asm:**
+```asm
+main:
+	push str
+	ipget 2
+	jmp puts
+	pop
+
+.loop:
+	jmp .loop
+
+.include "lib.asm"
+```
+
+**lib.asm:**
+```asm
+puts:
+	; not yet implemented
+	ret
+```
+
+When now assembling **main.asm**, the assembler will effectivly see this:
+
+```asm
+main:
+	push str
+	ipget 2
+	jmp puts
+	pop
+
+.loop:
+	jmp .loop
+	
+puts:
+	; not yet implemented
+	ret
+```
+
+#### `.incbin`
+This directive takes a single string operand that specifies a file name. This file will be copied verbatim into the *memory stream* and allows the programmer to embed resources, precalculated tables and other data into the binary without the need to specify each single byte with `.db`.
+
+```asm
+sprite:
+.dw 128, 64          ; width, height
+.incbin "sprite.raw" ; includes our 8192 bytes of sprite pixels
 ```
 
 ### Values

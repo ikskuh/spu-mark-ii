@@ -1,0 +1,6 @@
+---
+title: Standard Calling Convention
+author:
+  - Felix "xq" Queißner
+date: April 28, 2020
+abstract: The Standard Calling Convention (<i>SCC</i>) is the default calling convention used for all <i>SPU Mark II</i> code.

@@ -1,0 +1,6 @@
+---
+title: The SPU Mark II Instruction Set Architecture
+author:
+  - Felix "xq" Queißner
+date: April 28, 2020
+abstract: This is the documentation for the SPU Mark II instruction set architecture. It is a stack based 16 bit processor that features a highly configurable instruction set.

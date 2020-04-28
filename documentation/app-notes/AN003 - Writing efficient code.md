@@ -1,8 +1,3 @@
-# Writing efficient code
+## Using conditionals or "When should I use a conditional jump?"
 
-> TODO: Write document
-
-Contents:
-
-- Using conditionals and when should one use a cond. jump?
-- Merging instructions and combine effects
+## Merging instructions and combine effects

@@ -1,13 +1,3 @@
-# Understanding the Instruction Set
-
-The *SPU Mark II* uses quite unique instruction set following a highly orthogonal
-programming style.
-
-In contrast to most cpus on the market, the *SPU Mark II* is a stack machine. This
-means that all operations move data to or from the stack. This does not mean that
-this cpu has no registers. There are auxiliary registers like a stack pointer `SP`
-or the instruction pointer `IP`.
-
 ## Instructions
 
 Each instruction is composed of a set of bit fields defining the behaviour:

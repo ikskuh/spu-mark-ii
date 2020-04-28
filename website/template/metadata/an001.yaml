@@ -1,0 +1,10 @@
+---
+title: The SPU Assembly Language
+author:
+  - Felix "xq" Queißner
+date: April 28, 2020
+abstract: |
+  The highly flexible nature of the instruction set of the *SPU Mark II* makes it
+  different to put all possible instructions into useful mnemonics. So the assembly
+  language allows the coder to put modifiers on each instruction. These modifiers
+  allow to change any field of the instruction they are put on.

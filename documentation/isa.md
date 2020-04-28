@@ -1,20 +1,3 @@
-<meta charset="UTF-8" />
-<style type="text/css">
-table, td, th {
-	padding: 0.25em;
-	border: 1px solid black;
-	border-collapse: collapse;
-}
-</style>
-# SPU Mark II - Architecture
-
-## Overview
-
-This is the documentation for the SPU Mark II instruction set architecture. It is a stack based 16 bit processor that features a highly configurable instruction set.
-
-## Table Of Contents
-[TOC]
-
 ## Documentation Style
 
 ### Numbers
@@ -500,10 +483,3 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 
 ### v1.0
 - Initial version
-
-## TODO
-
-- Further define `HOLD` line
-- Consider "prefetch-queue" for instructions
-- Document: No special I/O commands, only MMIO
-- Document: Word Encoding = "Little Endian", so bits 0...7 is actually "lower" byte

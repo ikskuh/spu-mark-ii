@@ -1,1 +1,21 @@
-<p>TODO: Write live demo</p>
+<link rel="stylesheet" href="xterm/xterm.css" />
+<script src="xterm/xterm.js"></script>
+
+<div id="live-terminal"></div>
+
+<!-- 
+<code id="live-terminal" tabindex="0">
+<pre id="live-terminal-text"></pre><span class="blink">█</span><br />
+</code>
+-->
+
+<script type="text/javascript" src="livedemo.js"></script>
+
+<h2>About</h2>
+<p>The black box above is an ANSI terminal emulator with an emulated <i>Ashet</i> connected to it. Just press
+  <code>h</code> to see the available options in the boot rom.</p>
+<p>Currently, the emulator runs the <a href="https://github.com/MasterQ32/spu-mark-ii/tree/master/soc/firmware">serial
+    BIOS</a> of <i>Ashet</i>, as the graphical components are still in development. As soon as the assembler is ported
+  to <a href="https://ziglang.org/">Zig</a> i will provide the ability to assemble your own code and run it here on the
+  website!
+</p>
