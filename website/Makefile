@@ -6,7 +6,7 @@
 PAGE_PROLOGUE=template/page.htm.prologue
 PAGE_EPILOGUE=template/page.htm.epilogue
 DOC_TEMPLATE=template/doc.htm
-PAGES=index downloads documentation livedemo docs/isa docs/an000 docs/an001 docs/an002 docs/an003
+PAGES=index downloads documentation livedemo docs/isa docs/an000 docs/an001 docs/an002 docs/an003 imprint privacy
 FILES=style.css emulator.wasm livedemo.js xterm/xterm.js xterm/xterm.css
 
 all: website
