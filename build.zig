@@ -66,13 +66,13 @@ pub fn build(b: *std.build.Builder) !void {
     disassembler.setBuildMode(mode);
     disassembler.install();
 
-    // const assembler = b.addExecutable("assembler", "tools/assembler/main.zig");
-    // assembler.addPackage(packages.args);
-    // assembler.addPackage(packages.ihex);
-    // assembler.addPackage(packages.spumk2);
-    // assembler.setTarget(target);
-    // assembler.setBuildMode(mode);
-    // assembler.install();
+    const assembler = b.addExecutable("assembler", "tools/assembler/main.zig");
+    assembler.addPackage(packages.args);
+    assembler.addPackage(packages.ihex);
+    assembler.addPackage(packages.spumk2);
+    assembler.setTarget(target);
+    assembler.setBuildMode(mode);
+    assembler.install();
 
     const hex2bin = b.addExecutable("hex2bin", "tools/hex2bin/main.zig");
     hex2bin.addPackage(packages.args);
@@ -87,52 +87,52 @@ pub fn build(b: *std.build.Builder) !void {
     make_vhd.setBuildMode(mode);
     make_vhd.install();
 
-    // inline for (examples) |src_file| {
-    //     const step = assembler.run();
-    //     step.addArgs(&[_][]const u8{
-    //         "-o",
-    //         src_file ++ ".hex",
-    //         src_file ++ ".asm",
-    //     });
-    //     b.getInstallStep().dependOn(&step.step);
-    // }
+    inline for (examples) |src_file| {
+        const step = assembler.run();
+        step.addArgs(&[_][]const u8{
+            "-o",
+            src_file ++ ".hex",
+            src_file ++ ".asm",
+        });
+        b.getInstallStep().dependOn(&step.step);
+    }
 
-    // const assemble_step = assembler.run();
-    // assemble_step.addArgs(&[_][]const u8{
-    //     "-o",
-    //     "./soc/firmware/firmware.hex",
-    //     "./soc/firmware/main.asm",
-    // });
+    const assemble_step = assembler.run();
+    assemble_step.addArgs(&[_][]const u8{
+        "-o",
+        "./soc/firmware/firmware.hex",
+        "./soc/firmware/main.asm",
+    });
 
-    // const gen_firmware_blob = hex2bin.run();
-    // gen_firmware_blob.step.dependOn(&assemble_step.step);
-    // gen_firmware_blob.addArgs(&[_][]const u8{
-    //     "-o",
-    //     "./soc/firmware/firmware.bin",
-    //     "./soc/firmware/firmware.hex",
-    // });
+    const gen_firmware_blob = hex2bin.run();
+    gen_firmware_blob.step.dependOn(&assemble_step.step);
+    gen_firmware_blob.addArgs(&[_][]const u8{
+        "-o",
+        "./soc/firmware/firmware.bin",
+        "./soc/firmware/firmware.hex",
+    });
 
-    // const refresh_cmd = make_vhd.run();
-    // refresh_cmd.step.dependOn(&gen_firmware_blob.step);
-    // refresh_cmd.addArgs(&[_][]const u8{
-    //     "-o",
-    //     "./soc/hw/src/builtin-rom.vhd",
-    //     "./soc/firmware/firmware.bin",
-    // });
+    const refresh_cmd = make_vhd.run();
+    refresh_cmd.step.dependOn(&gen_firmware_blob.step);
+    refresh_cmd.addArgs(&[_][]const u8{
+        "-o",
+        "./soc/hw/src/builtin-rom.vhd",
+        "./soc/firmware/firmware.bin",
+    });
 
-    // b.getInstallStep().dependOn(&refresh_cmd.step);
+    b.getInstallStep().dependOn(&refresh_cmd.step);
 
-    // const emulate_cmd = emulator.run();
-    // emulate_cmd.step.dependOn(&assemble_step.step);
-    // emulate_cmd.addArgs(&[_][]const u8{
-    //     "./soc/firmware/firmware.hex",
-    // });
+    const emulate_cmd = emulator.run();
+    emulate_cmd.step.dependOn(&assemble_step.step);
+    emulate_cmd.addArgs(&[_][]const u8{
+        "./soc/firmware/firmware.hex",
+    });
 
-    // const emulate_step = b.step("emulate", "Run the emulator");
-    // emulate_step.dependOn(&emulate_cmd.step);
+    const emulate_step = b.step("emulate", "Run the emulator");
+    emulate_step.dependOn(&emulate_cmd.step);
 
-    // const debug_cmd = debugger.run();
+    const debug_cmd = debugger.run();
 
-    // const debug_step = b.step("debug", "Run the debugger");
-    // debug_step.dependOn(&debug_cmd.step);
+    const debug_step = b.step("debug", "Run the debugger");
+    debug_step.dependOn(&debug_cmd.step);
 }
