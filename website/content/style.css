@@ -1,0 +1,106 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --var-color-gold: #fefe99;
+  --var-color-realgar: #fe3300;
+  --var-color-ochre: #fe9933;
+  --var-color-yellow-ochre: #cc9933;
+  --var-color-lead-antimonite: #fecc66;
+  --var-color-orpiment: #fecc33;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+  /* background: url(img/background.png) repeat; */
+  background: var(--var-color-lead-antimonite);
+}
+
+
+#body {
+  padding: 0;
+  margin: 0;
+  max-width: 80em;
+  margin-left: auto;
+  margin-right: auto;
+  backdrop-filter: blur(5px);
+  
+  background: var(--var-color-gold);
+  color: black;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  border-left: 1px solid var(--var-color-yellow-ochre);
+  border-right: 1px solid var(--var-color-yellow-ochre);
+}
+
+#body #header {
+  margin: 0;
+  padding: 0;
+  background: var(--var-color-orpiment);
+}
+
+#body #header h1 {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-size: 5em;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+  font-family: Georgia, 'Times New Roman', Times, serif
+}
+
+#body nav {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+#body nav ul {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+#body nav ul li{
+  display: inline-block;
+  margin: 0;
+}
+
+#body #mainmenu ul li  {
+  padding: 0;
+  width: 25%;
+  height: 3em;
+  font-weight: 700;
+  text-align: center;
+  background: var(--var-color-orpiment);
+  border: 2px ridge var(--var-color-yellow-ochre);
+  transition: background 0.2s;
+}
+
+#body #mainmenu ul li:hover {
+  background: var(--var-color-gold);
+}
+
+#body #mainmenu ul li a  {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  justify-content: center;
+  padding: 0.25em;
+}
+
+#body #content {
+  padding: 0.5em;
+}
+
+#body hr {
+  border-color: var(--var-color-yellow-ochre);
+}
