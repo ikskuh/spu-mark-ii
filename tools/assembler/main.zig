@@ -73,7 +73,131 @@ const Modifiers = struct {
         const mod_type = try parser.expect(.label); // type + ':'
         const mod_value = try parser.expect(.identifier); // value
         _ = try parser.expect(.closing_brackets);
+
+        if (std.mem.eql(u8, mod_type.text, "ex:")) {
+            if (mods.condition != null)
+                return error.DuplicateModifier;
+            inline for (condition_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.condition = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "i0:")) {
+            if (mods.input0 != null)
+                return error.DuplicateModifier;
+            inline for (input_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.input0 = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "i1:")) {
+            if (mods.input1 != null)
+                return error.DuplicateModifier;
+            inline for (input_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.input0 = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "f:")) {
+            if (mods.modify_flags != null)
+                return error.DuplicateModifier;
+            inline for (flag_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.modify_flags = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
+            if (mods.output != null)
+                return error.DuplicateModifier;
+            inline for (output_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.output = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
+            if (mods.command != null)
+                return error.DuplicateModifier;
+            inline for (command_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.command = item[1];
+                    return;
+                }
+            }
+        }
+        return error.InvalidModifier;
     }
+
+    const condition_items = .{
+        .{ "always", .always },
+        .{ "zero", .when_zero },
+        .{ "nonzero", .not_zero },
+        .{ "greater", .greater_zero },
+        .{ "less", .less_than_zero },
+        .{ "gequal", .greater_or_equal_zero },
+        .{ "lequal", .less_or_equal_zero },
+        .{ "ovfl", .overflow },
+    };
+
+    const flag_items = .{
+        .{ "no", false },
+        .{ "yes", true },
+    };
+
+    const input_items = .{
+        .{ "zero", .zero },
+        .{ "immediate", .immediate },
+        .{ "peek", .peek },
+        .{ "pop", .pop },
+        .{ "arg", .immediate },
+        .{ "imm", .immediate },
+    };
+
+    const output_items = .{
+        .{ "discard", .discard },
+        .{ "push", .push },
+        .{ "jmp", .jump },
+        .{ "rjmp", .jump_relative },
+    };
+
+    const command_items = .{
+        .{ "copy", .copy },
+        .{ "ipget", .ipget },
+        .{ "get", .get },
+        .{ "set", .set },
+        .{ "store8", .store8 },
+        .{ "store16", .store16 },
+        .{ "load8", .load8 },
+        .{ "load16", .load16 },
+        .{ "undefined0", .undefined0 },
+        .{ "undefined1", .undefined1 },
+        .{ "frget", .frget },
+        .{ "frset", .frset },
+        .{ "bpget", .bpget },
+        .{ "bpset", .bpset },
+        .{ "spget", .spget },
+        .{ "spset", .spset },
+        .{ "add", .add },
+        .{ "sub", .sub },
+        .{ "mul", .mul },
+        .{ "div", .div },
+        .{ "mod", .mod },
+        .{ "and", .@"and" },
+        .{ "or", .@"or" },
+        .{ "xor", .xor },
+        .{ "not", .not },
+        .{ "signext", .signext },
+        .{ "rol", .rol },
+        .{ "ror", .ror },
+        .{ "bswap", .bswap },
+        .{ "asr", .asr },
+        .{ "lsl", .lsl },
+        .{ "lsr", .lsr },
+    };
 };
 
 pub const Assembler = struct {
@@ -168,7 +292,7 @@ pub const Assembler = struct {
                     try modifiers.parse(parser);
                 },
                 else => {
-                    if (end_of_operands) {
+                    if (operand_count >= operands.len or end_of_operands) {
                         return error.UnexpectedOperand;
                     }
                     const expr_result = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma, .opening_brackets });
@@ -187,12 +311,30 @@ pub const Assembler = struct {
             }
         }
 
+        // search for instruction template
         var instruction = getInstructionForMnemonic(instruction_name, operand_count) orelse {
             if (std.builtin.mode == .Debug) {
                 std.debug.warn("unknown mnemonic: {}\n", .{instruction_name});
             }
             return error.UnknownMnemonic;
         };
+
+        // apply modifiers
+        inline for (std.meta.fields(Modifiers)) |fld| {
+            if (@field(modifiers, fld.name)) |mod| {
+                @field(instruction, fld.name) = mod;
+            }
+        }
+
+        // emit results
+        try assembler.emitU16(@bitCast(u16, instruction));
+
+        {
+            var i: usize = 0;
+            while (i < operand_count) : (i += 1) {
+                try assembler.emitExpr(operands[i]);
+            }
+        }
     }
 
     fn parseDirective(assembler: *Assembler, parser: *Parser) !void {
@@ -216,6 +358,8 @@ pub const Assembler = struct {
         return error.UnknownDirective;
     }
 
+    // Directives:
+
     fn @".org"(assembler: *Assembler, parser: *Parser) !void {
         const offset_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
     }
@@ -226,6 +370,8 @@ pub const Assembler = struct {
 
     fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
         const string_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+
+        try assembler.emitU8(0x00); // null terminator
     }
 
     fn @".align"(assembler: *Assembler, parser: *Parser) !void {
@@ -235,6 +381,9 @@ pub const Assembler = struct {
     fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
         while (true) {
             const value_expr = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma });
+
+            try assembler.emitExpr(value_expr.expression);
+
             if (value_expr.terminator.type == .line_break)
                 break;
         }
@@ -243,10 +392,63 @@ pub const Assembler = struct {
     fn @".db"(assembler: *Assembler, parser: *Parser) !void {
         while (true) {
             const value_expr = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma });
+
+            try assembler.emitU8(0xFF);
+
             if (value_expr.terminator.type == .line_break)
                 break;
         }
     }
+
+    // Output handling:
+
+    fn emit(assembler: *Assembler, bytes: []const u8) !void {
+        // discard for now…
+    }
+
+    fn emitU8(assembler: *Assembler, value: u8) !void {
+        const bytes = [1]u8{value};
+        try assembler.emit(&bytes);
+    }
+
+    fn emitU16(assembler: *Assembler, value: u16) !void {
+        var bytes: [2]u8 = undefined;
+        std.mem.writeIntLittle(u16, &bytes, value);
+        try assembler.emit(&bytes);
+    }
+
+    // Consumes a expression and takes ownership of its resources
+    fn emitExpr(assembler: *Assembler, expression: Expression) !void {
+        var copy = expression;
+        errdefer copy.deinit();
+
+        if (assembler.evaluate(copy)) |value| {
+            if (value != .number)
+                return error.TypeMismatch;
+            try assembler.emitU16(value.number);
+            defer copy.deinit();
+        } else |err| switch (err) {
+            error.MissingIdentifiers => {
+                // Defer evaluation to end of assembling,
+                // store label context (for locals) and expr for later, write dummy value
+                try assembler.emitU16(0x5555);
+                unreachable;
+            },
+            else => return err,
+        }
+    }
+
+    // Expression handling
+
+    fn evaluate(assembler: *Assembler, expression: Expression) !Value {
+        // return error.MissingIdentifiers;
+        unreachable;
+    }
+
+    const Value = union(enum) {
+        string: []u8, // does not need to be freed, will be string-pooled
+        number: u16,
+    };
 };
 
 pub const TokenType = enum {

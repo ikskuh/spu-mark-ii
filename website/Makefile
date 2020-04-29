@@ -11,6 +11,9 @@ FILES=style.css emulator.wasm livedemo.js xterm/xterm.js xterm/xterm.css
 
 all: website
 
+deploy: website
+	scp -i ~/.ssh/id_ashet -r output/* ashet-ci@ashet.computer:website
+
 website: folders $(addprefix output/,$(addsuffix .htm,$(PAGES)) $(FILES)) 
 
 folders:
@@ -48,5 +51,5 @@ output/docs/an002.htm: ../documentation/app-notes/AN002\ -\ Standard\ Calling\ C
 output/docs/an003.htm: ../documentation/app-notes/AN003\ -\ Writing\ efficient\ code.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) "--metadata-file=template/metadata/$(notdir $(@:.htm=.yaml))" --from gfm --to html --toc "$<" > $@
 	
-.PHONY: all folders
+.PHONY: all folders deploy
 .SUFFIXES:
