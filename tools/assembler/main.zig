@@ -58,6 +58,24 @@ pub const Section = struct {
     patches: std.ArrayList(Patch),
 };
 
+const Modifiers = struct {
+    const Self = @This();
+
+    condition: ?ExecutionCondition = null,
+    input0: ?InputBehaviour = null,
+    input1: ?InputBehaviour = null,
+    modify_flags: ?bool = null,
+    output: ?OutputBehaviour = null,
+    command: ?Command = null,
+
+    /// will start at identifier, not `[`!
+    fn parse(mods: *Self, parser: *Parser) !void {
+        const mod_type = try parser.expect(.label); // type + ':'
+        const mod_value = try parser.expect(.identifier); // value
+        _ = try parser.expect(.closing_brackets);
+    }
+};
+
 pub const Assembler = struct {
     const Self = @This();
 
@@ -74,10 +92,160 @@ pub const Assembler = struct {
         self.* = undefined;
     }
 
-    pub fn assemble(assembler: *Assembler, fileName: []const u8, stream: var) !void {
-        var parser = Parser{};
+    pub fn assemble(self: *Assembler, fileName: []const u8, stream: var) !void {
+        var parser = try Parser.fromStream(&self.allocator.allocator, stream);
+        defer parser.deinit();
 
-        _ = try parser.parse(stream);
+        while (true) {
+            const token = try parser.peek();
+
+            if (token == null) // end of file
+                break;
+
+            switch (token.?.type) {
+                // process directive
+                .dot_identifier => try parseDirective(self, &parser),
+
+                // label,
+                .label => _ = try parser.expect(.label),
+
+                // modifier
+                .identifier, .opening_brackets => try parseInstruction(self, &parser),
+
+                // empty line, skip those
+                .line_break => _ = try parser.expect(.line_break),
+
+                else => return error.UnexpectedToken,
+            }
+        }
+    }
+
+    fn getInstructionForMnemonic(name: []const u8, argc: usize) ?Instruction {
+        const mnemonics = @import("mnemonics.zig").mnemonics;
+        for (mnemonics) |mnemonic| {
+            if (mnemonic.argc == argc and std.mem.eql(u8, mnemonic.name, name))
+                return mnemonic.instruction;
+        }
+        return null;
+    }
+
+    fn parseInstruction(assembler: *Assembler, parser: *Parser) !void {
+        var modifiers = Modifiers{};
+        var instruction_name: []const u8 = "";
+
+        // parse modifiers and
+        while (true) {
+            var tok = try parser.expectAny(.{
+                .identifier, // label or equ
+                .opening_brackets, // modifier
+            });
+            switch (tok.type) {
+                .identifier => {
+                    instruction_name = tok.text;
+                    break;
+                },
+                .opening_brackets => try modifiers.parse(parser),
+                else => unreachable, // parse expression
+            }
+        }
+
+        var operands: [2]Expression = undefined;
+        var operand_count: usize = 0;
+
+        var end_of_operands = false;
+        // parse modifiers and operands
+        while (true) {
+            var tok = try parser.peek();
+            if (tok == null)
+                break;
+            switch (tok.?.type) {
+                .line_break => {
+                    _ = parser.expect(.line_break) catch unreachable;
+                    break;
+                },
+                .opening_brackets => {
+                    _ = parser.expect(.opening_brackets) catch unreachable;
+                    try modifiers.parse(parser);
+                },
+                else => {
+                    if (end_of_operands) {
+                        return error.UnexpectedOperand;
+                    }
+                    const expr_result = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma, .opening_brackets });
+                    operands[operand_count] = expr_result.expression;
+                    operand_count += 1;
+                    switch (expr_result.terminator.type) {
+                        .line_break => break,
+                        .opening_brackets => {
+                            try modifiers.parse(parser);
+                            end_of_operands = true;
+                        },
+                        .comma => {},
+                        else => unreachable,
+                    }
+                },
+            }
+        }
+
+        var instruction = getInstructionForMnemonic(instruction_name, operand_count) orelse {
+            if (std.builtin.mode == .Debug) {
+                std.debug.warn("unknown mnemonic: {}\n", .{instruction_name});
+            }
+            return error.UnknownMnemonic;
+        };
+    }
+
+    fn parseDirective(assembler: *Assembler, parser: *Parser) !void {
+        var token = try parser.expect(.dot_identifier);
+
+        inline for (std.meta.declarations(Self)) |decl| {
+            if (decl.data != .Fn)
+                continue;
+            if (decl.name[0] != '.')
+                continue;
+            if (std.mem.eql(u8, decl.name, token.text)) {
+                try @field(Self, decl.name)(assembler, parser);
+                return;
+            }
+        }
+
+        if (std.builtin.mode == .Debug) {
+            std.debug.warn("unknown directive: {}\n", .{token.text});
+        }
+
+        return error.UnknownDirective;
+    }
+
+    fn @".org"(assembler: *Assembler, parser: *Parser) !void {
+        const offset_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+    }
+
+    fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
+        const string_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+    }
+
+    fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
+        const string_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+    }
+
+    fn @".align"(assembler: *Assembler, parser: *Parser) !void {
+        const alignment_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+    }
+
+    fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
+        while (true) {
+            const value_expr = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma });
+            if (value_expr.terminator.type == .line_break)
+                break;
+        }
+    }
+
+    fn @".db"(assembler: *Assembler, parser: *Parser) !void {
+        while (true) {
+            const value_expr = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma });
+            if (value_expr.terminator.type == .line_break)
+                break;
+        }
     }
 };
 
@@ -88,6 +256,7 @@ pub const TokenType = enum {
 
     identifier, // fooas2_3
     dot_identifier, // .fooas2_3
+    label, //foobar:, .foobar:
 
     bin_number, // 0b0000
     oct_number, // 0o0000
@@ -125,25 +294,367 @@ pub const Token = struct {
 };
 
 pub const Parser = struct {
+    allocator: ?*std.mem.Allocator,
+    source: []u8,
+    offset: usize,
+    peeked_token: ?Token,
+
     const Self = @This();
 
-    fn parse(parser: *Self, stream: var) !Token {
+    fn fromStream(allocator: *std.mem.Allocator, stream: var) !Self {
+        return Self{
+            .allocator = allocator,
+            .source = try stream.readAllAlloc(allocator, 16 << 20), // 16 MB
+            .offset = 0,
+            .peeked_token = null,
+        };
+    }
+
+    fn fromSlice(text: []const u8) Self {
+        return Self{
+            .allocator = null,
+            .source = text,
+            .offset = 0,
+            .peeked_token = null,
+        };
+    }
+
+    fn deinit(self: *Self) void {
+        if (self.allocator) |a|
+            a.free(self.source);
+        self.* = undefined;
+    }
+
+    fn expect(parser: *Self, t: TokenType) !Token {
+        const tok = (try parser.parse()) orelse return error.UnexpectedEndOfFile;
+        if (tok.type == t)
+            return tok;
+        if (std.builtin.mode == .Debug) {
+            std.debug.warn("Unexpected token: {}\nexpected: {}\n", .{
+                tok,
+                t,
+            });
+        }
+        return error.UnexpectedToken;
+    }
+
+    fn expectAny(parser: *Self, types: var) !Token {
+        const tok = (try parser.parse()) orelse return error.UnexpectedEndOfFile;
+        inline for (types) |t| {
+            if (tok.type == @as(TokenType, t))
+                return tok;
+        }
+        if (std.builtin.mode == .Debug) {
+            std.debug.warn("Unexpected token: {}\nexpected one of: {}\n", .{
+                tok,
+                types,
+            });
+        }
+        return error.UnexpectedToken;
+    }
+
+    fn peek(parser: *Self) !?Token {
+        if (parser.peeked_token) |tok| {
+            return tok;
+        }
+        parser.peeked_token = try parser.parse();
+        return parser.peeked_token;
+    }
+
+    fn parse(parser: *Self) !?Token {
+        if (parser.peeked_token) |tok| {
+            parser.peeked_token = null;
+            return tok;
+        }
+
         while (true) {
-            var token = try parser.parseRaw(stream);
+            var token = try parser.parseRaw();
             if (token) |tok| {
                 switch (tok.type) {
                     .whitespace => continue,
+                    .comment => continue,
                     else => return tok,
                 }
+            } else {
+                return null;
             }
-            return error.EndOfStream;
         }
     }
 
-    fn parseRaw(parser: *Self, stream: var) !?Token {
-        var start = try stream.readByte();
-        switch (start) {
-            else => return error.UnrecognizedCharacter,
-        }
+    fn singleCharToken(parser: *Self, t: TokenType) Token {
+        return Token{
+            .text = parser.source[parser.offset..][0..1],
+            .type = t,
+        };
+    }
+
+    fn isWordCharacter(c: u8) bool {
+        return switch (c) {
+            'a'...'z' => true,
+            'A'...'Z' => true,
+            '0'...'9' => true,
+            '_' => true,
+            else => false,
+        };
+    }
+
+    fn isDigit(c: u8, number_format: TokenType) bool {
+        return switch (number_format) {
+            .dec_number => switch (c) {
+                '0'...'9' => true,
+                else => false,
+            },
+            .oct_number => switch (c) {
+                '0'...'7' => true,
+                else => false,
+            },
+            .bin_number => switch (c) {
+                '0', '1' => true,
+                else => false,
+            },
+            .hex_number => switch (c) {
+                '0'...'9' => true,
+                'a'...'f' => true,
+                'A'...'F' => true,
+                else => false,
+            },
+            else => unreachable,
+        };
+    }
+
+    fn parseRaw(parser: *Self) !?Token {
+        if (parser.offset >= parser.source.len)
+            return null;
+        var token = switch (parser.source[parser.offset]) {
+            '\n' => parser.singleCharToken(.line_break),
+            ' ', '\t', '\r' => parser.singleCharToken(.whitespace),
+            ';' => blk: {
+                var off = parser.offset;
+                while (off < parser.source.len and parser.source[off] != '\n') {
+                    off += 1;
+                }
+                break :blk Token{
+                    .type = .comment,
+                    .text = parser.source[parser.offset..off],
+                };
+            },
+
+            ':' => parser.singleCharToken(.colon),
+            ',' => parser.singleCharToken(.comma),
+            '(' => parser.singleCharToken(.opening_parens),
+            ')' => parser.singleCharToken(.closing_parens),
+            '[' => parser.singleCharToken(.opening_brackets),
+            ']' => parser.singleCharToken(.closing_brackets),
+
+            '+' => parser.singleCharToken(.operator_plus),
+            '-' => parser.singleCharToken(.operator_minus),
+            '*' => parser.singleCharToken(.operator_multiply),
+            '/' => parser.singleCharToken(.operator_divide),
+            '%' => parser.singleCharToken(.operator_modulo),
+            '&' => parser.singleCharToken(.operator_bitand),
+            '|' => parser.singleCharToken(.operator_bitor),
+            '^' => parser.singleCharToken(.operator_bitxor),
+
+            '~' => parser.singleCharToken(.operator_bitnot),
+
+            '.' => if (parser.offset + 1 >= parser.source.len or !isWordCharacter(parser.source[parser.offset + 1]))
+                parser.singleCharToken(.dot)
+            else blk: {
+                var off = parser.offset + 1;
+                while (off < parser.source.len and isWordCharacter(parser.source[off])) {
+                    off += 1;
+                }
+                if (off < parser.source.len and parser.source[off] == ':') {
+                    off += 1;
+                    break :blk Token{
+                        .type = .label,
+                        .text = parser.source[parser.offset..off],
+                    };
+                } else {
+                    break :blk Token{
+                        .type = .dot_identifier,
+                        .text = parser.source[parser.offset..off],
+                    };
+                }
+            },
+
+            // operator_shr, // >>
+            // operator_asr, // >>>
+
+            // '<<' => parser.singleCharToken(.operator_shl),
+
+            // bin_number: 0b0000
+            // oct_number: 0o0000
+            // dec_number: 0000
+            // hex_number: 0x0000
+            '0'...'9' => blk: {
+                if (parser.offset + 1 < parser.source.len) {
+                    const spec = parser.source[parser.offset + 1];
+                    switch (spec) {
+                        'x', 'o', 'b' => {
+                            var num_type: TokenType = switch (spec) {
+                                'x' => .hex_number,
+                                'b' => .bin_number,
+                                'o' => .oct_number,
+                                else => unreachable,
+                            };
+
+                            var off = parser.offset + 2;
+                            while (off < parser.source.len and isDigit(parser.source[off], num_type)) {
+                                off += 1;
+                            }
+                            // .dotword
+                            break :blk Token{
+                                .type = num_type,
+                                .text = parser.source[parser.offset..off],
+                            };
+                        },
+                        '0'...'9' => {
+                            var off = parser.offset + 1;
+                            while (off < parser.source.len and isDigit(parser.source[off], .dec_number)) {
+                                off += 1;
+                            }
+                            // .dotword
+                            break :blk Token{
+                                .type = .dec_number,
+                                .text = parser.source[parser.offset..off],
+                            };
+                        },
+                        else => break :blk Token{
+                            .type = .dec_number,
+                            .text = parser.source[parser.offset .. parser.offset + 1],
+                        },
+                    }
+                } else {
+                    break :blk Token{
+                        .type = .dec_number,
+                        .text = parser.source[parser.offset .. parser.offset + 1],
+                    };
+                }
+            },
+
+            // identifier
+            'a'...'z', 'A'...'Z', '_' => blk: {
+                var off = parser.offset;
+                while (off < parser.source.len and isWordCharacter(parser.source[off])) {
+                    off += 1;
+                }
+                if (off < parser.source.len and parser.source[off] == ':') {
+                    off += 1;
+                    break :blk Token{
+                        .type = .label,
+                        .text = parser.source[parser.offset..off],
+                    };
+                } else {
+                    break :blk Token{
+                        .type = .identifier,
+                        .text = parser.source[parser.offset..off],
+                    };
+                }
+            },
+
+            // string_literal
+            '\"' => blk: {
+                var off = parser.offset + 1;
+                if (off == parser.source.len)
+                    return error.IncompleteStringLiteral;
+
+                while (parser.source[off] != '\"') {
+                    if (parser.source[off] == '\n')
+                        return error.IncompleteStringLiteral;
+                    if (parser.source[off] == '\\') {
+                        off += 1;
+                    }
+                    off += 1;
+                    if (off >= parser.source.len)
+                        return error.IncompleteStringLiteral;
+                }
+                off += 1;
+
+                break :blk Token{
+                    .type = .string_literal,
+                    .text = parser.source[parser.offset..off],
+                };
+            },
+
+            // character_literal
+            '\'' => blk: {
+                var off = parser.offset + 1;
+                if (off >= parser.source.len)
+                    return error.IncompleteCharacterLiteral;
+                if (parser.source[off] == '\\') {
+                    // escaped
+                    off += 1;
+                    if (off >= parser.source.len)
+                        return error.IncompleteCharacterLiteral;
+                }
+                off += 1;
+                if (off >= parser.source.len)
+                    return error.IncompleteCharacterLiteral;
+                if (parser.source[off] != '\'')
+                    return error.IncompleteCharacterLiteral;
+                off += 1;
+
+                break :blk Token{
+                    .type = .string_literal,
+                    .text = parser.source[parser.offset..off],
+                };
+            },
+
+            else => |c| {
+                if (std.builtin.mode == .Debug) {
+                    std.debug.warn("unrecognized character: {c}\n", .{c});
+                }
+                return error.UnrecognizedCharacter;
+            },
+        };
+
+        parser.offset += token.text.len;
+
+        return token;
+    }
+
+    // parses an expression from the token stream
+    const ParseExpressionResult = struct {
+        expression: Expression,
+        terminator: Token,
+    };
+    fn parseExpression(parser: *Parser, allocator: *std.mem.Allocator, terminators: var) !ParseExpressionResult {
+        var tok = try parser.expectAny(.{
+            .dec_number,
+            .hex_number,
+            .oct_number,
+            .bin_number,
+            .dot,
+            .identifier,
+            .char_literal,
+            .string_literal,
+        });
+        const terminator = try parser.expectAny(terminators);
+
+        const toks = try allocator.alloc(Token, 1);
+        toks[0] = tok;
+
+        return ParseExpressionResult{
+            .expression = Expression{
+                .allocator = allocator,
+                .sequence = toks,
+            },
+            .terminator = terminator,
+        };
+    }
+};
+
+/// A sequence of tokens created with a shunting yard algorithm.
+/// Can be parsed/executed left-to-right
+const Expression = struct {
+    const Self = @This();
+
+    allocator: *std.mem.Allocator,
+    sequence: []Token,
+
+    fn deinit(expr: *Expression) void {
+        expr.allocator.free(expr.sequence);
+        expr.* = undefined;
     }
 };

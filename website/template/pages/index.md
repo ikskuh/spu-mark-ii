@@ -22,4 +22,4 @@ Create a home computer comparable to the [Amiga 500](https://en.wikipedia.org/wi
 
 ## State of the project
 
-Right now, everything is work in progress and a lot of links on this site will be broken or the documents will be incomplete, but get filled in the future. If you want to support the project, [mail me](contact@ashet.computer)!
+Right now, everything is work in progress and a lot of links on this site will be broken or the documents will be incomplete, but get filled in the future. If you want to support the project, [mail me](mailto:contact@ashet.computer)!
