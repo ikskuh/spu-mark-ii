@@ -614,6 +614,24 @@ pub const Assembler = struct {
         }
     }
 
+    fn @".equ"(assembler: *Assembler, parser: *Parser) !void {
+        const name_tok = try parser.expect(.identifier);
+
+        _ = try parser.expect(.comma);
+
+        const name = try std.mem.dupe(assembler.allocator, u8, name_tok.text);
+        errdefer assembler.allocator.free(name);
+
+        const value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+        const value = try assembler.evaluate(value_expr.expression);
+        if (value != .number)
+            return error.TypeMismatch;
+
+        if (try assembler.symbols.put(name, value.number)) |kv| {
+            return error.DuplicateSymbol;
+        }
+    }
+
     // Output handling:
 
     fn emit(assembler: *Assembler, bytes: []const u8) !void {
