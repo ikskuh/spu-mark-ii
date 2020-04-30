@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="../base16-summerfruit-dark.css">
   <link rel="stylesheet" type="text/css" href="../style.css">
   <meta name="generator" content="pandoc" />
   $for(author-meta)$
@@ -53,7 +54,7 @@
       </nav>
       $endif$
 
-      $body$
+      <!-- HACK: Forces pandoc to unindent the whole body -->$body$
 
       $for(include-after)$
       $include-after$

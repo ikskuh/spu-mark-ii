@@ -1,3 +1,6 @@
+## ISA Changes
+- Refine interrupt handling
+
 ## SOC Changes
 - Design and calculate GPU
   - Add basic VGA module (only "background color")
@@ -21,6 +24,14 @@
   - (recursive) include files
   - redefine some mnemonics and modifiers
   - allow expression evaluation
+  - implement missing
+    - `.space`
+    - `.include`
+    - `.incbin`
+    - Expression parsing/arithmetic implementation
+  - Refine function call syntax `#bswap()` to have simpler parsing 
+  
+
 
 ## Documentation Change
 - Write about common patterns in AN000

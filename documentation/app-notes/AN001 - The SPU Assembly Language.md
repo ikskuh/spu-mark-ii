@@ -4,22 +4,22 @@
 ; fn(str: [*:0]const u8) void
 ; prints a string to the serial terminal
 serial_puts:
-	bpget
-	spget
-	bpset
+  bpget
+  spget
+  bpset
 	
-	get 2 ; arg 1
+  get 2 ; arg 1
 puts_loop:
-	ld8 [i0:peek] [f:yes]
-	[ex:nonzero] st8 0x4000
-	[ex:nonzero] add 1
-	[ex:nonzero] jmp puts_loop
-	pop
+  ld8 [i0:peek] [f:yes]
+  [ex:nonzero] st8 0x4000
+  [ex:nonzero] add 1
+  [ex:nonzero] jmp puts_loop
+  pop
 
-	bpget
-	spset
-	bpset
-	ret
+  bpget
+  spset
+  bpset
+  ret
 ```
 
 ## General Syntax
