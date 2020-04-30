@@ -155,13 +155,22 @@ pub fn main() !u8 {
 
     const out = std.io.getStdOut().outStream();
 
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
     const hexParseMode = ihex.ParseMode{ .pedantic = true };
     for (cli_args.positionals) |path| {
         var file = try std.fs.cwd().openFile(path, .{ .read = true, .write = false });
         defer file.close();
+        if (std.mem.endsWith(u8, path, ".hex")) {
+            // Emulator will always start at address 0x0000 or CLI given entry point.
+            _ = try ihex.parseData(&file.inStream(), hexParseMode, &out, DisasmError, processRecord);
+        } else {
+            const buffer = try file.inStream().readAllAlloc(&arena.allocator, 65536);
+            defer arena.allocator.free(buffer);
 
-        // Emulator will always start at address 0x0000 or CLI given entry point.
-        _ = try ihex.parseData(&file.inStream(), hexParseMode, &out, DisasmError, processRecord);
+            try processRecord(&out, cli_args.options.offset orelse 0x0000, buffer);
+        }
     }
 
     return 0;

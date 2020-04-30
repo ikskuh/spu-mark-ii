@@ -16,5 +16,5 @@ app_loop:
   ret
 
 app_msg:
-.asciiz "Hello, World!"
+.asciiz "\rHello, World!"
 .align 2

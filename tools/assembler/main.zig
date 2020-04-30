@@ -35,7 +35,9 @@ pub fn main() !u8 {
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
 
-    var assembler = Assembler.init(std.heap.page_allocator);
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+
+    var assembler = try Assembler.init(&arena.allocator);
     defer assembler.deinit();
 
     for (cli_args.positionals) |path| {
@@ -45,17 +47,115 @@ pub fn main() !u8 {
         try assembler.assemble(path, file.inStream());
     }
 
-    return 1;
+    // std.debug.warn("assembler output:\n", .{});
+    // {
+    //     var iter = assembler.sections.first;
+    //     while (iter) |section_node| : (iter = section_node.next) {
+    //         const section = &section_node.data;
+
+    //         std.debug.warn(
+    //             \\  section:
+    //             \\    offset: {X:0>4}
+    //             \\    length: {X:0>4}
+    //             \\    data:   {X}
+    //             \\    patches:
+    //             \\
+    //         , .{
+    //             section.offset,
+    //             section.bytes.items.len,
+    //             section.bytes.items,
+    //         });
+
+    //         for (section.patches.items) |patch| {
+    //             std.debug.warn("      - {X:0>4} → \"{}\"\n", .{
+    //                 patch.offset,
+    //                 patch.value,
+    //             });
+    //         }
+    //     }
+    // }
+    // {
+    //     std.debug.warn("  symbols:\n", .{});
+    //     var iter = assembler.symbols.iterator();
+    //     while (iter.next()) |sym| {
+    //         std.debug.warn("    `{}` → {X:0>4}\n", .{
+    //             sym.key,
+    //             sym.value,
+    //         });
+    //     }
+    // }
+
+    try assembler.finalize();
+
+    {
+        var file = try std.fs.cwd().createFile(cli_args.options.output, .{ .truncate = true, .exclusive = false });
+        defer file.close();
+
+        var outstream = file.outStream();
+
+        var iter = assembler.sections.first;
+        while (iter) |section_node| : (iter = section_node.next) {
+            const section = &section_node.data;
+
+            var i: usize = 0;
+
+            while (i < section.bytes.items.len) : (i += 16) {
+                const length = std.math.min(section.bytes.items.len - i, 16);
+
+                const source = section.bytes.items[i..][0..length];
+
+                var buffer: [256 + 5]u8 = undefined;
+                std.mem.writeIntBig(u8, buffer[0..][0..1], @intCast(u8, length));
+                std.mem.writeIntBig(u16, buffer[1..][0..2], @intCast(u16, section.offset + i));
+                std.mem.writeIntBig(u8, buffer[3..][0..1], 0x00); // data record
+                std.mem.copy(u8, buffer[4..], source);
+
+                var checksum: u8 = 0;
+                for (buffer[0 .. 4 + length]) |b| {
+                    checksum -%= b;
+                }
+                std.mem.writeIntBig(u8, buffer[4 + length ..][0..1], checksum); // data record
+
+                // data records
+                try outstream.print(
+                    ":{X}\n",
+                    .{buffer[0 .. length + 5]},
+                );
+            }
+        }
+
+        // file/stream terminator
+        try outstream.writeAll(":00000001FF\n");
+    }
+
+    return 0;
 }
 
 pub const Patch = struct {
     offset: u16,
+    value: Expression,
 };
 
 pub const Section = struct {
-    start: u16,
+    const Self = @This();
+
+    offset: u16,
     bytes: std.ArrayList(u8),
     patches: std.ArrayList(Patch),
+
+    fn deinit(self: *Self) void {
+        self.bytes.deinit();
+        self.patches.deinit();
+        self.* = undefined;
+    }
+
+    fn getLocalOffset(sect: Self) u16 {
+        return @intCast(u16, sect.bytes.items.len);
+    }
+
+    fn getGlobalOffset(sect: Self) u16 {
+        return @intCast(u16, sect.offset + sect.bytes.items.len);
+    }
 };
 
 const Modifiers = struct {
@@ -97,7 +197,7 @@ const Modifiers = struct {
                 return error.DuplicateModifier;
             inline for (input_items) |item| {
                 if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.input0 = item[1];
+                    mods.input1 = item[1];
                     return;
                 }
             }
@@ -202,22 +302,74 @@ const Modifiers = struct {
 
 pub const Assembler = struct {
     const Self = @This();
+    const SectionNode = std.TailQueue(Section).Node;
 
-    allocator: std.heap.ArenaAllocator,
+    allocator: *std.mem.Allocator,
+    sections: std.TailQueue(Section),
 
-    pub fn init(allocator: *std.mem.Allocator) Assembler {
-        return Self{
-            .allocator = std.heap.ArenaAllocator.init(allocator),
+    symbols: std.StringHashMap(u16),
+    local_symbols: std.StringHashMap(u16),
+
+    fn appendSection(assembler: *Assembler, offset: u16) !*Section {
+        var node = try assembler.allocator.create(SectionNode);
+        errdefer assembler.allocator.destroy(node);
+
+        node.* = SectionNode.init(Section{
+            .offset = offset,
+            .bytes = std.ArrayList(u8).init(assembler.allocator),
+            .patches = std.ArrayList(Patch).init(assembler.allocator),
+        });
+
+        assembler.sections.append(node);
+
+        return &node.data;
+    }
+
+    fn currentSection(assembler: *Assembler) *Section {
+        return &(assembler.sections.last orelse unreachable).data;
+    }
+
+    pub fn init(allocator: *std.mem.Allocator) !Assembler {
+        var a = Self{
+            .allocator = allocator,
+            .sections = std.TailQueue(Section).init(),
+            .symbols = std.StringHashMap(u16).init(allocator),
+            .local_symbols = std.StringHashMap(u16).init(allocator),
         };
+
+        _ = try a.appendSection(0x0000);
+
+        return a;
     }
 
     pub fn deinit(self: *Self) void {
-        self.allocator.deinit();
+        while (self.sections.pop()) |sect| {
+            sect.data.deinit();
+            self.allocator.destroy(sect);
+        }
         self.* = undefined;
     }
 
+    pub fn finalize(self: *Self) !void {
+        var iter = self.sections.first;
+        while (iter) |section_node| : (iter = section_node.next) {
+            const section = &section_node.data;
+
+            for (section.patches.items) |patch| {
+                const value = try self.evaluate(patch.value);
+
+                switch (value) {
+                    .number => |n| std.mem.writeIntLittle(u16, section.bytes.items[patch.offset..][0..2], n),
+                    else => return error.TypeMismatch,
+                }
+            }
+
+            section.patches.shrink(0);
+        }
+    }
+
     pub fn assemble(self: *Assembler, fileName: []const u8, stream: var) !void {
-        var parser = try Parser.fromStream(&self.allocator.allocator, stream);
+        var parser = try Parser.fromStream(self.allocator, stream);
         defer parser.deinit();
 
         while (true) {
@@ -231,7 +383,26 @@ pub const Assembler = struct {
                 .dot_identifier => try parseDirective(self, &parser),
 
                 // label,
-                .label => _ = try parser.expect(.label),
+                .label => {
+                    const label = try parser.expect(.label);
+
+                    const name = try std.mem.dupe(self.allocator, u8, label.text[0 .. label.text.len - 1]);
+
+                    const offset = self.currentSection().getGlobalOffset();
+
+                    if (name[0] == '.') {
+                        // local label
+                        if (try self.local_symbols.put(name, offset)) |kv| {
+                            return error.DuplicateSymbol;
+                        }
+                    } else {
+                        // global label
+                        self.local_symbols.clear();
+                        if (try self.symbols.put(name, offset)) |kv| {
+                            return error.DuplicateSymbol;
+                        }
+                    }
+                },
 
                 // modifier
                 .identifier, .opening_brackets => try parseInstruction(self, &parser),
@@ -295,7 +466,7 @@ pub const Assembler = struct {
                     if (operand_count >= operands.len or end_of_operands) {
                         return error.UnexpectedOperand;
                     }
-                    const expr_result = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma, .opening_brackets });
+                    const expr_result = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma, .opening_brackets });
                     operands[operand_count] = expr_result.expression;
                     operand_count += 1;
                     switch (expr_result.terminator.type) {
@@ -361,26 +532,62 @@ pub const Assembler = struct {
     // Directives:
 
     fn @".org"(assembler: *Assembler, parser: *Parser) !void {
-        const offset_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+        const offset_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const offset = try assembler.evaluate(offset_expr.expression);
+        if (offset != .number)
+            return error.TypeMismatch;
+
+        const sect = if (assembler.currentSection().bytes.items.len == 0)
+            assembler.currentSection()
+        else
+            try assembler.appendSection(offset.number);
+
+        sect.offset = offset.number;
     }
 
     fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
-        const string_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+        const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const string = try assembler.evaluate(string_expr.expression);
+        if (string != .string)
+            return error.TypeMismatch;
+
+        try assembler.emit(string.string);
     }
 
     fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
-        const string_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+        const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const string = try assembler.evaluate(string_expr.expression);
+        if (string != .string)
+            return error.TypeMismatch;
+        try assembler.emit(string.string);
 
         try assembler.emitU8(0x00); // null terminator
     }
 
     fn @".align"(assembler: *Assembler, parser: *Parser) !void {
-        const alignment_expr = try parser.parseExpression(&assembler.allocator.allocator, .{.line_break});
+        const alignment_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const alignment = try assembler.evaluate(alignment_expr.expression);
+        if (alignment != .number)
+            return error.TypeMismatch;
+
+        const sect = assembler.currentSection();
+
+        const newSize = std.mem.alignForward(sect.bytes.items.len, alignment.number);
+
+        if (newSize != sect.bytes.items.len) {
+            try sect.bytes.appendNTimes(0x00, newSize - sect.bytes.items.len);
+        }
+
+        std.debug.assert(sect.bytes.items.len == newSize);
     }
 
     fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
         while (true) {
-            const value_expr = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma });
+            const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
 
             try assembler.emitExpr(value_expr.expression);
 
@@ -391,9 +598,16 @@ pub const Assembler = struct {
 
     fn @".db"(assembler: *Assembler, parser: *Parser) !void {
         while (true) {
-            const value_expr = try parser.parseExpression(&assembler.allocator.allocator, .{ .line_break, .comma });
+            const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
 
-            try assembler.emitU8(0xFF);
+            const value = try assembler.evaluate(value_expr.expression);
+            if (value != .number)
+                return error.TypeMismatch;
+
+            if (value.number >= 0x100)
+                return error.OutOfRange;
+
+            try assembler.emitU8(@intCast(u8, value.number));
 
             if (value_expr.terminator.type == .line_break)
                 break;
@@ -403,7 +617,8 @@ pub const Assembler = struct {
     // Output handling:
 
     fn emit(assembler: *Assembler, bytes: []const u8) !void {
-        // discard for now…
+        const sect = assembler.currentSection();
+        try sect.bytes.outStream().writeAll(bytes);
     }
 
     fn emitU8(assembler: *Assembler, value: u8) !void {
@@ -423,16 +638,27 @@ pub const Assembler = struct {
         errdefer copy.deinit();
 
         if (assembler.evaluate(copy)) |value| {
-            if (value != .number)
+            if (value != .number) {
+                if (std.builtin.mode == .Debug) {
+                    std.debug.warn("unexpected value: {}\n", .{value});
+                }
                 return error.TypeMismatch;
+            }
             try assembler.emitU16(value.number);
-            defer copy.deinit();
+            copy.deinit();
         } else |err| switch (err) {
             error.MissingIdentifiers => {
+                const sect = assembler.currentSection();
+                const ptr = sect.getLocalOffset();
+
                 // Defer evaluation to end of assembling,
                 // store label context (for locals) and expr for later, write dummy value
                 try assembler.emitU16(0x5555);
-                unreachable;
+
+                try sect.patches.append(Patch{
+                    .offset = ptr,
+                    .value = copy,
+                });
             },
             else => return err,
         }
@@ -440,13 +666,144 @@ pub const Assembler = struct {
 
     // Expression handling
 
-    fn evaluate(assembler: *Assembler, expression: Expression) !Value {
-        // return error.MissingIdentifiers;
-        unreachable;
+    fn parseAndInternString(assembler: *Assembler, token: Token) ![]const u8 {
+        // very interning, much optimization
+        // TODO: Implement actual string interning
+        const buffer = try assembler.allocator.alloc(u8, token.text.len - 2);
+        errdefer assembler.allocator.free(buffer);
+
+        const State = enum {
+            normal,
+            escape,
+        };
+
+        var length: usize = 0;
+        var state: State = .normal;
+
+        var offset: usize = 1;
+        while (offset < token.text.len - 1) {
+            const c = try translateEscapedChar(token.text[offset..]);
+
+            buffer[length] = c.char;
+            length += 1;
+            offset += c.length;
+        }
+
+        return buffer[0..length];
+    }
+
+    const EvaluationError = error{ InvalidExpression, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
+    fn evaluate(assembler: *Assembler, expression: Expression) EvaluationError!Value {
+        var stack = std.ArrayList(Value).init(assembler.allocator);
+        defer stack.deinit();
+
+        for (expression.sequence) |item| {
+            switch (item.type) {
+                .identifier => if (assembler.symbols.get(item.text)) |sym|
+                    try stack.append(Value{ .number = sym.value })
+                else {
+                    if (std.builtin.mode == .Debug) {
+                        std.debug.warn("missing identifier: `{}`\n", .{item.text});
+                    }
+                    return error.MissingIdentifiers;
+                },
+
+                .dot_identifier => if (assembler.local_symbols.get(item.text)) |sym|
+                    try stack.append(Value{ .number = sym.value })
+                else {
+                    if (std.builtin.mode == .Debug) {
+                        std.debug.warn("missing local identifier: `{}`\n", .{item.text});
+                    }
+                    return error.MissingIdentifiers;
+                },
+
+                // Number literals
+                .bin_number => try stack.append(Value{
+                    .number = try std.fmt.parseInt(u16, item.text[2..], 2),
+                }),
+                .oct_number => try stack.append(Value{
+                    .number = try std.fmt.parseInt(u16, item.text[2..], 8),
+                }),
+                .dec_number => try stack.append(Value{
+                    .number = try std.fmt.parseInt(u16, item.text, 10),
+                }),
+                .hex_number => try stack.append(Value{
+                    .number = try std.fmt.parseInt(u16, item.text[2..], 16),
+                }),
+                .char_literal => {
+                    try stack.append(Value{
+                        .number = (try translateEscapedChar(item.text[1..])).char,
+                    });
+                },
+                .dot => try stack.append(Value{
+                    .number = @intCast(u16, assembler.currentSection().getGlobalOffset()),
+                }),
+
+                // String literal
+                .string_literal => try stack.append(Value{
+                    .string = try assembler.parseAndInternString(item),
+                }),
+
+                // This is advanced stuff for later!
+                .opening_parens => unreachable,
+                .closing_parens => unreachable,
+                .operator_plus => unreachable,
+                .operator_minus => unreachable,
+                .operator_multiply => unreachable,
+                .operator_divide => unreachable,
+                .operator_modulo => unreachable,
+                .operator_bitand => unreachable,
+                .operator_bitor => unreachable,
+                .operator_bitxor => unreachable,
+                .operator_shl => unreachable,
+                .operator_shr => unreachable,
+                .operator_asr => unreachable,
+                .operator_bitnot => unreachable,
+
+                // If it's none of the above tokens, we made a programming mistake earlier
+                else => unreachable,
+            }
+        }
+
+        if (stack.items.len != 1)
+            return error.InvalidExpression;
+
+        return stack.items[0];
+    }
+
+    const EscapingResult = struct {
+        char: u8,
+        length: usize,
+    };
+    fn translateEscapedChar(pattern: []const u8) !EscapingResult {
+        if (pattern[0] != '\\')
+            return EscapingResult{ .char = pattern[0], .length = 1 };
+
+        return EscapingResult{
+            .length = 2,
+            .char = switch (pattern[1]) {
+                'a' => 0x07,
+                'b' => 0x08,
+                'e' => 0x1B,
+                'n' => 0x0A,
+                'r' => 0x0D,
+                't' => 0x0B,
+                '\\' => 0x5C,
+                '\'' => 0x27,
+                '\"' => 0x22,
+                'x' => {
+                    return EscapingResult{
+                        .length = 4,
+                        .char = try std.fmt.parseInt(u8, pattern[2..4], 16),
+                    };
+                },
+                else => |c| c,
+            },
+        };
     }
 
     const Value = union(enum) {
-        string: []u8, // does not need to be freed, will be string-pooled
+        string: []const u8, // does not need to be freed, will be string-pooled
         number: u16,
     };
 };
@@ -491,8 +848,17 @@ pub const TokenType = enum {
 };
 
 pub const Token = struct {
+    const Self = @This();
+
     text: []const u8,
     type: TokenType,
+
+    fn duplicate(self: Self, allocator: *std.mem.Allocator) !Self {
+        return Self{
+            .type = self.type,
+            .text = try std.mem.dupe(allocator, u8, self.text),
+        };
+    }
 };
 
 pub const Parser = struct {
@@ -755,13 +1121,15 @@ pub const Parser = struct {
                 }
             },
 
-            // string_literal
-            '\"' => blk: {
+            // string_literal, char_literal
+            '\'', '\"' => blk: {
                 var off = parser.offset + 1;
                 if (off == parser.source.len)
                     return error.IncompleteStringLiteral;
 
-                while (parser.source[off] != '\"') {
+                const delimiter = parser.source[parser.offset];
+
+                while (parser.source[off] != delimiter) {
                     if (parser.source[off] == '\n')
                         return error.IncompleteStringLiteral;
                     if (parser.source[off] == '\\') {
@@ -774,31 +1142,10 @@ pub const Parser = struct {
                 off += 1;
 
                 break :blk Token{
-                    .type = .string_literal,
-                    .text = parser.source[parser.offset..off],
-                };
-            },
-
-            // character_literal
-            '\'' => blk: {
-                var off = parser.offset + 1;
-                if (off >= parser.source.len)
-                    return error.IncompleteCharacterLiteral;
-                if (parser.source[off] == '\\') {
-                    // escaped
-                    off += 1;
-                    if (off >= parser.source.len)
-                        return error.IncompleteCharacterLiteral;
-                }
-                off += 1;
-                if (off >= parser.source.len)
-                    return error.IncompleteCharacterLiteral;
-                if (parser.source[off] != '\'')
-                    return error.IncompleteCharacterLiteral;
-                off += 1;
-
-                break :blk Token{
-                    .type = .string_literal,
+                    .type = if (delimiter == '\'')
+                        .char_literal
+                    else
+                        .string_literal,
                     .text = parser.source[parser.offset..off],
                 };
             },
@@ -835,7 +1182,9 @@ pub const Parser = struct {
         const terminator = try parser.expectAny(terminators);
 
         const toks = try allocator.alloc(Token, 1);
-        toks[0] = tok;
+        errdefer allocator.free(toks);
+
+        toks[0] = try tok.duplicate(allocator);
 
         return ParseExpressionResult{
             .expression = Expression{
@@ -858,5 +1207,13 @@ const Expression = struct {
     fn deinit(expr: *Expression) void {
         expr.allocator.free(expr.sequence);
         expr.* = undefined;
+    }
+
+    pub fn format(value: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: var) !void {
+        for (value.sequence) |item, i| {
+            if (i > 0)
+                try stream.writeAll(" ");
+            try stream.writeAll(item.text);
+        }
     }
 };
