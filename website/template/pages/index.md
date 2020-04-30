@@ -6,7 +6,7 @@ Most components of *Ashet* are self-developed chips and computer components, lik
 
 ## Goal of the project
 
-Create a home computer around the *SPU Mark II* CPU that can be used for games, music and demos. The CPU is a quite novel approach on instruction set style as well as the attempt to create a CPU that is easily programmed by humans and compilers the like.
+The goal is to create a home computer around the *SPU Mark II* CPU that can be used for games, music and demos. The CPU is a quite novel approach on instruction set style as well as the attempt to create a CPU that is easily programmed by humans and compilers the like.
 
 To overcome the 64k memory limitation own to 16 bit cpus is overcome by a paging unit providing 16 pages a 4096 byte that can be mapped to *any* page in a 16 MB large memory space. The I/O architecture is inspirted by the [Amiga 500](https://en.wikipedia.org/wiki/Amiga_500), like a DMA chip ("blitter") that allows trivial image/block transfers in memory as well as a graphics chip with sprite support. In contrast to the Amiga though the *Ashet* uses a 256 color linear framebuffer with a configurable palette of 16 bit colors, allowing the user to chose 256 of 65536 possible colors.
 

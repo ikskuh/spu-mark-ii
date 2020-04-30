@@ -7,7 +7,19 @@ PAGE_PROLOGUE=template/page.htm.prologue
 PAGE_EPILOGUE=template/page.htm.epilogue
 DOC_TEMPLATE=template/doc.htm
 PAGES=index downloads documentation livedemo docs/isa docs/an000 docs/an001 docs/an002 docs/an003 imprint privacy
-FILES=style.css base16-summerfruit-dark.css emulator.wasm livedemo.js xterm/xterm.js xterm/xterm.css
+FILES=style.css base16-summerfruit-dark.css \
+	emulator.wasm livedemo.js \
+	xterm/xterm.js xterm/xterm.css \
+	downloads/ashet-toolchain-windows-x86_64.zip \
+	downloads/ashet-toolchain-linux-x86_64.zip \
+	downloads/emulator-linux-x86_64 \
+	downloads/assembler-linux-x86_64 \
+	downloads/disassembler-linux-x86_64 \
+	downloads/debugger-linux-x86_64 \
+	downloads/emulator-windows-x86_64.exe \
+	downloads/assembler-windows-x86_64.exe \
+	downloads/disassembler-windows-x86_64.exe \
+	downloads/debugger-windows-x86_64.exe
 
 all: website
 
@@ -51,5 +63,17 @@ output/docs/an002.htm: ../documentation/app-notes/AN002\ -\ Standard\ Calling\ C
 output/docs/an003.htm: ../documentation/app-notes/AN003\ -\ Writing\ efficient\ code.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) "--metadata-file=template/metadata/$(notdir $(@:.htm=.yaml))" --from gfm --to html --toc "$<" > $@
 	
+output/downloads/ashet-toolchain-windows-x86_64.zip: 
+	zip "$@" ../build/x86_64-windows/{*.exe,*.pdb}
+
+output/downloads/ashet-toolchain-linux-x86_64.zip: 
+	zip "$@" $(filter-out %.o,$(wildcard ../build/x86_64-linux/*))
+
+output/downloads/%-windows-x86_64.exe: ../build/x86_64-windows/%.exe
+	cp "$<" "$@"
+
+output/downloads/%-linux-x86_64: ../build/x86_64-linux/%
+	cp "$<" "$@"
+
 .PHONY: all folders deploy
 .SUFFIXES:
