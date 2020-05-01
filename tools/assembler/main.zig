@@ -240,7 +240,24 @@ pub const Assembler = struct {
         }
     }
 
-    pub fn assemble(self: *Assembler, fileName: []const u8, directory: std.fs.Dir, stream: var) !void {
+    const AssembleError = std.fs.File.OpenError || std.fs.File.ReadError || std.fs.File.SeekError || EvaluationError || error{
+        UnexpectedEndOfFile,
+        UnrecognizedCharacter,
+        IncompleteStringLiteral,
+        UnexpectedToken,
+        OutOfMemory,
+        UnknownMnemonic,
+        UnexpectedOperand,
+        DuplicateModifier,
+        InvalidModifier,
+        OutOfRange,
+        UnknownDirective,
+        DuplicateSymbol,
+        EndOfStream,
+        StreamTooLong,
+        ParensImbalance,
+    };
+    pub fn assemble(self: *Assembler, fileName: []const u8, directory: std.fs.Dir, stream: var) AssembleError!void {
         var parser = try Parser.fromStream(self.allocator, stream);
         defer parser.deinit();
 
@@ -535,23 +552,7 @@ pub const Assembler = struct {
         try assembler.currentSection().bytes.outStream().writeAll(blob);
     }
 
-    const IncludeError = std.fs.File.OpenError || std.fs.File.ReadError || std.fs.File.SeekError || EvaluationError || error{
-        UnexpectedEndOfFile,
-        UnrecognizedCharacter,
-        IncompleteStringLiteral,
-        UnexpectedToken,
-        OutOfMemory,
-        UnknownMnemonic,
-        UnexpectedOperand,
-        DuplicateModifier,
-        InvalidModifier,
-        OutOfRange,
-        UnknownDirective,
-        DuplicateSymbol,
-        EndOfStream,
-        StreamTooLong,
-    };
-    fn @".include"(assembler: *Assembler, parser: *Parser) IncludeError!void {
+    fn @".include"(assembler: *Assembler, parser: *Parser) !void {
         const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
         const filename = try assembler.evaluate(filename_expr.expression);
@@ -656,6 +657,8 @@ pub const Assembler = struct {
         var stack = std.ArrayList(Value).init(assembler.allocator);
         defer stack.deinit();
 
+        std.debug.warn("evaluate expression: `{}`", .{expression});
+
         for (expression.sequence) |item| {
             switch (item.type) {
                 .identifier => if (assembler.symbols.get(item.text)) |sym|
@@ -704,20 +707,110 @@ pub const Assembler = struct {
                 }),
 
                 // This is advanced stuff for later!
-                .opening_parens => unreachable,
-                .closing_parens => unreachable,
-                .operator_plus => unreachable,
-                .operator_minus => unreachable,
-                .operator_multiply => unreachable,
-                .operator_divide => unreachable,
-                .operator_modulo => unreachable,
-                .operator_bitand => unreachable,
-                .operator_bitor => unreachable,
-                .operator_bitxor => unreachable,
-                .operator_shl => unreachable,
-                .operator_shr => unreachable,
-                .operator_asr => unreachable,
-                .operator_bitnot => unreachable,
+
+                .operator_plus => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (@as(ValueType, lhs) != @as(ValueType, rhs))
+                        return error.TypeMismatch;
+                    try stack.append(switch (lhs) {
+                        .number => Value{ .number = lhs.number +% rhs.number },
+                        .string => Value{
+                            .string = try std.mem.concat(assembler.allocator, u8, &[_][]const u8{
+                                lhs.string,
+                                rhs.string,
+                            }),
+                        },
+                    });
+                },
+                .operator_minus => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number -% rhs.number });
+                },
+                .operator_multiply => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number *% rhs.number });
+                },
+                .operator_divide => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number / rhs.number });
+                },
+                .operator_modulo => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number % rhs.number });
+                },
+                .operator_bitand => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number & rhs.number });
+                },
+                .operator_bitor => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number | rhs.number });
+                },
+                .operator_bitxor => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = lhs.number ^ rhs.number });
+                },
+                .operator_shl => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = @truncate(u16, lhs.number << @truncate(u4, rhs.number)) });
+                },
+                .operator_shr => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = @truncate(u16, lhs.number >> @truncate(u4, rhs.number)) });
+                },
+                .operator_asr => {
+                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (lhs != .number or rhs != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = (lhs.number & 0x8000) | (lhs.number >> @truncate(u4, rhs.number)) });
+                },
+                .operator_bitnot => {
+                    const value = stack.popOrNull() orelse return error.InvalidExpression;
+
+                    if (value != .number)
+                        return error.TypeMismatch;
+                    try stack.append(Value{ .number = ~value.number });
+                },
 
                 // If it's none of the above tokens, we made a programming mistake earlier
                 else => unreachable,
@@ -726,6 +819,10 @@ pub const Assembler = struct {
 
         if (stack.items.len != 1)
             return error.InvalidExpression;
+
+        std.debug.warn(" => `{}`\n", .{
+            stack.items[0],
+        });
 
         return stack.items[0];
     }
@@ -765,9 +862,12 @@ pub const Assembler = struct {
         string: []const u8, // does not need to be freed, will be string-pooled
         number: u16,
     };
+    const ValueType = @TagType(Value);
 };
 
 pub const TokenType = enum {
+    const Self = @This();
+
     whitespace,
     comment, // ; …
     line_break, // "\n"
@@ -775,6 +875,7 @@ pub const TokenType = enum {
     identifier, // fooas2_3
     dot_identifier, // .fooas2_3
     label, //foobar:, .foobar:
+    function, // #symbol
 
     bin_number, // 0b0000
     oct_number, // 0o0000
@@ -804,6 +905,31 @@ pub const TokenType = enum {
     operator_shr, // >>
     operator_asr, // >>>
     operator_bitnot, // ~
+
+    fn isOperator(self: Self) bool {
+        return switch (self) {
+            .operator_plus, .operator_minus, .operator_multiply, .operator_divide, .operator_modulo, .operator_bitand, .operator_bitor, .operator_bitxor, .operator_shl, .operator_shr, .operator_asr, .operator_bitnot => true,
+            else => false,
+        };
+    }
+
+    fn operatorPrecedence(self: Self) u32 {
+        return switch (self) {
+            .operator_plus => 10,
+            .operator_minus => 10,
+            .operator_multiply => 20,
+            .operator_divide => 20,
+            .operator_modulo => 20,
+            .operator_bitand => 30,
+            .operator_bitor => 30,
+            .operator_bitxor => 30,
+            .operator_shl => 40,
+            .operator_shr => 40,
+            .operator_asr => 40,
+            .operator_bitnot => 50,
+            else => unreachable, // programming mistake
+        };
+    }
 };
 
 pub const Token = struct {
@@ -1122,33 +1248,123 @@ pub const Parser = struct {
         return token;
     }
 
+    fn lastOfSlice(slice: var) @TypeOf(slice[0]) {
+        return slice[slice.len - 1];
+    }
+
     // parses an expression from the token stream
     const ParseExpressionResult = struct {
         expression: Expression,
         terminator: Token,
     };
     fn parseExpression(parser: *Parser, allocator: *std.mem.Allocator, terminators: var) !ParseExpressionResult {
-        var tok = try parser.expectAny(.{
-            .dec_number,
-            .hex_number,
-            .oct_number,
-            .bin_number,
-            .dot,
-            .identifier,
-            .char_literal,
-            .string_literal,
-        });
-        const terminator = try parser.expectAny(terminators);
+        var stack = std.ArrayList(Token).init(allocator);
+        defer stack.deinit();
 
-        const toks = try allocator.alloc(Token, 1);
-        errdefer allocator.free(toks);
+        var sequence = std.ArrayList(Token).init(allocator);
+        errdefer sequence.deinit();
 
-        toks[0] = try tok.duplicate(allocator);
+        const terminator = input_loop: while (true) {
+            var tok = try parser.expectAny(.{
+                // literals and identifiers
+                .dec_number,
+                .hex_number,
+                .oct_number,
+                .bin_number,
+                .dot,
+                .identifier,
+                .char_literal,
+                .string_literal,
+
+                // operators
+                .operator_plus,
+                .operator_minus,
+                .operator_multiply,
+                .operator_divide,
+                .operator_modulo,
+                .operator_bitand,
+                .operator_bitor,
+                .operator_bitxor,
+                .operator_shl,
+                .operator_shr,
+                .operator_asr,
+                .operator_bitnot,
+            } ++ terminators);
+
+            inline for (terminators) |t| {
+                if (tok.type == t)
+                    break :input_loop tok;
+            }
+            switch (tok.type) {
+                .dec_number, .hex_number, .oct_number, .bin_number, .dot, .identifier, .char_literal, .string_literal => {
+                    try sequence.append(tok);
+                },
+
+                .function => {
+                    try stack.append(tok);
+                },
+
+                .comma => {
+                    while (lastOfSlice(stack.items).type != .opening_parens) {
+                        try sequence.append(stack.pop());
+                        if (stack.items.len == 0)
+                            return error.UnexpectedToken;
+                        //         FEHLER-BEI Stack IST-LEER:
+                        //             GRUND (1) Ein falsch platziertes Argumenttrennzeichen.
+                        //             GRUND (2) Der schließenden Klammer geht keine öffnende voraus.
+                        //         ENDEFEHLER
+                    }
+                },
+
+                .operator_plus, .operator_minus, .operator_multiply, .operator_divide, .operator_modulo, .operator_bitand, .operator_bitor, .operator_bitxor, .operator_shl, .operator_shr, .operator_asr, .operator_bitnot => {
+                    while (stack.items.len != 0 and lastOfSlice(stack.items).type.isOperator() and tok.type.operatorPrecedence() <= lastOfSlice(stack.items).type.operatorPrecedence()) {
+                        try sequence.append(stack.pop());
+                    }
+                    try stack.append(tok);
+                },
+
+                .opening_parens => {
+                    try stack.append(tok);
+                },
+
+                .closing_parens => {
+
+                    // BIS Stack-Spitze IST öffnende-Klammer:
+                    //     FEHLER-BEI Stack IST-LEER:
+                    //         GRUND (1) Der schließenden Klammer geht keine öffnende voraus.
+                    //     ENDEFEHLER
+                    //     Stack-Spitze ZU Ausgabe.
+                    // ENDEBIS
+                    // Stack-Spitze (öffnende-Klammer) entfernen
+                    // WENN Stack-Spitze IST-Funktion:
+                    //     Stack-Spitze ZU Ausgabe.
+                    // ENDEWENN
+                },
+
+                else => {
+                    if (std.builtin.mode == .Debug) {
+                        std.debug.warn("unreachable token in parseExpression: {}\n", .{tok});
+                    }
+                    unreachable;
+                },
+            }
+        } else unreachable;
+
+        while (stack.items.len > 0) {
+            const tok = stack.pop();
+            if (tok.type == .opening_parens)
+                return error.ParensImbalance;
+            try sequence.append(tok);
+        }
+
+        for (sequence.items) |*item| {
+            item.* = try item.duplicate(allocator);
+        }
 
         return ParseExpressionResult{
             .expression = Expression{
                 .allocator = allocator,
-                .sequence = toks,
+                .sequence = sequence.toOwnedSlice(),
             },
             .terminator = terminator,
         };
