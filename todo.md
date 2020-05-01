@@ -32,9 +32,11 @@
   - Refine function call syntax `#bswap()` to have simpler parsing 
   
 
-
 ## Documentation Change
 - Write about common patterns in AN000
 
 ## Website
-- Fill website with contents
+- Improve *Try it!*
+  - Add assembler
+  - Add controls
+  - Add hex view

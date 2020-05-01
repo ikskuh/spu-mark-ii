@@ -6,7 +6,8 @@
 PAGE_PROLOGUE=template/page.htm.prologue
 PAGE_EPILOGUE=template/page.htm.epilogue
 DOC_TEMPLATE=template/doc.htm
-PAGES=index downloads documentation livedemo docs/isa docs/an000 docs/an001 docs/an002 docs/an003 imprint privacy
+DOCS=docs/isa docs/an000 docs/an001 docs/an002 docs/an003
+PAGES=index downloads documentation livedemo imprint privacy $(DOCS)
 FILES=style.css base16-summerfruit-dark.css \
 	emulator.wasm livedemo.js \
 	xterm/xterm.js xterm/xterm.css \
@@ -20,6 +21,7 @@ FILES=style.css base16-summerfruit-dark.css \
 	downloads/assembler-windows-x86_64.exe \
 	downloads/disassembler-windows-x86_64.exe \
 	downloads/debugger-windows-x86_64.exe
+SOURCES=../soc/firmware/firmware.hex ../apps/hello-world/main.asm ../apps/ascii-printer/main.asm
 
 all: website
 
@@ -63,11 +65,35 @@ output/docs/an002.htm: ../documentation/app-notes/AN002\ -\ Standard\ Calling\ C
 output/docs/an003.htm: ../documentation/app-notes/AN003\ -\ Writing\ efficient\ code.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) "--metadata-file=template/metadata/$(notdir $(@:.htm=.yaml))" --from gfm --to html --toc "$<" > $@
 	
-output/downloads/ashet-toolchain-windows-x86_64.zip: 
-	zip "$@" ../build/x86_64-windows/{*.exe,*.pdb}
+output/downloads/ashet-toolchain-windows-x86_64.zip: $(addprefix output/,$(addsuffix .htm,$(DOCS))) $(SOURCES)
+	rm -f "$@"
 
-output/downloads/ashet-toolchain-linux-x86_64.zip: 
-	zip "$@" $(filter-out %.o,$(wildcard ../build/x86_64-linux/*))
+	for file in $(wildcard ../build/x86_64-windows/*.exe) $(wildcard ../build/x86_64-windows/*.pdb); do \
+		python zip.py "$@" "$${file}" "bin/$$(basename "$${file}")" ; \
+	done
+
+	for file in $(addprefix output/,$(addsuffix .htm,$(DOCS))); do \
+		python zip.py "$@" "$${file}" "docs/$$(basename "$${file}")" ; \
+	done
+
+	python zip.py "$@" "../soc/firmware/firmware.hex"   "asm/firmware.hex"
+	python zip.py "$@" "../apps/hello-world/main.asm"   "asm/hello-world.hex"
+	python zip.py "$@" "../apps/ascii-printer/main.asm" "asm/ascii-printer.hex"
+
+output/downloads/ashet-toolchain-linux-x86_64.zip: $(addprefix output/,$(addsuffix .htm,$(DOCS))) $(SOURCES)
+	rm -f "$@"
+
+	for file in $(filter-out %.o,$(wildcard ../build/x86_64-linux/*)); do \
+		python zip.py "$@" "$${file}" "bin/$$(basename "$${file}")" ; \
+	done
+
+	for file in $(addprefix output/,$(addsuffix .htm,$(DOCS))); do \
+		python zip.py "$@" "$${file}" "docs/$$(basename "$${file}")" ; \
+	done
+
+	python zip.py "$@" "../soc/firmware/firmware.hex"   "asm/firmware.hex"
+	python zip.py "$@" "../apps/hello-world/main.asm"   "asm/hello-world.hex"
+	python zip.py "$@" "../apps/ascii-printer/main.asm" "asm/ascii-printer.hex"
 
 output/downloads/%-windows-x86_64.exe: ../build/x86_64-windows/%.exe
 	cp "$<" "$@"
