@@ -94,7 +94,7 @@ pub fn main() !u8 {
     try assembler.finalize();
 
     {
-        var file = try std.fs.cwd().createFile(cli_args.options.output, .{ .truncate = true, .exclusive = false });
+        var file = try root_dir.createFile(cli_args.options.output, .{ .truncate = true, .exclusive = false });
         defer file.close();
 
         var outstream = file.outStream();
@@ -529,7 +529,7 @@ pub const Assembler = struct {
         if (filename != .string)
             return error.TypeMismatch;
 
-        var blob = try std.fs.cwd().readFileAlloc(assembler.allocator, filename.string, 65536);
+        var blob = try assembler.directory.readFileAlloc(assembler.allocator, filename.string, 65536);
         defer assembler.allocator.free(blob);
 
         try assembler.currentSection().bytes.outStream().writeAll(blob);
