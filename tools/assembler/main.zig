@@ -1133,6 +1133,35 @@ pub const Parser = struct {
 
             // operator_shr, // >>
             // operator_asr, // >>>
+            '>' => blk: {
+                if (parser.offset + 1 >= parser.source.len)
+                    return error.UnexpectedEndOfFile;
+                if (parser.source[parser.offset + 1] != '>')
+                    return error.UnrecognizedCharacter;
+
+                if (parser.offset + 2 < parser.source.len and parser.source[parser.offset + 1] == '>') {
+                    break :blk Token{
+                        .type = .operator_asr,
+                        .text = parser.source[parser.offset..][0..3],
+                    };
+                } else {
+                    break :blk Token{
+                        .type = .operator_shr,
+                        .text = parser.source[parser.offset..][0..2],
+                    };
+                }
+            },
+
+            '<' => blk: {
+                if (parser.offset + 1 >= parser.source.len)
+                    return error.UnexpectedEndOfFile;
+                if (parser.source[parser.offset + 1] != '<')
+                    return error.UnrecognizedCharacter;
+                break :blk Token{
+                    .type = .operator_shl,
+                    .text = parser.source[parser.offset..][0..2],
+                };
+            },
 
             // '<<' => parser.singleCharToken(.operator_shl),
 
@@ -1276,6 +1305,10 @@ pub const Parser = struct {
                 .char_literal,
                 .string_literal,
 
+                // parenthesis
+                .opening_parens,
+                .closing_parens,
+
                 // operators
                 .operator_plus,
                 .operator_minus,
@@ -1305,6 +1338,8 @@ pub const Parser = struct {
                 },
 
                 .comma => {
+                    if (stack.items.len == 0)
+                        return error.UnexpectedToken;
                     while (lastOfSlice(stack.items).type != .opening_parens) {
                         try sequence.append(stack.pop());
                         if (stack.items.len == 0)
@@ -1328,17 +1363,17 @@ pub const Parser = struct {
                 },
 
                 .closing_parens => {
-
-                    // BIS Stack-Spitze IST öffnende-Klammer:
-                    //     FEHLER-BEI Stack IST-LEER:
-                    //         GRUND (1) Der schließenden Klammer geht keine öffnende voraus.
-                    //     ENDEFEHLER
-                    //     Stack-Spitze ZU Ausgabe.
-                    // ENDEBIS
-                    // Stack-Spitze (öffnende-Klammer) entfernen
-                    // WENN Stack-Spitze IST-Funktion:
-                    //     Stack-Spitze ZU Ausgabe.
-                    // ENDEWENN
+                    if (stack.items.len == 0)
+                        return error.UnexpectedToken;
+                    while (lastOfSlice(stack.items).type != .opening_parens) {
+                        if (stack.items.len == 0)
+                            return error.UnexpectedToken;
+                        try sequence.append(stack.pop());
+                    }
+                    _ = stack.pop();
+                    if (stack.items.len > 0 and lastOfSlice(stack.items).type == .function) {
+                        try sequence.append(stack.pop());
+                    }
                 },
 
                 else => {
