@@ -13,20 +13,19 @@
 - Make bus mastering configurable
 - Implement MMU
 
+## Firmware changes
+- add monitor features
+  - hex dump
+  - read/write adresses
+- ihex serial loader
+
 ## Tooling Changes
-- Support new debug features
-- Create small boot rom
-  - add monitor features
-    - hex dump
-    - read/write adresses
-  - ihex serial loader
 - Rewrite assembler with support for new features:
-  - redefine some mnemonics and modifiers
   - allow expression evaluation
-    - Expression parsing/arithmetic implementation
+    - Implement function evaluation
   - improve error reporting
-  - Refine function call syntax `#bswap()` to have simpler parsing 
-  
+  - Refine function call syntax `#bswap()` to have simpler parsing
+- Support new debug features
 
 ## Documentation Change
 - Write about common patterns in AN000

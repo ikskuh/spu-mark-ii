@@ -2,10 +2,11 @@
 ; Prints "Hello, World!\r\n" to the serial console
 ; by using ROM routines, then returns to the BIOS.
 
-.include "bios.asm"
+.include "../library/bios.inc"
+.include "../library/ashet.inc"
 
 ; Programs start at 0x8000
-.org 0x8000
+.org APP_START
 
 	; call puts(app_msg)
 	push app_msg
@@ -15,7 +16,7 @@
 
 	; wait until we receive a character from serial
 app_loop:
-	ld 0x4000 [f:yes]
+	ld UART_RXD [f:yes]
 	[ex:less] jmp app_loop [i1:pop]
 	pop
 

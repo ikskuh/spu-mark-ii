@@ -1077,8 +1077,17 @@ pub const Parser = struct {
     }
 
     fn parseRaw(parser: *Self) !?Token {
-        if (parser.offset >= parser.source.len)
+        // Return a .line_break when we reached the end of the file
+        // Prevents a whole class of errors in the rest of the code :)
+        if (parser.offset == parser.source.len) {
+            parser.offset += 1;
+            return Token{
+                .text = "\n",
+                .type = .line_break,
+            };
+        } else if (parser.offset >= parser.source.len) {
             return null;
+        }
         var token = switch (parser.source[parser.offset]) {
             '\n' => parser.singleCharToken(.line_break),
             ' ', '\t', '\r' => parser.singleCharToken(.whitespace),
