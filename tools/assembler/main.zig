@@ -403,16 +403,16 @@ pub const Assembler = struct {
         }
     }
 
-    fn parseDirective(assembler: *Assembler, parser: *Parser) !void {
+    fn parseDirective(assembler: *Self, parser: *Parser) !void {
         var token = try parser.expect(.dot_identifier);
 
-        inline for (std.meta.declarations(Self)) |decl| {
+        inline for (std.meta.declarations(Directives)) |decl| {
             if (decl.data != .Fn)
                 continue;
             if (decl.name[0] != '.')
                 continue;
             if (std.mem.eql(u8, decl.name, token.text)) {
-                try @field(Self, decl.name)(assembler, parser);
+                try @field(Directives, decl.name)(assembler, parser);
                 return;
             }
         }
@@ -426,154 +426,155 @@ pub const Assembler = struct {
 
     // Directives:
 
-    fn @".org"(assembler: *Assembler, parser: *Parser) !void {
-        const offset_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+    const Directives = struct {
+        fn @".org"(assembler: *Assembler, parser: *Parser) !void {
+            const offset_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-        const offset = try assembler.evaluate(offset_expr.expression);
-        if (offset != .number)
-            return error.TypeMismatch;
+            const offset = try assembler.evaluate(offset_expr.expression);
+            if (offset != .number)
+                return error.TypeMismatch;
 
-        const sect = if (assembler.currentSection().bytes.items.len == 0)
-            assembler.currentSection()
-        else
-            try assembler.appendSection(offset.number);
+            const sect = if (assembler.currentSection().bytes.items.len == 0)
+                assembler.currentSection()
+            else
+                try assembler.appendSection(offset.number);
 
-        sect.offset = offset.number;
-    }
-
-    fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
-        const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
-
-        const string = try assembler.evaluate(string_expr.expression);
-        if (string != .string)
-            return error.TypeMismatch;
-
-        try assembler.emit(string.string);
-    }
-
-    fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
-        const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
-
-        const string = try assembler.evaluate(string_expr.expression);
-        if (string != .string)
-            return error.TypeMismatch;
-        try assembler.emit(string.string);
-
-        try assembler.emitU8(0x00); // null terminator
-    }
-
-    fn @".align"(assembler: *Assembler, parser: *Parser) !void {
-        const alignment_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
-
-        const alignment = try assembler.evaluate(alignment_expr.expression);
-        if (alignment != .number)
-            return error.TypeMismatch;
-
-        const sect = assembler.currentSection();
-
-        const newSize = std.mem.alignForward(sect.bytes.items.len, alignment.number);
-
-        if (newSize != sect.bytes.items.len) {
-            try sect.bytes.appendNTimes(0x00, newSize - sect.bytes.items.len);
+            sect.offset = offset.number;
         }
 
-        std.debug.assert(sect.bytes.items.len == newSize);
-    }
+        fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
+            const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-    fn @".space"(assembler: *Assembler, parser: *Parser) !void {
-        const size_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            const string = try assembler.evaluate(string_expr.expression);
+            if (string != .string)
+                return error.TypeMismatch;
 
-        const size = try assembler.evaluate(size_expr.expression);
-        if (size != .number)
-            return error.TypeMismatch;
-
-        const sect = assembler.currentSection();
-
-        try sect.bytes.appendNTimes(0x00, size.number);
-    }
-
-    fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
-        while (true) {
-            const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
-
-            try assembler.emitExpr(value_expr.expression);
-
-            if (value_expr.terminator.type == .line_break)
-                break;
+            try assembler.emit(string.string);
         }
-    }
 
-    fn @".db"(assembler: *Assembler, parser: *Parser) !void {
-        while (true) {
-            const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
+        fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
+            const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
+            const string = try assembler.evaluate(string_expr.expression);
+            if (string != .string)
+                return error.TypeMismatch;
+            try assembler.emit(string.string);
+
+            try assembler.emitU8(0x00); // null terminator
+        }
+
+        fn @".align"(assembler: *Assembler, parser: *Parser) !void {
+            const alignment_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+            const alignment = try assembler.evaluate(alignment_expr.expression);
+            if (alignment != .number)
+                return error.TypeMismatch;
+
+            const sect = assembler.currentSection();
+
+            const newSize = std.mem.alignForward(sect.bytes.items.len, alignment.number);
+
+            if (newSize != sect.bytes.items.len) {
+                try sect.bytes.appendNTimes(0x00, newSize - sect.bytes.items.len);
+            }
+
+            std.debug.assert(sect.bytes.items.len == newSize);
+        }
+
+        fn @".space"(assembler: *Assembler, parser: *Parser) !void {
+            const size_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+            const size = try assembler.evaluate(size_expr.expression);
+            if (size != .number)
+                return error.TypeMismatch;
+
+            const sect = assembler.currentSection();
+
+            try sect.bytes.appendNTimes(0x00, size.number);
+        }
+
+        fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
+            while (true) {
+                const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
+
+                try assembler.emitExpr(value_expr.expression);
+
+                if (value_expr.terminator.type == .line_break)
+                    break;
+            }
+        }
+
+        fn @".db"(assembler: *Assembler, parser: *Parser) !void {
+            while (true) {
+                const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
+
+                const value = try assembler.evaluate(value_expr.expression);
+                if (value != .number)
+                    return error.TypeMismatch;
+
+                if (value.number >= 0x100)
+                    return error.OutOfRange;
+
+                try assembler.emitU8(@intCast(u8, value.number));
+
+                if (value_expr.terminator.type == .line_break)
+                    break;
+            }
+        }
+
+        fn @".equ"(assembler: *Assembler, parser: *Parser) !void {
+            const name_tok = try parser.expect(.identifier);
+
+            _ = try parser.expect(.comma);
+
+            const name = try std.mem.dupe(assembler.allocator, u8, name_tok.text);
+            errdefer assembler.allocator.free(name);
+
+            const value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
             const value = try assembler.evaluate(value_expr.expression);
             if (value != .number)
                 return error.TypeMismatch;
 
-            if (value.number >= 0x100)
-                return error.OutOfRange;
-
-            try assembler.emitU8(@intCast(u8, value.number));
-
-            if (value_expr.terminator.type == .line_break)
-                break;
+            if (try assembler.symbols.put(name, value.number)) |kv| {
+                return error.DuplicateSymbol;
+            }
         }
-    }
 
-    fn @".equ"(assembler: *Assembler, parser: *Parser) !void {
-        const name_tok = try parser.expect(.identifier);
+        fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
+            const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-        _ = try parser.expect(.comma);
+            const filename = try assembler.evaluate(filename_expr.expression);
+            if (filename != .string)
+                return error.TypeMismatch;
 
-        const name = try std.mem.dupe(assembler.allocator, u8, name_tok.text);
-        errdefer assembler.allocator.free(name);
+            var blob = try assembler.directory.readFileAlloc(assembler.allocator, filename.string, 65536);
+            defer assembler.allocator.free(blob);
 
-        const value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
-        const value = try assembler.evaluate(value_expr.expression);
-        if (value != .number)
-            return error.TypeMismatch;
-
-        if (try assembler.symbols.put(name, value.number)) |kv| {
-            return error.DuplicateSymbol;
+            try assembler.currentSection().bytes.outStream().writeAll(blob);
         }
-    }
 
-    fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
-        const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+        fn @".include"(assembler: *Assembler, parser: *Parser) !void {
+            const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-        const filename = try assembler.evaluate(filename_expr.expression);
-        if (filename != .string)
-            return error.TypeMismatch;
+            const filename = try assembler.evaluate(filename_expr.expression);
+            if (filename != .string)
+                return error.TypeMismatch;
 
-        var blob = try assembler.directory.readFileAlloc(assembler.allocator, filename.string, 65536);
-        defer assembler.allocator.free(blob);
+            var file = try assembler.directory.openFile(filename.string, .{ .read = true, .write = false });
+            defer file.close();
 
-        try assembler.currentSection().bytes.outStream().writeAll(blob);
-    }
+            const old_file_name = assembler.fileName;
+            const old_directory = assembler.directory;
 
-    fn @".include"(assembler: *Assembler, parser: *Parser) !void {
-        const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            defer assembler.fileName = old_file_name;
+            defer assembler.directory = old_directory;
 
-        const filename = try assembler.evaluate(filename_expr.expression);
-        if (filename != .string)
-            return error.TypeMismatch;
+            var dir = try assembler.directory.openDir(std.fs.path.dirname(filename.string) orelse ".", .{ .access_sub_paths = true, .iterate = false });
+            defer dir.close();
 
-        var file = try assembler.directory.openFile(filename.string, .{ .read = true, .write = false });
-        defer file.close();
-
-        const old_file_name = assembler.fileName;
-        const old_directory = assembler.directory;
-
-        defer assembler.fileName = old_file_name;
-        defer assembler.directory = old_directory;
-
-        var dir = try assembler.directory.openDir(std.fs.path.dirname(filename.string) orelse ".", .{ .access_sub_paths = true, .iterate = false });
-        defer dir.close();
-
-        try assembler.assemble(filename.string, dir, file.inStream());
-    }
-
+            try assembler.assemble(filename.string, dir, file.inStream());
+        }
+    };
     // Output handling:
 
     fn emit(assembler: *Assembler, bytes: []const u8) !void {
@@ -657,7 +658,7 @@ pub const Assembler = struct {
         var stack = std.ArrayList(Value).init(assembler.allocator);
         defer stack.deinit();
 
-        std.debug.warn("evaluate expression: `{}`", .{expression});
+        // std.debug.warn("evaluate expression: `{}`", .{expression});
 
         for (expression.sequence) |item| {
             switch (item.type) {
@@ -665,7 +666,7 @@ pub const Assembler = struct {
                     try stack.append(Value{ .number = sym.value })
                 else {
                     if (std.builtin.mode == .Debug) {
-                        std.debug.warn("missing identifier: `{}`\n", .{item.text});
+                        // std.debug.warn("missing identifier: `{}`\n", .{item.text});
                     }
                     return error.MissingIdentifiers;
                 },
@@ -674,7 +675,7 @@ pub const Assembler = struct {
                     try stack.append(Value{ .number = sym.value })
                 else {
                     if (std.builtin.mode == .Debug) {
-                        std.debug.warn("missing local identifier: `{}`\n", .{item.text});
+                        // std.debug.warn("missing local identifier: `{}`\n", .{item.text});
                     }
                     return error.MissingIdentifiers;
                 },
@@ -820,9 +821,9 @@ pub const Assembler = struct {
         if (stack.items.len != 1)
             return error.InvalidExpression;
 
-        std.debug.warn(" => `{}`\n", .{
-            stack.items[0],
-        });
+        // std.debug.warn(" => `{}`\n", .{
+        //     stack.items[0],
+        // });
 
         return stack.items[0];
     }
