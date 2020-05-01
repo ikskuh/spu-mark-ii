@@ -106,7 +106,7 @@ pub fn build(b: *std.build.Builder) !void {
             .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-windows" }), .folder = "build/x86_64-windows" },
             // .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-macosx" }), .folder = "build/x86_64-macosx" }, // not supported by zig-serial atm
             .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-linux" }), .folder = "build/x86_64-linux" },
-            // .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "i386-windows" }), .folder = "build/i386-windows" }, // linker error _GetCommState
+            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "i386-windows" }), .folder = "build/i386-windows" }, // linker error _GetCommState
         };
 
         for (targets) |cross_target| {

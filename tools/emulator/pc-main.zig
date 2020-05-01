@@ -4,6 +4,8 @@ const ihex = @import("ihex");
 
 usingnamespace @import("emulator.zig");
 
+extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
+
 pub fn main() !u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         help: bool = false,
@@ -88,6 +90,11 @@ pub fn main() !u8 {
         };
     };
 
+    if (std.builtin.os.tag == .windows) {
+        if (SetConsoleMode(stdin.handle, 0) == 0)
+            return error.FailedToSetConsole;
+    }
+
     var timer = try std.time.Timer.start();
     emu.run() catch |err| {
         // reset terminal before outputting error messages
@@ -135,6 +142,16 @@ pub const SerialEmulator = struct {
                     return error.UserBreak;
                 return val;
             }
+        }
+        if (std.builtin.os.tag == .windows) {
+            std.os.windows.WaitForSingleObject(stdin.handle, 0) catch |err| switch (err) {
+                error.WaitTimeOut => return 0xFFFF,
+                else => return err,
+            };
+            const val = @as(u16, try stdin.inStream().readByte());
+            if (val == 0x03) // CTRL_C
+                return error.UserBreak;
+            return val;
         }
         return 0xFFFF;
     }
