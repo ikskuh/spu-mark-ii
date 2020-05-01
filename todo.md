@@ -21,14 +21,10 @@
     - read/write adresses
   - ihex serial loader
 - Rewrite assembler with support for new features:
-  - (recursive) include files
   - redefine some mnemonics and modifiers
   - allow expression evaluation
-  - implement missing
-    - `.space`
-    - `.include`
-    - `.incbin`
     - Expression parsing/arithmetic implementation
+  - improve error reporting
   - Refine function call syntax `#bswap()` to have simpler parsing 
   
 

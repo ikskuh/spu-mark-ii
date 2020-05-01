@@ -40,11 +40,17 @@ pub fn main() !u8 {
     var assembler = try Assembler.init(&arena.allocator);
     defer assembler.deinit();
 
+    var root_dir = try std.fs.cwd().openDir(".", .{ .access_sub_paths = true, .iterate = false });
+    defer root_dir.close();
+
     for (cli_args.positionals) |path| {
-        var file = try std.fs.cwd().openFile(path, .{ .read = true, .write = false });
+        var file = try root_dir.openFile(path, .{ .read = true, .write = false });
         defer file.close();
 
-        try assembler.assemble(path, file.inStream());
+        var dir = try root_dir.openDir(std.fs.path.dirname(path) orelse ".", .{ .access_sub_paths = true, .iterate = false });
+        defer dir.close();
+
+        try assembler.assemble(path, dir, file.inStream());
     }
 
     // std.debug.warn("assembler output:\n", .{});
@@ -158,157 +164,21 @@ pub const Section = struct {
     }
 };
 
-const Modifiers = struct {
-    const Self = @This();
-
-    condition: ?ExecutionCondition = null,
-    input0: ?InputBehaviour = null,
-    input1: ?InputBehaviour = null,
-    modify_flags: ?bool = null,
-    output: ?OutputBehaviour = null,
-    command: ?Command = null,
-
-    /// will start at identifier, not `[`!
-    fn parse(mods: *Self, parser: *Parser) !void {
-        const mod_type = try parser.expect(.label); // type + ':'
-        const mod_value = try parser.expect(.identifier); // value
-        _ = try parser.expect(.closing_brackets);
-
-        if (std.mem.eql(u8, mod_type.text, "ex:")) {
-            if (mods.condition != null)
-                return error.DuplicateModifier;
-            inline for (condition_items) |item| {
-                if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.condition = item[1];
-                    return;
-                }
-            }
-        } else if (std.mem.eql(u8, mod_type.text, "i0:")) {
-            if (mods.input0 != null)
-                return error.DuplicateModifier;
-            inline for (input_items) |item| {
-                if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.input0 = item[1];
-                    return;
-                }
-            }
-        } else if (std.mem.eql(u8, mod_type.text, "i1:")) {
-            if (mods.input1 != null)
-                return error.DuplicateModifier;
-            inline for (input_items) |item| {
-                if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.input1 = item[1];
-                    return;
-                }
-            }
-        } else if (std.mem.eql(u8, mod_type.text, "f:")) {
-            if (mods.modify_flags != null)
-                return error.DuplicateModifier;
-            inline for (flag_items) |item| {
-                if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.modify_flags = item[1];
-                    return;
-                }
-            }
-        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
-            if (mods.output != null)
-                return error.DuplicateModifier;
-            inline for (output_items) |item| {
-                if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.output = item[1];
-                    return;
-                }
-            }
-        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
-            if (mods.command != null)
-                return error.DuplicateModifier;
-            inline for (command_items) |item| {
-                if (std.mem.eql(u8, item[0], mod_value.text)) {
-                    mods.command = item[1];
-                    return;
-                }
-            }
-        }
-        return error.InvalidModifier;
-    }
-
-    const condition_items = .{
-        .{ "always", .always },
-        .{ "zero", .when_zero },
-        .{ "nonzero", .not_zero },
-        .{ "greater", .greater_zero },
-        .{ "less", .less_than_zero },
-        .{ "gequal", .greater_or_equal_zero },
-        .{ "lequal", .less_or_equal_zero },
-        .{ "ovfl", .overflow },
-    };
-
-    const flag_items = .{
-        .{ "no", false },
-        .{ "yes", true },
-    };
-
-    const input_items = .{
-        .{ "zero", .zero },
-        .{ "immediate", .immediate },
-        .{ "peek", .peek },
-        .{ "pop", .pop },
-        .{ "arg", .immediate },
-        .{ "imm", .immediate },
-    };
-
-    const output_items = .{
-        .{ "discard", .discard },
-        .{ "push", .push },
-        .{ "jmp", .jump },
-        .{ "rjmp", .jump_relative },
-    };
-
-    const command_items = .{
-        .{ "copy", .copy },
-        .{ "ipget", .ipget },
-        .{ "get", .get },
-        .{ "set", .set },
-        .{ "store8", .store8 },
-        .{ "store16", .store16 },
-        .{ "load8", .load8 },
-        .{ "load16", .load16 },
-        .{ "undefined0", .undefined0 },
-        .{ "undefined1", .undefined1 },
-        .{ "frget", .frget },
-        .{ "frset", .frset },
-        .{ "bpget", .bpget },
-        .{ "bpset", .bpset },
-        .{ "spget", .spget },
-        .{ "spset", .spset },
-        .{ "add", .add },
-        .{ "sub", .sub },
-        .{ "mul", .mul },
-        .{ "div", .div },
-        .{ "mod", .mod },
-        .{ "and", .@"and" },
-        .{ "or", .@"or" },
-        .{ "xor", .xor },
-        .{ "not", .not },
-        .{ "signext", .signext },
-        .{ "rol", .rol },
-        .{ "ror", .ror },
-        .{ "bswap", .bswap },
-        .{ "asr", .asr },
-        .{ "lsl", .lsl },
-        .{ "lsr", .lsr },
-    };
-};
-
 pub const Assembler = struct {
     const Self = @This();
     const SectionNode = std.TailQueue(Section).Node;
 
+    // utilities
     allocator: *std.mem.Allocator,
-    sections: std.TailQueue(Section),
 
+    // assembling result
+    sections: std.TailQueue(Section),
     symbols: std.StringHashMap(u16),
     local_symbols: std.StringHashMap(u16),
+
+    // in-flight symbols
+    fileName: []const u8,
+    directory: std.fs.Dir,
 
     fn appendSection(assembler: *Assembler, offset: u16) !*Section {
         var node = try assembler.allocator.create(SectionNode);
@@ -335,6 +205,8 @@ pub const Assembler = struct {
             .sections = std.TailQueue(Section).init(),
             .symbols = std.StringHashMap(u16).init(allocator),
             .local_symbols = std.StringHashMap(u16).init(allocator),
+            .fileName = undefined,
+            .directory = undefined,
         };
 
         _ = try a.appendSection(0x0000);
@@ -368,9 +240,12 @@ pub const Assembler = struct {
         }
     }
 
-    pub fn assemble(self: *Assembler, fileName: []const u8, stream: var) !void {
+    pub fn assemble(self: *Assembler, fileName: []const u8, directory: std.fs.Dir, stream: var) !void {
         var parser = try Parser.fromStream(self.allocator, stream);
         defer parser.deinit();
+
+        self.fileName = fileName;
+        self.directory = directory;
 
         while (true) {
             const token = try parser.peek();
@@ -413,6 +288,9 @@ pub const Assembler = struct {
                 else => return error.UnexpectedToken,
             }
         }
+
+        self.fileName = undefined;
+        self.directory = undefined;
     }
 
     fn getInstructionForMnemonic(name: []const u8, argc: usize) ?Instruction {
@@ -585,6 +463,18 @@ pub const Assembler = struct {
         std.debug.assert(sect.bytes.items.len == newSize);
     }
 
+    fn @".space"(assembler: *Assembler, parser: *Parser) !void {
+        const size_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const size = try assembler.evaluate(size_expr.expression);
+        if (size != .number)
+            return error.TypeMismatch;
+
+        const sect = assembler.currentSection();
+
+        try sect.bytes.appendNTimes(0x00, size.number);
+    }
+
     fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
         while (true) {
             const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
@@ -630,6 +520,57 @@ pub const Assembler = struct {
         if (try assembler.symbols.put(name, value.number)) |kv| {
             return error.DuplicateSymbol;
         }
+    }
+
+    fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
+        const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const filename = try assembler.evaluate(filename_expr.expression);
+        if (filename != .string)
+            return error.TypeMismatch;
+
+        var blob = try std.fs.cwd().readFileAlloc(assembler.allocator, filename.string, 65536);
+        defer assembler.allocator.free(blob);
+
+        try assembler.currentSection().bytes.outStream().writeAll(blob);
+    }
+
+    const IncludeError = std.fs.File.OpenError || std.fs.File.ReadError || std.fs.File.SeekError || EvaluationError || error{
+        UnexpectedEndOfFile,
+        UnrecognizedCharacter,
+        IncompleteStringLiteral,
+        UnexpectedToken,
+        OutOfMemory,
+        UnknownMnemonic,
+        UnexpectedOperand,
+        DuplicateModifier,
+        InvalidModifier,
+        OutOfRange,
+        UnknownDirective,
+        DuplicateSymbol,
+        EndOfStream,
+        StreamTooLong,
+    };
+    fn @".include"(assembler: *Assembler, parser: *Parser) IncludeError!void {
+        const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+
+        const filename = try assembler.evaluate(filename_expr.expression);
+        if (filename != .string)
+            return error.TypeMismatch;
+
+        var file = try assembler.directory.openFile(filename.string, .{ .read = true, .write = false });
+        defer file.close();
+
+        const old_file_name = assembler.fileName;
+        const old_directory = assembler.directory;
+
+        defer assembler.fileName = old_file_name;
+        defer assembler.directory = old_directory;
+
+        var dir = try assembler.directory.openDir(std.fs.path.dirname(filename.string) orelse ".", .{ .access_sub_paths = true, .iterate = false });
+        defer dir.close();
+
+        try assembler.assemble(filename.string, dir, file.inStream());
     }
 
     // Output handling:
@@ -1234,4 +1175,146 @@ const Expression = struct {
             try stream.writeAll(item.text);
         }
     }
+};
+
+const Modifiers = struct {
+    const Self = @This();
+
+    condition: ?ExecutionCondition = null,
+    input0: ?InputBehaviour = null,
+    input1: ?InputBehaviour = null,
+    modify_flags: ?bool = null,
+    output: ?OutputBehaviour = null,
+    command: ?Command = null,
+
+    /// will start at identifier, not `[`!
+    fn parse(mods: *Self, parser: *Parser) !void {
+        const mod_type = try parser.expect(.label); // type + ':'
+        const mod_value = try parser.expect(.identifier); // value
+        _ = try parser.expect(.closing_brackets);
+
+        if (std.mem.eql(u8, mod_type.text, "ex:")) {
+            if (mods.condition != null)
+                return error.DuplicateModifier;
+            inline for (condition_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.condition = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "i0:")) {
+            if (mods.input0 != null)
+                return error.DuplicateModifier;
+            inline for (input_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.input0 = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "i1:")) {
+            if (mods.input1 != null)
+                return error.DuplicateModifier;
+            inline for (input_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.input1 = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "f:")) {
+            if (mods.modify_flags != null)
+                return error.DuplicateModifier;
+            inline for (flag_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.modify_flags = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
+            if (mods.output != null)
+                return error.DuplicateModifier;
+            inline for (output_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.output = item[1];
+                    return;
+                }
+            }
+        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
+            if (mods.command != null)
+                return error.DuplicateModifier;
+            inline for (command_items) |item| {
+                if (std.mem.eql(u8, item[0], mod_value.text)) {
+                    mods.command = item[1];
+                    return;
+                }
+            }
+        }
+        return error.InvalidModifier;
+    }
+
+    const condition_items = .{
+        .{ "always", .always },
+        .{ "zero", .when_zero },
+        .{ "nonzero", .not_zero },
+        .{ "greater", .greater_zero },
+        .{ "less", .less_than_zero },
+        .{ "gequal", .greater_or_equal_zero },
+        .{ "lequal", .less_or_equal_zero },
+        .{ "ovfl", .overflow },
+    };
+
+    const flag_items = .{
+        .{ "no", false },
+        .{ "yes", true },
+    };
+
+    const input_items = .{
+        .{ "zero", .zero },
+        .{ "immediate", .immediate },
+        .{ "peek", .peek },
+        .{ "pop", .pop },
+        .{ "arg", .immediate },
+        .{ "imm", .immediate },
+    };
+
+    const output_items = .{
+        .{ "discard", .discard },
+        .{ "push", .push },
+        .{ "jmp", .jump },
+        .{ "rjmp", .jump_relative },
+    };
+
+    const command_items = .{
+        .{ "copy", .copy },
+        .{ "ipget", .ipget },
+        .{ "get", .get },
+        .{ "set", .set },
+        .{ "store8", .store8 },
+        .{ "store16", .store16 },
+        .{ "load8", .load8 },
+        .{ "load16", .load16 },
+        .{ "undefined0", .undefined0 },
+        .{ "undefined1", .undefined1 },
+        .{ "frget", .frget },
+        .{ "frset", .frset },
+        .{ "bpget", .bpget },
+        .{ "bpset", .bpset },
+        .{ "spget", .spget },
+        .{ "spset", .spset },
+        .{ "add", .add },
+        .{ "sub", .sub },
+        .{ "mul", .mul },
+        .{ "div", .div },
+        .{ "mod", .mod },
+        .{ "and", .@"and" },
+        .{ "or", .@"or" },
+        .{ "xor", .xor },
+        .{ "not", .not },
+        .{ "signext", .signext },
+        .{ "rol", .rol },
+        .{ "ror", .ror },
+        .{ "bswap", .bswap },
+        .{ "asr", .asr },
+        .{ "lsl", .lsl },
+        .{ "lsr", .lsr },
+    };
 };
