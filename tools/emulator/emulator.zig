@@ -119,6 +119,9 @@ pub const Emulator = struct {
 
     fn executeSingle(self: *Self) !void {
         self.stage = .decode;
+
+        const start_ip = self.ip;
+
         const instruction = @bitCast(Instruction, try self.fetch());
 
         if (instruction.reserved == 1) {
@@ -239,11 +242,13 @@ pub const Emulator = struct {
                 self.fr.zero = (output == 0x0000);
             }
             if (self.tracing) {
-                std.debug.warn("------------------------\r\n" ++
-                    "instr={}\r\n" ++
-                    "input0={X:0>4}\r\n" ++
-                    "input1={X:0>4}\r\n" ++
-                    "output={X:0>4}\r\n", .{ instruction, input0, input1, output });
+                std.debug.warn("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
+                    start_ip,
+                    instruction,
+                    input0,
+                    input1,
+                    output,
+                });
             }
         } else {
             if (instruction.input0 == .immediate) self.ip +%= 2;

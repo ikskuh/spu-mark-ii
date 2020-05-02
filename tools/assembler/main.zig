@@ -93,6 +93,24 @@ pub fn main() !u8 {
 
     try assembler.finalize();
 
+    if (assembler.errors.items.len > 0) {
+        const stdout = std.io.getStdOut().outStream();
+
+        try stdout.writeAll("Errors appeared while assembling:\n");
+
+        for (assembler.errors.items) |err| {
+            try stdout.print("{}: {}:{}:{}: {}\n", .{
+                @tagName(err.type),
+                err.location.?.file,
+                err.location.?.line,
+                err.location.?.column,
+                err.message,
+            });
+        }
+
+        return 1;
+    }
+
     {
         var file = try root_dir.createFile(cli_args.options.output, .{ .truncate = true, .exclusive = false });
         defer file.close();
@@ -165,6 +183,14 @@ pub const Section = struct {
     }
 };
 
+pub const CompileError = struct {
+    pub const Type = enum { @"error", warning };
+
+    location: ?Location,
+    message: []const u8,
+    type: Type,
+};
+
 pub const Assembler = struct {
     const Self = @This();
     const SectionNode = std.TailQueue(Section).Node;
@@ -176,6 +202,7 @@ pub const Assembler = struct {
     sections: std.TailQueue(Section),
     symbols: std.StringHashMap(u16),
     local_symbols: std.StringHashMap(u16),
+    errors: std.ArrayList(CompileError),
 
     // in-flight symbols
     fileName: []const u8,
@@ -206,6 +233,7 @@ pub const Assembler = struct {
             .sections = std.TailQueue(Section).init(),
             .symbols = std.StringHashMap(u16).init(allocator),
             .local_symbols = std.StringHashMap(u16).init(allocator),
+            .errors = std.ArrayList(CompileError).init(allocator),
             .fileName = undefined,
             .directory = undefined,
         };
@@ -231,7 +259,10 @@ pub const Assembler = struct {
             for (section.patches.items) |patch| {
                 self.local_symbols = patch.locals; // hacky
 
-                const value = try self.evaluate(patch.value);
+                const value = self.evaluate(patch.value, true) catch |err| switch (err) {
+                    error.MissingIdentifiers => continue,
+                    else => return err,
+                };
 
                 switch (value) {
                     .number => |n| std.mem.writeIntLittle(u16, section.bytes.items[patch.offset..][0..2], n),
@@ -241,6 +272,17 @@ pub const Assembler = struct {
 
             section.patches.shrink(0);
         }
+    }
+
+    fn emitError(self: *Self, kind: CompileError.Type, token: ?Token, comptime fmt: []const u8, args: var) !void {
+        const msg = try std.fmt.allocPrint(self.allocator, fmt, args);
+        errdefer self.allocator.free(msg);
+
+        try self.errors.append(CompileError{
+            .location = if (token) |t| t.location else null,
+            .type = kind,
+            .message = msg,
+        });
     }
 
     const AssembleError = std.fs.File.OpenError || std.fs.File.ReadError || std.fs.File.SeekError || EvaluationError || error{
@@ -288,13 +330,13 @@ pub const Assembler = struct {
                     if (name[0] == '.') {
                         // local label
                         if (try self.local_symbols.put(name, offset)) |kv| {
-                            return error.DuplicateSymbol;
+                            try self.emitError(.@"error", token.?, "duplicate symbol: {}", .{name});
                         }
                     } else {
                         // global label
                         self.local_symbols = std.StringHashMap(u16).init(self.allocator);
                         if (try self.symbols.put(name, offset)) |kv| {
-                            return error.DuplicateSymbol;
+                            try self.emitError(.@"error", token.?, "duplicate symbol: {}", .{name});
                         }
                     }
                 },
@@ -433,7 +475,7 @@ pub const Assembler = struct {
         fn @".org"(assembler: *Assembler, parser: *Parser) !void {
             const offset_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const offset = try assembler.evaluate(offset_expr.expression);
+            const offset = try assembler.evaluate(offset_expr.expression, true);
             if (offset != .number)
                 return error.TypeMismatch;
 
@@ -448,7 +490,7 @@ pub const Assembler = struct {
         fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
             const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const string = try assembler.evaluate(string_expr.expression);
+            const string = try assembler.evaluate(string_expr.expression, true);
             if (string != .string)
                 return error.TypeMismatch;
 
@@ -458,7 +500,7 @@ pub const Assembler = struct {
         fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
             const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const string = try assembler.evaluate(string_expr.expression);
+            const string = try assembler.evaluate(string_expr.expression, true);
             if (string != .string)
                 return error.TypeMismatch;
             try assembler.emit(string.string);
@@ -469,7 +511,7 @@ pub const Assembler = struct {
         fn @".align"(assembler: *Assembler, parser: *Parser) !void {
             const alignment_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const alignment = try assembler.evaluate(alignment_expr.expression);
+            const alignment = try assembler.evaluate(alignment_expr.expression, true);
             if (alignment != .number)
                 return error.TypeMismatch;
 
@@ -487,7 +529,7 @@ pub const Assembler = struct {
         fn @".space"(assembler: *Assembler, parser: *Parser) !void {
             const size_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const size = try assembler.evaluate(size_expr.expression);
+            const size = try assembler.evaluate(size_expr.expression, true);
             if (size != .number)
                 return error.TypeMismatch;
 
@@ -511,7 +553,7 @@ pub const Assembler = struct {
             while (true) {
                 const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
 
-                const value = try assembler.evaluate(value_expr.expression);
+                const value = try assembler.evaluate(value_expr.expression, true);
                 if (value != .number)
                     return error.TypeMismatch;
 
@@ -534,7 +576,7 @@ pub const Assembler = struct {
             errdefer assembler.allocator.free(name);
 
             const value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
-            const value = try assembler.evaluate(value_expr.expression);
+            const value = try assembler.evaluate(value_expr.expression, true);
             if (value != .number)
                 return error.TypeMismatch;
 
@@ -546,7 +588,7 @@ pub const Assembler = struct {
         fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
             const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const filename = try assembler.evaluate(filename_expr.expression);
+            const filename = try assembler.evaluate(filename_expr.expression, true);
             if (filename != .string)
                 return error.TypeMismatch;
 
@@ -559,7 +601,7 @@ pub const Assembler = struct {
         fn @".include"(assembler: *Assembler, parser: *Parser) !void {
             const filename_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const filename = try assembler.evaluate(filename_expr.expression);
+            const filename = try assembler.evaluate(filename_expr.expression, true);
             if (filename != .string)
                 return error.TypeMismatch;
 
@@ -601,7 +643,7 @@ pub const Assembler = struct {
         var copy = expression;
         errdefer copy.deinit();
 
-        if (assembler.evaluate(copy)) |value| {
+        if (assembler.evaluate(copy, false)) |value| {
             if (value != .number) {
                 if (std.builtin.mode == .Debug) {
                     std.debug.warn("unexpected value: {}\n", .{value});
@@ -658,7 +700,7 @@ pub const Assembler = struct {
     }
 
     const EvaluationError = error{ InvalidExpression, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
-    fn evaluate(assembler: *Assembler, expression: Expression) EvaluationError!Value {
+    fn evaluate(assembler: *Assembler, expression: Expression, emitErrorOnMissing: bool) EvaluationError!Value {
         var stack = std.ArrayList(Value).init(assembler.allocator);
         defer stack.deinit();
 
@@ -669,8 +711,8 @@ pub const Assembler = struct {
                 .identifier => if (assembler.symbols.get(item.text)) |sym|
                     try stack.append(Value{ .number = sym.value })
                 else {
-                    if (std.builtin.mode == .Debug) {
-                        // std.debug.warn("missing identifier: `{}`\n", .{item.text});
+                    if (emitErrorOnMissing) {
+                        try assembler.emitError(.@"error", item, "Missing identifier: {}", .{item.text});
                     }
                     return error.MissingIdentifiers;
                 },
@@ -678,8 +720,8 @@ pub const Assembler = struct {
                 .dot_identifier => if (assembler.local_symbols.get(item.text)) |sym|
                     try stack.append(Value{ .number = sym.value })
                 else {
-                    if (std.builtin.mode == .Debug) {
-                        // std.debug.warn("missing local identifier: `{}`\n", .{item.text});
+                    if (emitErrorOnMissing) {
+                        try assembler.emitError(.@"error", item, "Missing identifier: {}", .{item.text});
                     }
                     return error.MissingIdentifiers;
                 },
@@ -937,16 +979,24 @@ pub const TokenType = enum {
     }
 };
 
+pub const Location = struct {
+    file: ?[]const u8,
+    line: u32,
+    column: u32,
+};
+
 pub const Token = struct {
     const Self = @This();
 
     text: []const u8,
     type: TokenType,
+    location: Location,
 
     fn duplicate(self: Self, allocator: *std.mem.Allocator) !Self {
         return Self{
             .type = self.type,
             .text = try std.mem.dupe(allocator, u8, self.text),
+            .location = self.location,
         };
     }
 };
@@ -956,6 +1006,7 @@ pub const Parser = struct {
     source: []u8,
     offset: usize,
     peeked_token: ?Token,
+    current_location: Location,
 
     const Self = @This();
 
@@ -965,6 +1016,11 @@ pub const Parser = struct {
             .source = try stream.readAllAlloc(allocator, 16 << 20), // 16 MB
             .offset = 0,
             .peeked_token = null,
+            .current_location = Location{
+                .line = 1,
+                .column = 1,
+                .file = null,
+            },
         };
     }
 
@@ -974,6 +1030,11 @@ pub const Parser = struct {
             .source = text,
             .offset = 0,
             .peeked_token = null,
+            .current_location = Location{
+                .line = 1,
+                .column = 1,
+                .file = null,
+            },
         };
     }
 
@@ -1043,6 +1104,7 @@ pub const Parser = struct {
         return Token{
             .text = parser.source[parser.offset..][0..1],
             .type = t,
+            .location = parser.current_location,
         };
     }
 
@@ -1081,6 +1143,7 @@ pub const Parser = struct {
     }
 
     fn parseRaw(parser: *Self) !?Token {
+
         // Return a .line_break when we reached the end of the file
         // Prevents a whole class of errors in the rest of the code :)
         if (parser.offset == parser.source.len) {
@@ -1088,6 +1151,7 @@ pub const Parser = struct {
             return Token{
                 .text = "\n",
                 .type = .line_break,
+                .location = parser.current_location,
             };
         } else if (parser.offset >= parser.source.len) {
             return null;
@@ -1103,6 +1167,7 @@ pub const Parser = struct {
                 break :blk Token{
                     .type = .comment,
                     .text = parser.source[parser.offset..off],
+                    .location = parser.current_location,
                 };
             },
 
@@ -1136,11 +1201,13 @@ pub const Parser = struct {
                     break :blk Token{
                         .type = .label,
                         .text = parser.source[parser.offset..off],
+                        .location = parser.current_location,
                     };
                 } else {
                     break :blk Token{
                         .type = .dot_identifier,
                         .text = parser.source[parser.offset..off],
+                        .location = parser.current_location,
                     };
                 }
             },
@@ -1157,11 +1224,13 @@ pub const Parser = struct {
                     break :blk Token{
                         .type = .operator_asr,
                         .text = parser.source[parser.offset..][0..3],
+                        .location = parser.current_location,
                     };
                 } else {
                     break :blk Token{
                         .type = .operator_shr,
                         .text = parser.source[parser.offset..][0..2],
+                        .location = parser.current_location,
                     };
                 }
             },
@@ -1174,6 +1243,7 @@ pub const Parser = struct {
                 break :blk Token{
                     .type = .operator_shl,
                     .text = parser.source[parser.offset..][0..2],
+                    .location = parser.current_location,
                 };
             },
 
@@ -1203,6 +1273,7 @@ pub const Parser = struct {
                             break :blk Token{
                                 .type = num_type,
                                 .text = parser.source[parser.offset..off],
+                                .location = parser.current_location,
                             };
                         },
                         '0'...'9' => {
@@ -1214,17 +1285,20 @@ pub const Parser = struct {
                             break :blk Token{
                                 .type = .dec_number,
                                 .text = parser.source[parser.offset..off],
+                                .location = parser.current_location,
                             };
                         },
                         else => break :blk Token{
                             .type = .dec_number,
                             .text = parser.source[parser.offset .. parser.offset + 1],
+                            .location = parser.current_location,
                         },
                     }
                 } else {
                     break :blk Token{
                         .type = .dec_number,
                         .text = parser.source[parser.offset .. parser.offset + 1],
+                        .location = parser.current_location,
                     };
                 }
             },
@@ -1240,11 +1314,13 @@ pub const Parser = struct {
                     break :blk Token{
                         .type = .label,
                         .text = parser.source[parser.offset..off],
+                        .location = parser.current_location,
                     };
                 } else {
                     break :blk Token{
                         .type = .identifier,
                         .text = parser.source[parser.offset..off],
+                        .location = parser.current_location,
                     };
                 }
             },
@@ -1275,6 +1351,7 @@ pub const Parser = struct {
                     else
                         .string_literal,
                     .text = parser.source[parser.offset..off],
+                    .location = parser.current_location,
                 };
             },
 
@@ -1287,6 +1364,15 @@ pub const Parser = struct {
         };
 
         parser.offset += token.text.len;
+
+        for (token.text) |c| {
+            if (c == '\n') {
+                parser.current_location.line += 1;
+                parser.current_location.column = 1;
+            } else {
+                parser.current_location.column += 1;
+            }
+        }
 
         return token;
     }

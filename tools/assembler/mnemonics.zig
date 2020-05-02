@@ -43,8 +43,8 @@ pub const mnemonics = [_]Mnemonic{
     Mnemonic{ .name = "mul", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .mul, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "div", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .div, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "mod", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .mod, .output = .push, .modify_flags = false } },
-    Mnemonic{ .name = "@\"and\"", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .@"and", .output = .push, .modify_flags = false } },
-    Mnemonic{ .name = "@\"or\"", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .@"or", .output = .push, .modify_flags = false } },
+    Mnemonic{ .name = "and", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .@"and", .output = .push, .modify_flags = false } },
+    Mnemonic{ .name = "or", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .@"or", .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "xor", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .xor, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "add", .argc = 1, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .add, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "sub", .argc = 1, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .sub, .output = .push, .modify_flags = false } },
@@ -66,4 +66,5 @@ pub const mnemonics = [_]Mnemonic{
     Mnemonic{ .name = "cmp", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .sub, .output = .discard, .modify_flags = true } },
     Mnemonic{ .name = "cmp", .argc = 1, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .sub, .output = .discard, .modify_flags = true } },
     Mnemonic{ .name = "cmpp", .argc = 1, .instruction = .{ .condition = .always, .input0 = .peek, .input1 = .immediate, .command = .sub, .output = .discard, .modify_flags = true } },
+    Mnemonic{ .name = "sgnext", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .signext, .output = .push, .modify_flags = false } },
 };
