@@ -278,8 +278,13 @@ pub const Assembler = struct {
         const msg = try std.fmt.allocPrint(self.allocator, fmt, args);
         errdefer self.allocator.free(msg);
 
+        var location = if (token) |t| t.location else null;
+        if (location) |*l| {
+            l.file = self.fileName;
+        }
+
         try self.errors.append(CompileError{
-            .location = if (token) |t| t.location else null,
+            .location = location,
             .type = kind,
             .message = msg,
         });
@@ -476,8 +481,9 @@ pub const Assembler = struct {
             const offset_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
             const offset = try assembler.evaluate(offset_expr.expression, true);
-            if (offset != .number)
-                return error.TypeMismatch;
+            if (offset != .number) {
+                return try assembler.emitError(.@"error", offset_expr.expression.sequence[0], "Type mismatch: Expected number, found {}", .{@tagName(offset)});
+            }
 
             const sect = if (assembler.currentSection().bytes.items.len == 0)
                 assembler.currentSection()

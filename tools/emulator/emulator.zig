@@ -128,7 +128,7 @@ pub const Emulator = struct {
             switch (@bitCast(u16, instruction)) {
                 0x8000 => self.tracing = false,
                 0x8001 => self.tracing = true,
-
+                0x8002 => try @import("root").dumpState(self),
                 else => return error.BadInstruction,
             }
             return;

@@ -6,6 +6,38 @@ usingnamespace @import("emulator.zig");
 
 extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
 
+pub fn dumpState(emu: *Emulator) !void {
+    const stdout = std.io.getStdOut().outStream();
+    try stdout.print(
+        "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={}\r\n",
+        .{
+            emu.ip,
+            emu.sp,
+            emu.bp,
+            @bitCast(u16, emu.fr),
+            emu.bus_addr,
+            @tagName(emu.stage),
+        },
+    );
+
+    try stdout.writeAll("stack:\n");
+
+    var offset: i8 = -4;
+    while (offset <= 4) : (offset += 1) {
+        const msg: []const u8 = if (offset == 0) " <-" else ""; // workaround for tuple bug
+        const addr = if (offset < 0) emu.sp -% @intCast(u8, -2 * offset) else emu.sp +% @intCast(u8, 2 * offset);
+        const msg_2: []const u8 = if (addr == emu.bp) " (BASE)" else "";
+        const value = emu.readWord(addr) catch @as(u16, 0xAAAA);
+        try stdout.print("  {X:0>4}: [SP{:0>2}]={X:0>4}{}{}\r\n", .{
+            addr,
+            offset,
+            value,
+            msg,
+            msg_2,
+        });
+    }
+}
+
 pub fn main() !u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         help: bool = false,
@@ -103,39 +135,17 @@ pub fn main() !u8 {
         }
 
         const time = timer.read();
-        try std.io.getStdOut().outStream().print(
-            "\n{}: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={} TIME={}ns COUNT={} IPS={}\n",
-            .{
-                @errorName(err),
-                emu.ip,
-                emu.sp,
-                emu.bp,
-                @bitCast(u16, emu.fr),
-                emu.bus_addr,
-                @tagName(emu.stage),
-                time,
-                emu.count,
-                std.time.second * emu.count / time,
-            },
-        );
 
-        try std.io.getStdOut().outStream().writeAll("stack:\n");
+        try std.io.getStdOut().outStream().print("\nerror: {}\n", .{
+            @errorName(err),
+        });
 
-        var offset: i8 = -4;
-        while (offset <= 4) : (offset += 1) {
-            const msg: []const u8 = if (offset == 0) " <-" else ""; // workaround for tuple bug
-            const addr = if (offset < 0) emu.sp -% @intCast(u8, -2 * offset) else emu.sp +% @intCast(u8, 2 * offset);
-            const msg_2: []const u8 = if (addr == emu.bp) " (BASE)" else "";
-            try std.io.getStdOut().outStream().print("  {X:0>4}: [SP{:0>2}]={X:0>4}{}{}\n", .{
-                addr,
-                offset,
-                try emu.readWord(addr),
-                msg,
-                msg_2,
-            });
+        try dumpState(&emu);
+
+        switch (err) {
+            error.BusError, error.UserBreak => return 1,
+            else => return err,
         }
-
-        return err;
     };
 
     return 0;

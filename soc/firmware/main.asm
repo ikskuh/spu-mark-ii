@@ -28,6 +28,7 @@ bios_jumptable:
 ; this restarts the computer
 bios_entrypoint:
 	spset 0x7000    ; 128 Element Stack
+	bpset 0x7000    ; Stack bottom
 
 	push bios_startup_msg
 	ipget 2
@@ -124,11 +125,84 @@ bios_load_ihex:
 	cmp ':'
 	[ex:less] jmp .wait_for_record 
 
-	push 0
+	push 0 ; record_len = -1
 	ipget 2
 	jmp bios_rcv_hexbyte
 
+	push 0 ; record offset = -2
+	ipget 2
+	jmp bios_rcv_hexbyte
+	bswap ; move received byte to high byte
+
+	push 0 ; record offset (lowbyte)
+	ipget 2
+	jmp bios_rcv_hexbyte
+	or ; combine low and high byte of recevied data
+
+	push 0 ; record type = -3
+	ipget 2
+	jmp bios_rcv_hexbyte
+
+	cmpp 0x00 ; is data?
+	[ex:zero] jmp .read_data
+
+	cmpp 0x01 ; is end-of-data?
+	[ex:zero] jmp .read_eof
+
+	pop ; type
+	pop ; offset
+	pop ; length
+
+	jmp .wait_for_record
+
+.read_data:
+
+	get 0-1 [f:yes] ; get len
+
+.read_data_loop:
+	[ex:zero] jmp .read_data_done
+
+	push 0 ; data byte
+	ipget 2
+	jmp bios_rcv_hexbyte
+	
+	get 0-2 ; offset
+	add 1 [i0:peek] ; duplcate and push inc + 1
+	set 0-2
+
+	st8
+
+	sub 1 [f:yes] ; subtract 1 from length
+
+	st 0x4000, '.'
+
+	jmp .read_data_loop
+
+.read_data_done:
+	; push 0 ; checksum = -4, already pushed by `[ex:zero] jmp .read_data` *scream*
+	ipget 2
+	jmp bios_rcv_hexbyte
+	pop ; cs
+	pop ; type
+	pop ; offset
+	pop ; length
+
+	st 0x4000, '\r'
+	st 0x4000, '\n'
+
+	jmp .wait_for_record
+
+.read_eof:
+	push 0 ; checksum = -4
+	ipget 2
+	jmp bios_rcv_hexbyte
+	pop ; cs
+	pop ; type
+	pop ; offset
+	pop ; length
+
 	jmp bios_mainmenu
+
 
 bios_load_ihex_msg:
 	.asciiz "\r\nawaiting ihex file...\r\n"
