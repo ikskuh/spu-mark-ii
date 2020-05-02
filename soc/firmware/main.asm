@@ -1,3 +1,7 @@
+
+
+.include "../../apps/library/ascii.inc"
+
 .org 0x0000
 	jmp bios_entrypoint
 
@@ -34,8 +38,8 @@ bios_entrypoint:
 	jmp bios_mainmenu
 
 bios_startup_msg:
-	.db    0x1B, '[', 'H' ; Home Cursor
-	.db    0x1B, '[', 'J' ; Erase Display
+	.db    ASCII_ESC, '[', 'H' ; Home Cursor
+	.db    ASCII_ESC, '[', 'J' ; Erase Display
 	.ascii ".==========================.\r\n"
 	.ascii "| ASHET HOME COMPUTER BIOS |\r\n"
 	.ascii "'=========================='\r\n"
@@ -47,11 +51,11 @@ bios_startup_msg:
 ; the main menu of the Ashet BIOS
 ; 
 bios_mainmenu:
-	st 0x4000, '\r'
+	st 0x4000, ASCII_CR
 	st 0x4000, '>'
 	st 0x4000, ' '
 	st 0x4000, ' '
-	st 0x4000, '\b'
+	st 0x4000, ASCII_BS
 
 bios_mainmenu_waitkey:
 	ld 0x4000 [f:yes]
@@ -64,6 +68,9 @@ bios_mainmenu_waitkey:
 
 	cmpp 'g' 
 	[ex:zero] jmp bios_start_app [i1:pop] ; jmp and discard
+
+	cmpp 'x' 
+	[ex:zero] jmp bios_readline_demo [i1:pop] ; jmp and discard
 
 	pop ; eat the input
 
@@ -129,16 +136,47 @@ puts_loop:
 ; clears the serial terminal
 serial_clear_screen:
  ; Home Cursor
-	st 0x4000, 0x1B
+	st 0x4000, ASCII_ESC
 	st 0x4000, '['
 	st 0x4000, 'H'
 	
 	; Erase Display
-	st 0x4000, 0x1B
+	st 0x4000, ASCII_ESC
 	st 0x4000, '['
 	st 0x4000, 'J' 
 
 	ret
+
+bios_readline_demo:
+
+	st 0x4000, ASCII_CR
+	st 0x4000, ASCII_LF
+
+	st 0x4000, '$'
+	st 0x4000, ' '
+
+	push 32
+	push bios_readline_demo_buf
+	ipget 2
+	jmp serial_read_line
+	pop
+	pop
+
+	st 0x4000, ASCII_CR
+	st 0x4000, ASCII_LF
+
+	st 0x4000, '>'
+	push bios_readline_demo_buf
+	ipget 2
+	jmp serial_puts
+	pop
+	st 0x4000, '<'
+
+	st 0x4000, ASCII_CR
+	st 0x4000, ASCII_LF
+
+	jmp bios_mainmenu
+
 
 ; fn(str: *u8, len: u16) void
 ; reads a line from the serial terminal. Allows the user to edit the text
@@ -152,11 +190,82 @@ serial_read_line:
 	spget
 	bpset
 
+	; len=3
+	; str=2
+	; ret=1
+	; bpc=0
+	; off=-1
 
+	push 0 ; offset = -1
+.input_loop:
+	ld 0x4000 [f:yes]
+	[ex:less] jmp .input_loop [i1:pop]
 
+	cmpp ASCII_ESC
+	[ex:zero] jmp .clr_input_and_return
+
+	cmpp ASCII_CR
+	[ex:zero] jmp .return ; accept input
+
+	cmpp ASCII_RUB
+	[ex:zero] jmp .delchr [i1:pop]
+
+	cmpp 0x20                 ; when "control"
+	[ex:less] jmp .input_loop ; don't accept character as input and store it
+
+	; .dw 0x8001 ; enable tracing
+
+	; check if our offset exceeds the length
+	get 0-1
+	get 3
+	sub 1 ; subtract byte for NUL terminator
+	cmp
+	[ex:lequal] jmp .input_loop [i1:pop] ; discard input, text too long
+
+	; echo character to serial port
+	st8 0x4000 [i1:peek]
+
+	; calculate target address
+	get 2
+	get 0-1
+	add
+	; store into target string
+	st8
+
+	add 1 ; increment offset
+	get 2
+	add [i1:peek] ; calculate next addr
+	st8 [i0:pop] [i1:imm] ASCII_NUL ; write NUL terminator
+
+	jmp .input_loop
+
+.delchr:
+	cmpp 0
+	[ex:zero] jmp .input_loop ; don't delete when string is zero-length
+
+	; subtract one, store NUL terminator to new pos
+	sub 1
+	get 2
+	add [i1:peek]
+	st8 [i0:pop] [i1:imm] ASCII_NUL
+
+	; erase character from terminal
+	st8 0x4000, ASCII_BS
+	st8 0x4000, ' '
+	st8 0x4000, ASCII_BS
+
+	jmp .input_loop
+
+.clr_input_and_return:
+	get 2
+	st8 [i0:pop] [i1:imm] ASCII_NUL
+.return:
 	bpget
 	spset
 	bpset
 	ret
 
-; end of file
+; end of code
+.org 0x6000
+bios_readline_demo_buf:
+.space 32

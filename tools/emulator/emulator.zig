@@ -24,6 +24,8 @@ pub const Emulator = struct {
 
     count: u64 = 0,
 
+    tracing: bool = false,
+
     pub fn init() Self {
         return Self{
             .rom = [1]u8{0} ** 16384,
@@ -119,6 +121,16 @@ pub const Emulator = struct {
         self.stage = .decode;
         const instruction = @bitCast(Instruction, try self.fetch());
 
+        if (instruction.reserved == 1) {
+            switch (@bitCast(u16, instruction)) {
+                0x8000 => self.tracing = false,
+                0x8001 => self.tracing = true,
+
+                else => return error.BadInstruction,
+            }
+            return;
+        }
+
         const execute = switch (instruction.condition) {
             .always => true,
             .when_zero => self.fr.zero,
@@ -149,9 +161,9 @@ pub const Emulator = struct {
             const output = switch (instruction.command) {
                 .copy => input0,
                 .ipget => self.ip +% 2 *% input0,
-                .get => try self.readWord(self.bp + 2 *% input0),
+                .get => try self.readWord(self.bp +% 2 *% input0),
                 .set => blk: {
-                    try self.writeWord(self.bp + 2 *% input0, input1);
+                    try self.writeWord(self.bp +% 2 *% input0, input1);
                     break :blk input1;
                 },
                 .store8 => blk: {
@@ -226,14 +238,13 @@ pub const Emulator = struct {
                 self.fr.negative = (output & 0x8000) != 0;
                 self.fr.zero = (output == 0x0000);
             }
-            // std.debug.warn(
-            //     \\------------------------
-            //     \\instr={}
-            //     \\input0={}
-            //     \\input1={}
-            //     \\output={}
-            //     \\
-            // , .{ instruction, input0, input1, output });
+            if (self.tracing) {
+                std.debug.warn("------------------------\r\n" ++
+                    "instr={}\r\n" ++
+                    "input0={X:0>4}\r\n" ++
+                    "input1={X:0>4}\r\n" ++
+                    "output={X:0>4}\r\n", .{ instruction, input0, input1, output });
+            }
         } else {
             if (instruction.input0 == .immediate) self.ip +%= 2;
             if (instruction.input1 == .immediate) self.ip +%= 2;

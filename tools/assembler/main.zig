@@ -140,6 +140,7 @@ pub fn main() !u8 {
 pub const Patch = struct {
     offset: u16,
     value: Expression,
+    locals: std.StringHashMap(u16),
 };
 
 pub const Section = struct {
@@ -228,6 +229,8 @@ pub const Assembler = struct {
             const section = &section_node.data;
 
             for (section.patches.items) |patch| {
+                self.local_symbols = patch.locals; // hacky
+
                 const value = try self.evaluate(patch.value);
 
                 switch (value) {
@@ -289,7 +292,7 @@ pub const Assembler = struct {
                         }
                     } else {
                         // global label
-                        self.local_symbols.clear();
+                        self.local_symbols = std.StringHashMap(u16).init(self.allocator);
                         if (try self.symbols.put(name, offset)) |kv| {
                             return error.DuplicateSymbol;
                         }
@@ -619,6 +622,7 @@ pub const Assembler = struct {
                 try sect.patches.append(Patch{
                     .offset = ptr,
                     .value = copy,
+                    .locals = assembler.local_symbols,
                 });
             },
             else => return err,
@@ -1312,6 +1316,7 @@ pub const Parser = struct {
                 .bin_number,
                 .dot,
                 .identifier,
+                .dot_identifier,
                 .char_literal,
                 .string_literal,
 
@@ -1339,7 +1344,7 @@ pub const Parser = struct {
                     break :input_loop tok;
             }
             switch (tok.type) {
-                .dec_number, .hex_number, .oct_number, .bin_number, .dot, .identifier, .char_literal, .string_literal => {
+                .dec_number, .hex_number, .oct_number, .bin_number, .dot, .identifier, .dot_identifier, .char_literal, .string_literal => {
                     try sequence.append(tok);
                 },
 

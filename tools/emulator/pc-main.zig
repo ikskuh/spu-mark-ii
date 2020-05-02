@@ -118,6 +118,23 @@ pub fn main() !u8 {
                 std.time.second * emu.count / time,
             },
         );
+
+        try std.io.getStdOut().outStream().writeAll("stack:\n");
+
+        var offset: i8 = -4;
+        while (offset <= 4) : (offset += 1) {
+            const msg: []const u8 = if (offset == 0) " <-" else ""; // workaround for tuple bug
+            const addr = if (offset < 0) emu.sp -% @intCast(u8, -2 * offset) else emu.sp +% @intCast(u8, 2 * offset);
+            const msg_2: []const u8 = if (addr == emu.bp) " (BASE)" else "";
+            try std.io.getStdOut().outStream().print("  {X:0>4}: [SP{:0>2}]={X:0>4}{}{}\n", .{
+                addr,
+                offset,
+                try emu.readWord(addr),
+                msg,
+                msg_2,
+            });
+        }
+
         return err;
     };
 

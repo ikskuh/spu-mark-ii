@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const ExecutionCondition = enum(u3) {
     always = 0,
     when_zero = 1,
@@ -66,6 +68,80 @@ pub const Instruction = packed struct {
     output: OutputBehaviour,
     command: Command,
     reserved: u1 = 0,
+
+    pub fn format(instr: Instruction, comptime fmt: []const u8, options: std.fmt.FormatOptions, out: var) !void {
+        try out.writeAll(switch (instr.condition) {
+            .always => "    ",
+            .when_zero => "== 0",
+            .not_zero => "!= 0",
+            .greater_zero => " > 0",
+            .less_than_zero => " < 0",
+            .greater_or_equal_zero => ">= 0",
+            .less_or_equal_zero => "<= 0",
+            .overflow => "ovfl",
+        });
+        try out.writeAll(" ");
+        try out.writeAll(switch (instr.input0) {
+            .zero => "zero",
+            .immediate => "imm ",
+            .peek => "peek",
+            .pop => "pop ",
+        });
+        try out.writeAll(" ");
+        try out.writeAll(switch (instr.input1) {
+            .zero => "zero",
+            .immediate => "imm ",
+            .peek => "peek",
+            .pop => "pop ",
+        });
+        try out.writeAll(" ");
+        try out.writeAll(switch (instr.command) {
+            .copy => "copy     ",
+            .ipget => "ipget    ",
+            .get => "get      ",
+            .set => "set      ",
+            .store8 => "store8   ",
+            .store16 => "store16  ",
+            .load8 => "load8    ",
+            .load16 => "load16   ",
+            .undefined0 => "undefined",
+            .undefined1 => "undefined",
+            .frget => "frget    ",
+            .frset => "frset    ",
+            .bpget => "bpget    ",
+            .bpset => "bpset    ",
+            .spget => "spget    ",
+            .spset => "spset    ",
+            .add => "add      ",
+            .sub => "sub      ",
+            .mul => "mul      ",
+            .div => "div      ",
+            .mod => "mod      ",
+            .@"and" => "and      ",
+            .@"or" => "or       ",
+            .xor => "xor      ",
+            .not => "not      ",
+            .signext => "signext  ",
+            .rol => "rol      ",
+            .ror => "ror      ",
+            .bswap => "bswap    ",
+            .asr => "asr      ",
+            .lsl => "lsl      ",
+            .lsr => "lsr      ",
+        });
+        try out.writeAll(" ");
+        try out.writeAll(switch (instr.output) {
+            .discard => "discard",
+            .push => "push   ",
+            .jump => "jmp    ",
+            .jump_relative => "rjmp   ",
+        });
+        try out.writeAll(" ");
+        try out.writeAll(if (instr.modify_flags)
+            "+ flags"
+        else
+            "       ");
+    }
 };
 
 pub const FlagRegister = packed struct {
