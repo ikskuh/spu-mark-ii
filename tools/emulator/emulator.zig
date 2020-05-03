@@ -242,13 +242,7 @@ pub const Emulator = struct {
                 self.fr.zero = (output == 0x0000);
             }
             if (self.tracing) {
-                std.debug.warn("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
-                    start_ip,
-                    instruction,
-                    input0,
-                    input1,
-                    output,
-                });
+                try @import("root").dumpTrace(self, start_ip, instruction, input0, input1, output);
             }
         } else {
             if (instruction.input0 == .immediate) self.ip +%= 2;

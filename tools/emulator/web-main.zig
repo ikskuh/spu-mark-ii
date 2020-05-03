@@ -1,15 +1,23 @@
 const std = @import("std");
 
 usingnamespace @import("emulator.zig");
+usingnamespace @import("spu-mk2");
 
 var emulator: Emulator = undefined;
 
 const bootrom = @embedFile("../../soc/firmware/firmware.bin");
 
-export fn init() void {
-    emulator = Emulator.init();
+pub fn dumpState(emu: *Emulator) !void {}
 
-    std.mem.copy(u8, &emulator.rom, bootrom);
+pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) !void {}
+
+export fn init() void {
+    serialWrite("a", 1);
+    emulator = Emulator.init();
+    serialWrite("b", 1);
+
+    std.mem.copy(u8, &emulator.rom, bootrom[0..std.math.min(emulator.rom.len, bootrom.len)]);
+    serialWrite("c", 1);
 }
 
 export fn run(steps: u32) u32 {
@@ -39,3 +47,10 @@ pub const SerialEmulator = struct {
         serialWrite(&[_]u8{@truncate(u8, value)}, 1);
     }
 };
+
+// pub fn panic(message: []const u8, stackTrace: ?*std.builtin.StackTrace) noreturn {
+//     serialWrite(message.ptr, message.len);
+
+//     // @breakpoint();
+//     unreachable;
+// }

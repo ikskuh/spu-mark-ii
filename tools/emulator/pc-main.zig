@@ -3,6 +3,7 @@ const argsParser = @import("args");
 const ihex = @import("ihex");
 
 usingnamespace @import("emulator.zig");
+usingnamespace @import("spu-mk2");
 
 extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
 
@@ -36,6 +37,17 @@ pub fn dumpState(emu: *Emulator) !void {
             msg_2,
         });
     }
+}
+
+pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) !void {
+    const stdout = std.io.getStdOut().outStream();
+    try stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
+        ip,
+        instruction,
+        input0,
+        input1,
+        output,
+    });
 }
 
 pub fn main() !u8 {

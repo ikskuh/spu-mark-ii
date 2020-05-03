@@ -125,13 +125,6 @@ pub fn build(b: *std.build.Builder) !void {
     test_step.dependOn(&b.addTest("tools/make-vhd/main.zig").step);
     test_step.dependOn(&b.addTest("tools/hex2bin/main.zig").step);
 
-    const wasm_emulator = b.addStaticLibrary("emulator", "tools/emulator/web-main.zig");
-    wasm_emulator.addPackage(packages.ihex);
-    wasm_emulator.addPackage(packages.spumk2);
-    wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
-    wasm_emulator.setBuildMode(.ReleaseSafe);
-    wasm_emulator.install();
-
     const make_vhd = b.addExecutable("make-vhd", "tools/make-vhd/main.zig");
     make_vhd.addPackage(packages.args);
     make_vhd.setTarget(target);
@@ -178,6 +171,14 @@ pub fn build(b: *std.build.Builder) !void {
     emulate_cmd.addArgs(&[_][]const u8{
         "./soc/firmware/firmware.hex",
     });
+
+    const wasm_emulator = b.addStaticLibrary("emulator", "tools/emulator/web-main.zig");
+    wasm_emulator.addPackage(packages.ihex);
+    wasm_emulator.addPackage(packages.spumk2);
+    wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
+    wasm_emulator.setBuildMode(.ReleaseSafe);
+    wasm_emulator.step.dependOn(&gen_firmware_blob.step);
+    wasm_emulator.install();
 
     const emulate_step = b.step("emulate", "Run the emulator");
     emulate_step.dependOn(&emulate_cmd.step);

@@ -79,12 +79,5 @@ fetch('emulator.wasm')
     });
 
 
-term.onKey((e) => {
-  const event = e.domEvent;
-
-  if (event.key.length != 1) {
-    return;
-  }
-  wasmContext.inputBuffer += event.key;
-});
+term.onData(data => wasmContext.inputBuffer += data);
 term.focus();

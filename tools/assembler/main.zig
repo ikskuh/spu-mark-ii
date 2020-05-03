@@ -167,6 +167,7 @@ pub const Section = struct {
     offset: u16,
     bytes: std.ArrayList(u8),
     patches: std.ArrayList(Patch),
+    dot_offset: u16,
 
     fn deinit(self: *Self) void {
         self.bytes.deinit();
@@ -180,6 +181,10 @@ pub const Section = struct {
 
     fn getGlobalOffset(sect: Self) u16 {
         return @intCast(u16, sect.offset + sect.bytes.items.len);
+    }
+
+    fn getDotOffset(sect: Self) u16 {
+        return sect.dot_offset;
     }
 };
 
@@ -216,6 +221,7 @@ pub const Assembler = struct {
             .offset = offset,
             .bytes = std.ArrayList(u8).init(assembler.allocator),
             .patches = std.ArrayList(Patch).init(assembler.allocator),
+            .dot_offset = offset,
         });
 
         assembler.sections.append(node);
@@ -319,6 +325,9 @@ pub const Assembler = struct {
 
             if (token == null) // end of file
                 break;
+
+            // Update the dot offset to the start of the next *thing*.
+            self.currentSection().dot_offset = self.currentSection().getGlobalOffset();
 
             switch (token.?.type) {
                 // process directive
@@ -751,7 +760,7 @@ pub const Assembler = struct {
                     });
                 },
                 .dot => try stack.append(Value{
-                    .number = @intCast(u16, assembler.currentSection().getGlobalOffset()),
+                    .number = @intCast(u16, assembler.currentSection().getDotOffset()),
                 }),
 
                 // String literal
