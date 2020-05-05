@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="videoram" module="RAM_DP_TRUE" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 05 04 22:13:57.819" version="7.5" type="Module" synthesis="lse" source_format="VHDL">
+  <Package>
+		<File name="" type="mem" modified="2020 05 04 22:13:57.000"/>
+		<File name="tb_videoram_tmpl.vhd" type="testbench_vhdl" modified="2020 05 04 22:13:56.000"/>
+		<File name="videoram.lpc" type="lpc" modified="2020 05 04 22:13:56.000"/>
+		<File name="videoram.vhd" type="top_level_vhdl" modified="2020 05 04 22:13:56.000"/>
+		<File name="videoram_tmpl.vhd" type="template_vhdl" modified="2020 05 04 22:13:56.000"/>
+  </Package>
+</DiamondModule>

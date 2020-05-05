@@ -13,7 +13,7 @@ end entity tb;
 
 architecture test of tb is 
 
-    component video_ram
+    component videoram
         port (DataInA : in std_logic_vector(3 downto 0); 
         DataInB : in std_logic_vector(3 downto 0); 
         AddressA : in std_logic_vector(14 downto 0); 
@@ -41,7 +41,7 @@ architecture test of tb is
     signal QA : std_logic_vector(3 downto 0);
     signal QB : std_logic_vector(3 downto 0);
 begin
-    u1 : video_ram
+    u1 : videoram
         port map (DataInA => DataInA, DataInB => DataInB, AddressA => AddressA, 
             AddressB => AddressB, ClockA => ClockA, ClockB => ClockB, 
             ClockEnA => ClockEnA, ClockEnB => ClockEnB, WrA => WrA, WrB => WrB, 

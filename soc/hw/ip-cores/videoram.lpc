@@ -13,11 +13,11 @@ CoreType=LPM
 CoreStatus=Demo
 CoreName=RAM_DP_TRUE
 CoreRevision=7.5
-ModuleName=video_ram
+ModuleName=videoram
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=04/23/2020
-Time=16:47:47
+Date=05/04/2020
+Time=22:13:56
 
 [Parameters]
 Verilog=0
@@ -31,9 +31,9 @@ RAddress=32768
 RData=4
 WAddress=32768
 WData=4
-ROutputEn=1
+ROutputEn=0
 RClockEn=0
-WOutputEn=1
+WOutputEn=0
 WClockEn=0
 enByte=0
 ByteSize=9
@@ -45,8 +45,8 @@ MemFile=
 MemFormat=bin
 EnECC=0
 Pipeline=0
-WriteA=Normal
-WriteB=Normal
+WriteA=WriteThrough
+WriteB=WriteThrough
 init_data=0
 no_init=0
 
@@ -54,4 +54,4 @@ no_init=0
 =mem
 
 [Command]
-cmd_line= -w -n video_ram -lang vhdl -synth lse -bus_exp 7 -bb -arch xo3c00f -type ramdp -device LCMXO3LF-6900C -aaddr_width 15 -widtha 4 -baddr_width 15 -widthb 4 -anum_words 32768 -bnum_words 32768 -outdataA REGISTERED -outdataB REGISTERED -cascade -1 -resetmode SYNC -sync_reset -mem_init0 -writemodeA NORMAL -writemodeB NORMAL
+cmd_line= -w -n videoram -lang vhdl -synth lse -bus_exp 7 -bb -arch xo3c00f -type ramdp -device LCMXO3LF-6900C -aaddr_width 15 -widtha 4 -baddr_width 15 -widthb 4 -anum_words 32768 -bnum_words 32768 -cascade -1 -mem_init0 -writemodeA WRITETHROUGH -writemodeB WRITETHROUGH

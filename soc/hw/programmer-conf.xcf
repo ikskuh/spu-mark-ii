@@ -20,7 +20,7 @@
 				<BScanVal>0</BScanVal>
 			</Bypass>
 			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.bit</File>
-			<FileTime>04/25/20 17:30:18</FileTime>
+			<FileTime>05/04/20 23:23:28</FileTime>
 			<Operation>SRAM Erase,Program,Verify</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -46,8 +46,8 @@
 	</ProjectOptions>
 	<CableOptions>
 		<CableName>USB2</CableName>
-		<PortAdd>FTUSB-1</PortAdd>
-		<USBID>LATTICE XO3LF STARTER KIT A Location 0001 Serial LATTICE XO3LF STARTER KIT A</USBID>
+		<PortAdd>FTUSB-0</PortAdd>
+		<USBID>LATTICE XO3LF STARTER KIT A Location 0000 Serial LATTICE XO3LF STARTER KIT A</USBID>
 		<JTAGPinSetting>
 			TRST	ABSENT;
 			ISPEN	ABSENT;
