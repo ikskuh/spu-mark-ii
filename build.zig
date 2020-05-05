@@ -46,8 +46,10 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     emulator.addPackage(packages.args);
     emulator.addPackage(packages.ihex);
     emulator.addPackage(packages.spumk2);
+    emulator.linkSystemLibrary("SDL2");
     emulator.setTarget(target);
     emulator.setBuildMode(mode);
+
     if (outputDir) |od| emulator.setOutputDir(od);
 
     const disassembler = b.addExecutable("disassembler", "tools/disassembler/main.zig");

@@ -2,7 +2,7 @@
 -- Module  Version: 5.7
 --/usr/local/diamond/3.11_x64/ispfpga/bin/lin64/scuba -w -n vga_pll -lang vhdl -synth lse -arch xo3c00f -type pll -fin 12 -fclkop 48 -fclkop_tol 0.0 -trimp 0 -phasep 0 -trimp_r -phase_cntl STATIC -fb_mode 1 -lock 
 
--- Mon May  4 21:26:31 2020
+-- Tue May  5 22:16:29 2020
 
 library IEEE;
 use IEEE.std_logic_1164.all;

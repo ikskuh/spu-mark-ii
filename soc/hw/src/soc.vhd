@@ -17,6 +17,11 @@ ENTITY SOC IS
     sram_we       : out   std_logic;
     sram_oe       : out   std_logic;
     sram_ce       : out   std_logic;
+    vga_r         : out std_logic_vector(1 downto 0);
+    vga_g         : out std_logic_vector(1 downto 0);
+    vga_b         : out std_logic_vector(1 downto 0);
+    vga_hs        : out std_logic;
+    vga_vs        : out std_logic;
     dbg_miso_data : in    std_logic;
     dbg_mosi_data : out   std_logic;
     logic_dbg     : out   std_logic_vector(7 downto 0)
@@ -185,8 +190,28 @@ ARCHITECTURE rtl OF SOC IS
       recv : out std_logic   -- when '1', data transmission is complete. this bit is only set for 1 clk cycle
     );
   END COMPONENT UART_Receiver;
+
+	COMPONENT VGA_Driver IS
+	PORT (
+		clk           : in  std_logic;
+		rst           : in  std_logic;
+		vga_r         : out std_logic_vector(1 downto 0);
+		vga_g         : out std_logic_vector(1 downto 0);
+		vga_b         : out std_logic_vector(1 downto 0);
+		vga_hs        : out std_logic;
+		vga_vs        : out std_logic;
+
+		bus_data_out    : out std_logic_vector(15 downto 0);
+		bus_data_in     : in  std_logic_vector(15 downto 0);
+		bus_address     : in std_logic_vector(15 downto 1);
+		bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+		bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+		bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+	);
+	END COMPONENT VGA_Driver;
   
-  CONSTANT clkfreq : natural := 12_000_000;
+  CONSTANT clkfreq : natural := 48_000_000;
 
   TYPE TDebugState IS (
       -- Standard State
@@ -294,6 +319,9 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL rom0_ack : std_logic;
   SIGNAL rom0_out : std_logic_vector(15 downto 0);
 
+  SIGNAL vga_select : std_logic;
+  SIGNAL vga_ack : std_logic;
+  SIGNAL vga_out : std_logic_vector(15 downto 0);
 
   SIGNAL sim_bus_address :  std_logic_vector(15 downto 0);
 
@@ -356,7 +384,7 @@ BEGIN
     );
 
   uart0 : Serial_Port
-    GENERIC MAP (clkfreq  => 12_000_000, baudrate => 19200)
+    GENERIC MAP (clkfreq  => clkfreq, baudrate => 19200)
     PORT MAP (
       rst             => rst,
       clk             => clk,
@@ -402,6 +430,26 @@ BEGIN
       bus_acknowledge => ram1_ack
     );
 
+
+  vga: VGA_Driver
+		PORT MAP (
+			clk            => clk,
+      rst            => rst,
+      --
+			vga_r          => vga_r,
+			vga_g          => vga_g,
+			vga_b          => vga_b,
+			vga_hs         => vga_hs,
+      vga_vs         => vga_vs,
+      -- 
+      bus_data_out    => vga_out,
+      bus_data_in     => bus_data_out,
+      bus_address     => bus_address, 
+      bus_write       => bus_write,
+      bus_bls         => bus_bls,
+      bus_request     => vga_select,
+      bus_acknowledge => vga_ack
+		);
   
 
   -- General Combinatorics
@@ -425,18 +473,21 @@ BEGIN
   rom0_select  <= bus_request when bus_address(15 downto 14) = "00"  else '0'; -- 0x0***
   uart0_select <= bus_request when bus_address(15 downto 13) = "010" else '0'; -- 0x4***
   ram0_select  <= bus_request when bus_address(15 downto 13) = "011" else '0'; -- 0x6***
-  ram1_select  <= bus_request when bus_address(15)           = '1'   else '0'; -- 0x8***
+  -- ram1_select  <= bus_request when bus_address(15)           = '1'   else '0'; -- 0x8***
+  vga_select   <= bus_request when bus_address(15)           = '1'   else '0'; -- 0x8***
 
   bus_acknowledge <= rom0_ack  when rom0_select  = '1' else
                      uart0_ack when uart0_select = '1' else
                      ram0_ack  when ram0_select  = '1' else
                      ram1_ack  when ram1_select  = '1' else
+                     vga_ack   when vga_select   = '1' else
                      '0';
 
   bus_data_in  <= rom0_out  when rom0_select  = '1' else
-                   uart0_out when uart0_select = '1' else
+                  uart0_out when uart0_select = '1' else
                   ram0_out  when ram0_select  = '1' else
                   ram1_out  when ram1_select  = '1' else
+                  vga_out   when vga_select   = '1' else
                    "0000000000000000";
 
   -- Bus Combinatorics (Bus Masters)

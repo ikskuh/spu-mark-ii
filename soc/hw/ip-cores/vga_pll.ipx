@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="vga_pll" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 05 04 21:26:32.983" version="5.8" type="Module" synthesis="lse" source_format="VHDL">
+<DiamondModule name="vga_pll" module="vga_pll" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 05 05 22:16:31.795" version="5.8" type="Module" synthesis="lse" source_format="VHDL">
   <Package>
-		<File name="vga_pll.lpc" type="lpc" modified="2020 05 04 21:26:31.000"/>
-		<File name="vga_pll.vhd" type="top_level_vhdl" modified="2020 05 04 21:26:31.000"/>
-		<File name="vga_pll_tmpl.vhd" type="template_vhdl" modified="2020 05 04 21:26:31.000"/>
+		<File name="vga_pll.lpc" type="lpc" modified="2020 05 05 22:16:29.000"/>
+		<File name="vga_pll.vhd" type="top_level_vhdl" modified="2020 05 05 22:16:29.000"/>
+		<File name="vga_pll_tmpl.vhd" type="template_vhdl" modified="2020 05 05 22:16:29.000"/>
   </Package>
 </DiamondModule>

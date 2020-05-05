@@ -2,6 +2,10 @@ const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
 
+const c = @cImport({
+    @cInclude("SDL.h");
+});
+
 usingnamespace @import("emulator.zig");
 usingnamespace @import("spu-mk2");
 
@@ -50,10 +54,50 @@ pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16,
     });
 }
 
+fn SdlError() error{SdlError} {
+    if (c.SDL_GetError()) |err| {
+        std.debug.warn("sdl error: {}\n", .{err});
+    }
+    return error.SdlError;
+}
+
+var termios_bak: std.os.termios = undefined;
+
+var window: *c.SDL_Window = undefined;
+var renderer: *c.SDL_Renderer = undefined;
+var texture: *c.SDL_Texture = undefined;
+
+var framebuffer: [128][256]u8 = undefined;
+
+fn outputErrorMsg(emu: *Emulator, err: var) !u8 {
+    const stdin = std.io.getStdIn();
+
+    // reset terminal before outputting error messages
+    if (std.builtin.os.tag == .linux) {
+        try std.os.tcsetattr(stdin.handle, .NOW, termios_bak);
+    }
+
+    // const time = timer.read();
+
+    try std.io.getStdOut().outStream().print("\nerror: {}\n", .{
+        @errorName(err),
+    });
+
+    try dumpState(emu);
+
+    switch (err) {
+        error.BusError, error.UserBreak => return 1,
+        else => return err,
+    }
+    unreachable;
+}
+
 pub fn main() !u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         @"entry-point": u16 = 0x0000,
+        @"enable-graphics": bool = true,
+        @"video-scaling": u32 = 3,
 
         pub const shorthands = .{
             .h = "help",
@@ -75,6 +119,37 @@ pub fn main() !u8 {
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
 
+    if (cli_args.options.@"enable-graphics") {
+        if (c.SDL_Init(c.SDL_INIT_EVERYTHING) < 0) {
+            return SdlError();
+        }
+
+        window = if (c.SDL_CreateWindow(
+            "🐈 Ashet Home Computer",
+            c.SDL_WINDOWPOS_CENTERED,
+            c.SDL_WINDOWPOS_CENTERED,
+            @intCast(c_int, 320 * cli_args.options.@"video-scaling"),
+            @intCast(c_int, 240 * cli_args.options.@"video-scaling"),
+            c.SDL_WINDOW_SHOWN,
+        )) |w|
+            w
+        else
+            return SdlError();
+
+        renderer = if (c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED)) |r|
+            r
+        else
+            return SdlError();
+
+        texture = if (c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_BGRA8888, c.SDL_TEXTUREACCESS_STREAMING, 256, 128)) |t|
+            t
+        else
+            return SdlError();
+    }
+    defer if (cli_args.options.@"enable-graphics") {
+        _ = c.SDL_Quit();
+    };
+
     var emu = Emulator.init();
 
     const hexParseMode = ihex.ParseMode{ .pedantic = true };
@@ -89,7 +164,7 @@ pub fn main() !u8 {
     emu.ip = cli_args.options.@"entry-point";
 
     const stdin = std.io.getStdIn();
-    const termios_bak = if (std.builtin.os.tag == .linux) blk: {
+    if (std.builtin.os.tag == .linux) blk: {
         const original = try std.os.tcgetattr(stdin.handle);
 
         var modified_raw = original;
@@ -125,8 +200,8 @@ pub fn main() !u8 {
 
         try std.os.tcsetattr(stdin.handle, .NOW, modified_raw);
 
-        break :blk original;
-    } else {};
+        termios_bak = original;
+    }
 
     defer if (std.builtin.os.tag == .linux) {
         std.os.tcsetattr(stdin.handle, .NOW, termios_bak) catch {
@@ -140,27 +215,38 @@ pub fn main() !u8 {
     }
 
     var timer = try std.time.Timer.start();
-    emu.run() catch |err| {
-        // reset terminal before outputting error messages
-        if (std.builtin.os.tag == .linux) {
-            try std.os.tcsetattr(stdin.handle, .NOW, termios_bak);
+
+    if (cli_args.options.@"enable-graphics") {
+        main_loop: while (true) {
+            var e: c.SDL_Event = undefined;
+            while (c.SDL_PollEvent(&e) != 0) {
+                switch (e.type) {
+                    c.SDL_QUIT => break :main_loop,
+                    else => {},
+                }
+            }
+
+            emu.runBatch(10_000) catch |err| return outputErrorMsg(&emu, err);
+
+            _ = c.SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0x00, 0xFF);
+            _ = c.SDL_RenderClear(renderer);
+
+            const src = c.SDL_Rect{
+                .x = @intCast(c_int, cli_args.options.@"video-scaling" * (320 - 256) / 2),
+                .y = @intCast(c_int, cli_args.options.@"video-scaling" * (240 - 128) / 2),
+                .w = @intCast(c_int, 256 * cli_args.options.@"video-scaling"),
+                .h = @intCast(c_int, 128 * cli_args.options.@"video-scaling"),
+            };
+
+            _ = c.SDL_RenderCopy(renderer, texture, null, &src);
+
+            _ = c.SDL_RenderPresent(renderer);
         }
+    } else {
+        emu.run() catch |err| return outputErrorMsg(&emu, err);
+    }
 
-        const time = timer.read();
-
-        try std.io.getStdOut().outStream().print("\nerror: {}\n", .{
-            @errorName(err),
-        });
-
-        try dumpState(&emu);
-
-        switch (err) {
-            error.BusError, error.UserBreak => return 1,
-            else => return err,
-        }
-    };
-
-    return 0;
+    return @as(u8, 0);
 }
 
 pub const SerialEmulator = struct {
@@ -174,7 +260,7 @@ pub const SerialEmulator = struct {
                     .revents = 0,
                 },
             };
-            _ = try std.os.poll(&fds, 1);
+            _ = try std.os.poll(&fds, 0);
             if ((fds[0].revents & std.os.POLLIN) != 0) {
                 const val = @as(u16, try stdin.inStream().readByte());
                 if (val == 0x03) // CTRL_C

@@ -20,7 +20,7 @@
 				<BScanVal>0</BScanVal>
 			</Bypass>
 			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.bit</File>
-			<FileTime>05/04/20 23:23:28</FileTime>
+			<FileTime>05/05/20 22:00:50</FileTime>
 			<Operation>SRAM Erase,Program,Verify</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>

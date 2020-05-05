@@ -16,8 +16,8 @@ CoreRevision=5.8
 ModuleName=vga_pll
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=05/04/2020
-Time=21:26:31
+Date=05/05/2020
+Time=22:16:29
 
 [Parameters]
 Verilog=0

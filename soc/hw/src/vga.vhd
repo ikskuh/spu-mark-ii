@@ -10,7 +10,15 @@ ENTITY VGA_Driver IS
 		vga_g         : out std_logic_vector(1 downto 0);
 		vga_b         : out std_logic_vector(1 downto 0);
 		vga_hs        : out std_logic;
-		vga_vs        : out std_logic
+		vga_vs        : out std_logic;
+
+		bus_data_out    : out std_logic_vector(15 downto 0);
+		bus_data_in     : in  std_logic_vector(15 downto 0);
+		bus_address     : in std_logic_vector(15 downto 1);
+		bus_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+		bus_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		bus_request     : in std_logic; -- when set to '1', the bus operation is requested
+		bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
 	);
 END ENTITY VGA_Driver;
 
@@ -25,7 +33,7 @@ ARCHITECTURE rtl OF VGA_Driver IS
       WrA: in  std_logic; WrB: in  std_logic; ResetA: in  std_logic; 
       ResetB: in  std_logic; QA: out  std_logic_vector(3 downto 0); 
       QB: out  std_logic_vector(3 downto 0));
-end component;
+	end component;
 
 	-- # 640x480 59.38 Hz (CVT 0.31M3) hsync: 29.69 kHz; pclk: 23.75 MHz
 	-- Modeline "640x480_60.00"   23.75  640 664 720 800  480 483 487 500 -hsync +vsync
@@ -45,8 +53,9 @@ end component;
 
 	SIGNAL vga_div : unsigned(0 downto 0);
 
-	SIGNAL vga_ram_addr  : unsigned(14 downto 0);
-	SIGNAL vga_ram_color : std_logic_vector(3 downto 0);
+	SIGNAL vga_ram_col_addr  : unsigned(7 downto 0);
+	SIGNAL vga_ram_row_addr  : unsigned(6 downto 0);
+	SIGNAL vga_ram_color_index : std_logic_vector(3 downto 0);
 
 	SIGNAL vga_color : std_logic_vector(5 downto 0);
 
@@ -72,38 +81,63 @@ end component;
 				when others => return "110111"; 
 			end case;
 		end function;
+
+	SIGNAL vga_ram_access : std_logic;
+	SIGNAL vga_ram_address : std_logic_vector(14 downto 0);
+	SIGNAL vga_ram_data_in : std_logic_vector(3 downto 0);
+	SIGNAL vga_ram_data_out : std_logic_vector(3 downto 0);
+
+	SIGNAL acknext : boolean;
 BEGIN
 
 	vga_r <= vga_color(5 downto 4);
 	vga_g <= vga_color(3 downto 2);
 	vga_b <= vga_color(1 downto 0);
 
+	-- Fake some 8 bit RAM interface
+	vga_ram_access <= '1' when bus_request = '1' and ((bus_bls = "10") or (bus_bls = "01")) else '0';
+	vga_ram_address <= bus_address(14 downto 1) & bus_bls(0); -- we only enable for byte access
+	vga_ram_data_in  <= bus_data_in(11 downto 8) when bus_bls(1) = '1' else bus_data_in(3 downto 0);
+	bus_data_out <= "0000" & vga_ram_data_out & "0000" & vga_ram_data_out;
+
 	vga_ram : videoram port map (
-		DataInA => "0000",  -- for now...
+		DataInA => vga_ram_data_in,
 		DataInB => "0000", 
-		AddressA => "00000000000000",  -- for now...
-		AddressB => std_logic_vector(vga_ram_addr),
+		AddressA => vga_ram_address, 
+		AddressB => std_logic_vector(vga_ram_row_addr & vga_ram_col_addr),
 		ClockA         => clk,
 		ClockB         => clk,
-		ClockEnA       => '1',
+		ClockEnA       => vga_ram_access,
 		ClockEnB       => '1',
-		WrA            => '0', -- for now...
+		WrA            => bus_write, 
 		WrB            => '0', -- don't write on the video port
 		ResetA         => '0',
 		ResetB         => '0',
-		QA             => open, -- for now... 
-		QB             => vga_ram_color
+		QA             => vga_ram_data_out, 
+		QB             => vga_ram_color_index
 	);
-
+	
+  bus_ack_proc : PROCESS(clk, rst)
+  BEGIN
+  if rst = '0' then
+    bus_acknowledge <= '0';
+    acknext <= False;
+  else
+    if rising_edge(clk) then
+      acknext <= bus_request = '1';
+      bus_acknowledge <= '1' when acknext else '0';
+    end if;
+  end if;
+  END PROCESS;
+	
 	vga_proc : process(rst, clk)
-		VARIABLE color : std_logic_vector(5 downto 0);
-
 	begin
 		if rst = '0' then
-			vga_col      <= to_unsigned(0, vga_col'length);
-			vga_row      <= to_unsigned(0, vga_row'length);
-			vga_div      <= to_unsigned(0, vga_div'length);
-			vga_ram_addr <= to_unsigned(0, vga_ram_addr'length);
+			vga_col          <= to_unsigned(0, vga_col'length);
+			vga_row          <= to_unsigned(0, vga_row'length);
+			vga_div          <= to_unsigned(0, vga_div'length);
+			vga_ram_row_addr <= to_unsigned(0, vga_ram_row_addr'length);
+			vga_ram_col_addr <= to_unsigned(0, vga_ram_col_addr'length);
 		elsif rising_edge(clk) then
 			if vga_div = 1 then -- divide by 2
 				if vga_col = vga_hlimit - 1 then
@@ -119,10 +153,15 @@ BEGIN
 
 				if vga_col >= 64 and vga_col < 576 and vga_row >= 112 and vga_row < 368 then
 					-- picture
-					vga_color <= fixed_color_lut(vga_ram_addr(3 downto 0));
+					vga_color <= fixed_color_lut(unsigned(vga_ram_color_index));
 
 					if vga_col(0) = '1' then
-						vga_ram_addr <= vga_ram_addr + 1;
+						vga_ram_col_addr <= vga_ram_col_addr + 1;
+					end if;
+
+					-- Increment row pointer at the last element in the column
+					if vga_col = 575 and vga_row(0) = '1' then
+						vga_ram_row_addr <= vga_ram_row_addr + 1;
 					end if;
 				elsif vga_col < vga_hsize and vga_row < vga_vsize then
 					-- border
@@ -136,7 +175,7 @@ BEGIN
 				vga_vs <= '1' when vga_row >= vga_vs_start and vga_row <= vga_vs_end else '0';
 
 				vga_div <= to_unsigned(0, vga_div'length);
-			else	
+			else
 				vga_div <= vga_div + 1;
 			end if;
 		end if;

@@ -3,34 +3,6 @@ const argsParser = @import("args");
 const ihex = @import("ihex");
 const zig_serial = @import("serial");
 
-extern fn configure_serial_linux(fd: c_int) u8;
-extern fn flush_serial_linux(fd: c_int) void;
-
-extern fn configure_serial_windows(hComm: std.os.windows.HANDLE) u8;
-extern fn flush_serial_windows(hComm: std.os.windows.HANDLE) void;
-
-fn configure_serial(serial: std.fs.File) !void {
-    if (std.builtin.os.tag == .linux) {
-        if (configure_serial_linux(serial.handle) != 0)
-            return error.InvalidConfiguration;
-    } else if (std.builtin.os.tag == .windows) {
-        if (configure_serial_windows(serial.handle) != 0)
-            return error.InvalidConfiguration;
-    } else {
-        @compileError("Unsupported OS!");
-    }
-}
-
-fn flush_serial(serial: std.fs.File) void {
-    if (std.builtin.os.tag == .linux) {
-        flush_serial_linux(serial.handle);
-    } else if (std.builtin.os.tag == .windows) {
-        flush_serial_windows(serial.handle);
-    } else {
-        @compileError("Unsupported OS!");
-    }
-}
-
 pub fn main() anyerror!u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
@@ -289,6 +261,22 @@ pub fn main() anyerror!u8 {
                     errors,
                     (100 * errors) / 0x8000,
                 });
+            }
+        } else if (std.mem.eql(u8, cmd, "graphics")) {
+            try stdout.writeAll("color(0..15) = ");
+            var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
+                break;
+            };
+            if (std.fmt.parseInt(u4, addrstr, 10)) |color| {
+                var i: usize = 0x8000;
+
+                while (i < 0x1_0000) : (i += 1) {
+                    try serout.writeByte('B');
+                    try serout.writeIntLittle(u16, @intCast(u16, i));
+                    try serout.writeIntLittle(u8, color);
+                }
+            } else |err| {
+                try stdout.print("failed to parse color: {}'\n", .{err});
             }
         } else if (cmd.len == 0) {
             // nop
