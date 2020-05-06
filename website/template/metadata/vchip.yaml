@@ -1,0 +1,8 @@
+---
+title: Unnamed DMA Chip
+author:
+  - Felix "xq" Queißner
+date: May 07, 2020
+abstract: |
+  <p>The RAM Blitter is a DMA unit that is developed for general purpose DMA transfers, as well as framebuffer modifications. It supports basic linear memory transfers as well as rectangle copies with image manipulation.</p>
+  <p>The RAM blitter also has a modes for drawing 2d vector graphics and a filling operation that allows color transfers.</p>

@@ -6,7 +6,7 @@
 PAGE_PROLOGUE=template/page.htm.prologue
 PAGE_EPILOGUE=template/page.htm.epilogue
 DOC_TEMPLATE=template/doc.htm
-DOCS=docs/isa docs/an000 docs/an001 docs/an002 docs/an003
+DOCS=docs/isa docs/an000 docs/an001 docs/an002 docs/an003 docs/mmu docs/vchip docs/vga
 PAGES=index downloads documentation livedemo imprint privacy $(DOCS)
 FILES=style.css base16-summerfruit-dark.css \
 	emulator.wasm livedemo.js \
@@ -50,7 +50,16 @@ output/%: content/%
 output/emulator.wasm: ../zig-cache/lib/emulator.wasm
 	cp "$<" "$@"
 
-output/docs/isa.htm: ../documentation/isa.md $(DOC_TEMPLATE)
+output/docs/isa.htm: ../documentation/specs/spu-mark-ii.md $(DOC_TEMPLATE)
+	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
+
+output/docs/mmu.htm: ../documentation/specs/mmu.md $(DOC_TEMPLATE)
+	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
+
+output/docs/vga.htm: ../documentation/specs/vga.md $(DOC_TEMPLATE)
+	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
+
+output/docs/vchip.htm: ../documentation/specs/vchip.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
 
 output/docs/an000.htm: ../documentation/app-notes/AN000\ -\ Understanding\ the\ Instruction\ Set.md $(DOC_TEMPLATE) 

@@ -9,7 +9,7 @@
   - 8-Color RGB (RGB111)
   - Use 4 bit dual port frame buffer RAM 
 - Finalize blitter design (see blitter.md)
-- Finalize blitter design (see sprite-unit.md)
+- Finalize sprite design (see sprite-unit.md)
 - Make bus mastering configurable
 - Implement MMU
 
@@ -17,7 +17,6 @@
 - add monitor features
   - hex dump
   - read/write adresses
-- ihex serial loader
 
 ## Tooling Changes
 - Rewrite assembler with support for new features:

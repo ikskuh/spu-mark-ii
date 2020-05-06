@@ -8,11 +8,11 @@
 ## Ashet Chip Set
 
 - [Unnamed MMU](docs/mmu.htm)
-- [Unnamed Bus Master](docs/busmaster.htm)
-- [Unnamed UART](docs/uart.htm)
+- [Unnamed Bus Master](docs/busmaster.htm) <small>(missing)</small>
+- [Unnamed UART](docs/uart.htm) <small>(missing)</small>
 - [Unnamed Video Chip](docs/vga.htm)
-- [Unnamed Audio Chip](docs/vchip.htm)
-- [Unnamed DMA Unit / Blitter](docs/vchip.htm)
+- [Unnamed Audio Chip](docs/audiochip.htm) <small>(missing)</small>
+- [Unnamed DMA Unit / Blitter](docs/vchip.htm) 
 
 ## App Notes
 
@@ -23,7 +23,7 @@
 
 ## Manuals
 
-- [Emulator](docs/emulator.htm)
-- [Assembler](docs/assembler.htm)
-- [Disassembler](docs/disassembler.htm)
-- [SOC Debugger](docs/debugger.htm)
+- [Emulator](docs/emulator.htm) <small>(missing)</small>
+- [Assembler](docs/assembler.htm) <small>(missing)</small>
+- [Disassembler](docs/disassembler.htm) <small>(missing)</small>
+- [SOC Debugger](docs/debugger.htm) <small>(missing)</small>

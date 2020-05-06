@@ -27,8 +27,35 @@ bios_jumptable:
 ; fn bios_entrypoint() noreturn
 ; this restarts the computer
 bios_entrypoint:
-	spset 0x7000    ; 128 Element Stack
-	bpset 0x7000    ; Stack bottom
+	; initial system setup
+
+	; configure page table
+	; note that the first four remappings use the systems initial state
+	; then the new page table location is used.
+
+	st 0xF000, 0x0001 ; Page 0x0*** → 0x000*** / ROM
+	st 0xF001, 0x0011 ; Page 0x1*** → 0x001*** / ROM
+	st 0xF002, 0x0021 ; Page 0x2*** → 0x002*** / ROM
+	st 0xF003, 0x00F1 ; Page 0x3*** → 0x00F*** / TABLE MAPPING
+	st 0x3004, 0x0041 ; Page 0x4*** → 0x800*** / UART
+	st 0x3005, 0x0000 ; Page 0x5*** → INVALID
+	st 0x3006, 0x0000 ; Page 0x6*** → INVALID
+	st 0x3007, 0x0000 ; Page 0x7*** → INVALID
+	st 0x3008, 0x0201 ; Page 0x8*** → 0x020*** / RAM 1
+	st 0x3009, 0x0211 ; Page 0x9*** → 0x021*** / RAM 1
+	st 0x300A, 0x0221 ; Page 0xA*** → 0x022*** / RAM 1
+	st 0x300B, 0x0231 ; Page 0xB*** → 0x023*** / RAM 1
+	st 0x300C, 0x0241 ; Page 0xC*** → 0x024*** / RAM 1
+	st 0x300D, 0x0251 ; Page 0xD*** → 0x025*** / RAM 1
+	st 0x300E, 0x0261 ; Page 0xE*** → 0x026*** / RAM 1
+	st 0x300F, 0x0101 ; Page 0xF*** → 0x010*** / RAM 0
+
+	; configure stack
+
+bios_restart:
+
+	spset 0x0000    ; 2048 Element Stack at the end of the memory
+	bpset 0x0000    ; Stack bottom
 
 	push bios_startup_msg
 	ipget 2
@@ -110,8 +137,8 @@ bios_start_app:
 
 	; clear stack to inital value
 	spset 0x7000
-	push bios_entrypoint ; when app returns, restart OS
-	jmp 0x8000           ; jump to app entry point
+	push bios_restart ; when app returns, restart OS
+	jmp 0x8000        ; jump to app entry point
 
 ; Reads an ihex file from stdin, then returns to main menu
 bios_load_ihex:

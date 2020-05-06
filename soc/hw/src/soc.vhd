@@ -230,7 +230,15 @@ ARCHITECTURE rtl OF SOC IS
     bus_write       : out std_logic; -- when '1' then bus write is requested, otherwise a read.
     bus_bls         : out std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
     bus_request     : out std_logic; -- when set to '1', the bus operation is requested
-    bus_acknowledge : in  std_logic  -- when set to '1', the bus operation is acknowledged
+    bus_acknowledge : in  std_logic; -- when set to '1', the bus operation is acknowledged
+
+		ctrl_data_out    : out std_logic_vector(15 downto 0);
+		ctrl_data_in     : in  std_logic_vector(15 downto 0);
+		ctrl_address     : in std_logic_vector(15 downto 1);
+		ctrl_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+		ctrl_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		ctrl_request     : in std_logic; -- when set to '1', the bus operation is requested
+		ctrl_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
   );
   END COMPONENT MMU;
   
@@ -352,6 +360,12 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL vga_ack : std_logic;
   SIGNAL vga_out : std_logic_vector(15 downto 0);
 
+  SIGNAL mmu_ctrl_select : std_logic;
+  SIGNAL mmu_ctrl_ack : std_logic;
+  SIGNAL mmu_ctrl_out : std_logic_vector(15 downto 0);
+
+  SIGNAL rom_range_select : std_logic;
+
   SIGNAL sim_bus_address :  std_logic_vector(23 downto 0);
 
 BEGIN	
@@ -396,24 +410,32 @@ BEGIN
   );
 
   mmu_0: MMU PORT MAP (
-    clk           => clk,
-    rst           => rst,
+    clk              => clk,
+    rst              => rst,
 
-    cpu_data_out    => cpu_data_out,
-    cpu_data_in     => cpu_data_in,
-    cpu_address     => cpu_address,
-    cpu_write       => cpu_write,
-    cpu_bls         => cpu_bls,
-    cpu_request     => cpu_request,
-    cpu_acknowledge => cpu_acknowledge,
+    cpu_data_out     => cpu_data_out,
+    cpu_data_in      => cpu_data_in,
+    cpu_address      => cpu_address,
+    cpu_write        => cpu_write,
+    cpu_bls          => cpu_bls,
+    cpu_request      => cpu_request,
+    cpu_acknowledge  => cpu_acknowledge,
     
-    bus_data_in     => bus_data_in,
-    bus_data_out    => mmu_data_out,
-    bus_address     => mmu_address,
-    bus_write       => mmu_write,
-    bus_bls         => mmu_bls,
-    bus_request     => mmu_request,
-    bus_acknowledge => mmu_acknowledge
+    bus_data_in      => bus_data_in,
+    bus_data_out     => mmu_data_out,
+    bus_address      => mmu_address,
+    bus_write        => mmu_write,
+    bus_bls          => mmu_bls,
+    bus_request      => mmu_request,
+    bus_acknowledge  => mmu_acknowledge,
+
+    ctrl_data_out    => mmu_ctrl_out,
+    ctrl_data_in     => bus_data_out,
+    ctrl_address     => bus_address(15 downto 1),
+    ctrl_write       => bus_write,
+    ctrl_bls         => bus_bls,
+    ctrl_request     => mmu_ctrl_select,
+    ctrl_acknowledge => mmu_ctrl_ack
   );
 
   -- Bus Slaves
@@ -518,24 +540,29 @@ BEGIN
 
   -- Bus Combinatorics (Bus Slaves)
 
-  rom0_select  <= bus_request when bus_address(23 downto 20) = "0000" else '0'; -- 0x0*****
-  ram0_select  <= bus_request when bus_address(23 downto 20) = "0001" else '0'; -- 0x1*****
-  ram1_select  <= bus_request when bus_address(23 downto 20) = "0010" else '0'; -- 0x2*****
-  uart0_select <= bus_request when bus_address(23 downto 20) = "1000" else '0'; -- 0x8*****
-  vga_select   <= bus_request when bus_address(23 downto 20) = "1001" else '0'; -- 0x9*****
+  rom_range_select <= bus_request when bus_address(23 downto 16) = "00000000" else '0'; -- 0x00****
+  ram0_select      <= bus_request when bus_address(23 downto 16) = "00000001" else '0'; -- 0x01****
+  ram1_select      <= bus_request when bus_address(23 downto 20) = "00000010" else '0'; -- 0x02****
+  uart0_select     <= bus_request when bus_address(23 downto 20) = "10000000" else '0'; -- 0x80****
+  vga_select       <= bus_request when bus_address(23 downto 20) = "10000001" else '0'; -- 0x81****
 
-  bus_acknowledge <= rom0_ack  when rom0_select  = '1' else
-                     uart0_ack when uart0_select = '1' else
-                     ram0_ack  when ram0_select  = '1' else
-                     ram1_ack  when ram1_select  = '1' else
-                     vga_ack   when vga_select   = '1' else
+  rom0_select      <= bus_request when bus_address(16 downto 12) /= "1111" else '0'; -- 0x00****
+  mmu_ctrl_select  <= bus_request when bus_address(16 downto 12)  = "1111" else '0'; -- 0x00F***
+
+  bus_acknowledge <= rom0_ack     when rom0_select  = '1' else
+                     uart0_ack    when uart0_select = '1' else
+                     ram0_ack     when ram0_select  = '1' else
+                     ram1_ack     when ram1_select  = '1' else
+                     vga_ack      when vga_select   = '1' else
+                     mmu_ctrl_ack when mmu_ctrl_select = '1' else
                      '0';
 
-  bus_data_in  <= rom0_out  when rom0_select  = '1' else
-                  uart0_out when uart0_select = '1' else
-                  ram0_out  when ram0_select  = '1' else
-                  ram1_out  when ram1_select  = '1' else
-                  vga_out   when vga_select   = '1' else
+  bus_data_in  <= rom0_out     when rom0_select  = '1' else
+                  uart0_out    when uart0_select = '1' else
+                  ram0_out     when ram0_select  = '1' else
+                  ram1_out     when ram1_select  = '1' else
+                  vga_out      when vga_select   = '1' else
+                  mmu_ctrl_out when mmu_ctrl_select = '1' else
                    "0000000000000000";
 
   -- Bus Combinatorics (Bus Masters)

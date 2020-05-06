@@ -1,5 +1,3 @@
-# SPU Mark II - Primitive Bank Unit
-
 ## Overview
 - 16 bit virtual addresses
 - 24 bit physical addresses

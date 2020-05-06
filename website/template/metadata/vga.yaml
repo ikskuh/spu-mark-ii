@@ -1,0 +1,6 @@
+---
+title: VGA Chip
+author:
+  - Felix "xq" Queißner
+date: May 07, 2020
+abstract: The VGA Chip provides a framebuffer with 256×128 pixels output.

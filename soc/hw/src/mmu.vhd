@@ -7,6 +7,7 @@ ENTITY MMU IS
     clk           : in  std_logic;
     rst           : in  std_logic;
 
+    -- CPU access to MMU interface
 		cpu_data_out    : out std_logic_vector(15 downto 0);
 		cpu_data_in     : in  std_logic_vector(15 downto 0);
 		cpu_address     : in  std_logic_vector(15 downto 1);
@@ -15,13 +16,23 @@ ENTITY MMU IS
 		cpu_request     : in  std_logic; -- when set to '1', the bus operation is requested
     cpu_acknowledge : out std_logic; -- when set to '1', the bus operation is acknowledged
     
+    -- bus output from MMU to system bus
 		bus_data_in     : in  std_logic_vector(15 downto 0);
 		bus_data_out    : out std_logic_vector(15 downto 0);
 		bus_address     : out std_logic_vector(23 downto 1);
 		bus_write       : out std_logic; -- when '1' then bus write is requested, otherwise a read.
 		bus_bls         : out std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
 		bus_request     : out std_logic; -- when set to '1', the bus operation is requested
-		bus_acknowledge : in  std_logic  -- when set to '1', the bus operation is acknowledged
+    bus_acknowledge : in  std_logic; -- when set to '1', the bus operation is acknowledged
+    
+    -- System bus to mmu interface
+		ctrl_data_out    : out std_logic_vector(15 downto 0);
+		ctrl_data_in     : in  std_logic_vector(15 downto 0);
+		ctrl_address     : in std_logic_vector(15 downto 1);
+		ctrl_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
+		ctrl_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		ctrl_request     : in std_logic; -- when set to '1', the bus operation is requested
+		ctrl_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
 	);
 END ENTITY MMU;
 
@@ -30,7 +41,7 @@ ARCHITECTURE rtl OF MMU IS
   
   SIGNAL memory_bank : MEMBANK_T;
 
-  SIGNAL memory_cfg : std_logic_vector(15 downto 0);
+  -- SIGNAL memory_cfg : std_logic_vector(15 downto 0);
 
 BEGIN
 
@@ -38,10 +49,7 @@ BEGIN
     VARIABLE memory_cfg : std_logic_vector(15 downto 0);
   begin
     if rst = '0' then
-      for i in memory_bank'range loop
-        -- create identitiy mapping, "0", "no caching", "no write protection", "page mapping enabled"
-        memory_bank(i) <= "00000000" & std_logic_vector(to_unsigned(i,4)) & "0001";
-      end loop;
+			-- memory_bank is resetted in p1
     elsif rising_edge(clk) then
       bus_request  <= cpu_request;
       if cpu_request = '1' then
@@ -49,7 +57,7 @@ BEGIN
         memory_cfg := memory_bank(to_integer(unsigned(cpu_address(15 downto 12))));
 
         -- check if page is mapped and the access is valid
-        if memory_cfg(0) = '1' and (cpu_write = '0' or memory_cfg(1) = '1') then
+        if memory_cfg(0) = '1' and (cpu_write = '0' or memory_cfg(1) = '0') then
           
           -- translate address to physical memory
           bus_address     <= memory_cfg(15 downto 4) & cpu_address(11 downto 1);
@@ -76,7 +84,33 @@ BEGIN
         bus_write       <= '0';
         bus_bls         <= "00";   
       end if;
+    end if;
+  end process;
 
+  mmu_cfg_access: process(clk, rst)
+  begin
+    if rst = '0' then
+      for i in memory_bank'range loop
+        -- create identitiy mapping, "0", "no caching", "no write protection", "page mapping enabled"
+        memory_bank(i) <= "00000000" & std_logic_vector(to_unsigned(i,4)) & "0001";
+      end loop;
+    elsif rising_edge(clk) then
+      if ctrl_request = '1' then
+        if ctrl_bls = "11" then
+          if unsigned(ctrl_address) < 16 then
+            if ctrl_write = '1' then
+              memory_bank(to_integer(unsigned(ctrl_address))) <= ctrl_data_in;
+            else
+              ctrl_data_out <= memory_bank(to_integer(unsigned(ctrl_address)));
+            end if;
+          end if;
+        else 
+          ctrl_data_out <= "1111111111111111";
+        end if;
+        ctrl_acknowledge <= '1';
+      else
+        ctrl_acknowledge <= '0';
+      end if;
     end if;
   end process;
 
