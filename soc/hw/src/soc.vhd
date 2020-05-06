@@ -209,7 +209,30 @@ ARCHITECTURE rtl OF SOC IS
 		bus_request     : in std_logic; -- when set to '1', the bus operation is requested
 		bus_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
 	);
-	END COMPONENT VGA_Driver;
+  END COMPONENT VGA_Driver;
+  
+  COMPONENT MMU IS
+  PORT (
+    clk           : in  std_logic;
+    rst           : in  std_logic;
+
+    cpu_data_out    : out std_logic_vector(15 downto 0);
+    cpu_data_in     : in  std_logic_vector(15 downto 0);
+    cpu_address     : in  std_logic_vector(15 downto 1);
+    cpu_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
+    cpu_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+    cpu_request     : in  std_logic; -- when set to '1', the bus operation is requested
+    cpu_acknowledge : out std_logic;  -- when set to '1', the bus operation is acknowledged
+    
+    bus_data_in     : in  std_logic_vector(15 downto 0);
+    bus_data_out    : out std_logic_vector(15 downto 0);
+    bus_address     : out std_logic_vector(23 downto 1);
+    bus_write       : out std_logic; -- when '1' then bus write is requested, otherwise a read.
+    bus_bls         : out std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+    bus_request     : out std_logic; -- when set to '1', the bus operation is requested
+    bus_acknowledge : in  std_logic  -- when set to '1', the bus operation is acknowledged
+  );
+  END COMPONENT MMU;
   
   CONSTANT clkfreq : natural := 48_000_000;
 
@@ -278,7 +301,7 @@ ARCHITECTURE rtl OF SOC IS
 
   SIGNAL bus_data_out :  std_logic_vector(15 downto 0);
   SIGNAL bus_data_in :  std_logic_vector(15 downto 0);
-  SIGNAL bus_address :  std_logic_vector(15 downto 1);
+  SIGNAL bus_address :  std_logic_vector(23 downto 1);
   SIGNAL bus_write :  std_logic;
   SIGNAL bus_bls :  std_logic_vector(1 downto 0);
   SIGNAL bus_request :  std_logic;
@@ -286,15 +309,22 @@ ARCHITECTURE rtl OF SOC IS
 
   -- Master I/Os
   SIGNAL cpu_data_out : std_logic_vector(15 downto 0);
+  SIGNAL cpu_data_in  : std_logic_vector(15 downto 0);
   SIGNAL cpu_address : std_logic_vector(15 downto 1);
   SIGNAL cpu_write : std_logic;
   SIGNAL cpu_bls : std_logic_vector(1 downto 0);
   SIGNAL cpu_request : std_logic;
   SIGNAL cpu_acknowledge : std_logic;
 
+  SIGNAL mmu_data_out : std_logic_vector(15 downto 0);
+  SIGNAL mmu_address : std_logic_vector(23 downto 1);
+  SIGNAL mmu_write : std_logic;
+  SIGNAL mmu_bls : std_logic_vector(1 downto 0);
+  SIGNAL mmu_request : std_logic;
+  SIGNAL mmu_acknowledge : std_logic;
 
   SIGNAL dbg_mem_data_out : std_logic_vector(15 downto 0);
-  SIGNAL dbg_mem_address : std_logic_vector(15 downto 1);
+  SIGNAL dbg_mem_address : std_logic_vector(23 downto 1);
   SIGNAL dbg_mem_write : std_logic;
   SIGNAL dbg_mem_bls : std_logic_vector(1 downto 0);
   SIGNAL dbg_mem_request : std_logic;
@@ -309,7 +339,6 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL ram1_select : std_logic;
   SIGNAL ram1_ack : std_logic;
   SIGNAL ram1_out : std_logic_vector(15 downto 0);
-  SIGNAL ram1_glue_addr : std_logic_vector(18 downto 1);
 
   SIGNAL uart0_select : std_logic;
   SIGNAL uart0_ack : std_logic;
@@ -323,7 +352,7 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL vga_ack : std_logic;
   SIGNAL vga_out : std_logic_vector(15 downto 0);
 
-  SIGNAL sim_bus_address :  std_logic_vector(15 downto 0);
+  SIGNAL sim_bus_address :  std_logic_vector(23 downto 0);
 
 BEGIN	
 
@@ -358,12 +387,33 @@ BEGIN
     rst => rst,
     clk => clk,
     bus_data_out    => cpu_data_out,
-    bus_data_in     => bus_data_in,
+    bus_data_in     => cpu_data_in,
     bus_address     => cpu_address,
     bus_write       => cpu_write,
     bus_bls         => cpu_bls,
     bus_request     => cpu_request,
     bus_acknowledge => cpu_acknowledge
+  );
+
+  mmu_0: MMU PORT MAP (
+    clk           => clk,
+    rst           => rst,
+
+    cpu_data_out    => cpu_data_out,
+    cpu_data_in     => cpu_data_in,
+    cpu_address     => cpu_address,
+    cpu_write       => cpu_write,
+    cpu_bls         => cpu_bls,
+    cpu_request     => cpu_request,
+    cpu_acknowledge => cpu_acknowledge,
+    
+    bus_data_in     => bus_data_in,
+    bus_data_out    => mmu_data_out,
+    bus_address     => mmu_address,
+    bus_write       => mmu_write,
+    bus_bls         => mmu_bls,
+    bus_request     => mmu_request,
+    bus_acknowledge => mmu_acknowledge
   );
 
   -- Bus Slaves
@@ -375,8 +425,7 @@ BEGIN
       clk             => clk,
       bus_data_out    => ram0_out,
       bus_data_in     => bus_data_out,
-      --bus_address     => bus_address(4 downto 1),
-      bus_address     => bus_address,
+      bus_address     => bus_address(15 downto 1),
       bus_write       => bus_write,
       bus_bls         => bus_bls,
       bus_request     => ram0_select,
@@ -404,14 +453,13 @@ BEGIN
       clk             => clk,
       bus_data_out    => rom0_out,
       bus_data_in     => bus_data_out,
-      bus_address     => bus_address,
+      bus_address     => bus_address(15 downto 1),
       bus_write       => bus_write,
       bus_bls         => bus_bls,
       bus_request     => rom0_select,
       bus_acknowledge => rom0_ack
     );
 
-  ram1_glue_addr <= "0000" & bus_address(14 downto 1);
   ram1 : SRAM_Controller
     PORT MAP (
       rst             => rst,
@@ -423,7 +471,7 @@ BEGIN
       sram_ce         => sram_ce,
       bus_data_out    => ram1_out,
       bus_data_in     => bus_data_out,
-      bus_address     => ram1_glue_addr, 
+      bus_address     => bus_address(18 downto 1), 
       bus_write       => bus_write,
       bus_bls         => bus_bls,
       bus_request     => ram1_select,
@@ -444,7 +492,7 @@ BEGIN
       -- 
       bus_data_out    => vga_out,
       bus_data_in     => bus_data_out,
-      bus_address     => bus_address, 
+      bus_address     => bus_address(15 downto 1), 
       bus_write       => bus_write,
       bus_bls         => bus_bls,
       bus_request     => vga_select,
@@ -470,11 +518,11 @@ BEGIN
 
   -- Bus Combinatorics (Bus Slaves)
 
-  rom0_select  <= bus_request when bus_address(15 downto 14) = "00"  else '0'; -- 0x0***
-  uart0_select <= bus_request when bus_address(15 downto 13) = "010" else '0'; -- 0x4***
-  ram0_select  <= bus_request when bus_address(15 downto 13) = "011" else '0'; -- 0x6***
-  -- ram1_select  <= bus_request when bus_address(15)           = '1'   else '0'; -- 0x8***
-  vga_select   <= bus_request when bus_address(15)           = '1'   else '0'; -- 0x8***
+  rom0_select  <= bus_request when bus_address(23 downto 20) = "0000" else '0'; -- 0x0*****
+  ram0_select  <= bus_request when bus_address(23 downto 20) = "0001" else '0'; -- 0x1*****
+  ram1_select  <= bus_request when bus_address(23 downto 20) = "0010" else '0'; -- 0x2*****
+  uart0_select <= bus_request when bus_address(23 downto 20) = "1000" else '0'; -- 0x8*****
+  vga_select   <= bus_request when bus_address(23 downto 20) = "1001" else '0'; -- 0x9*****
 
   bus_acknowledge <= rom0_ack  when rom0_select  = '1' else
                      uart0_ack when uart0_select = '1' else
@@ -492,29 +540,29 @@ BEGIN
 
   -- Bus Combinatorics (Bus Masters)
 
-  bus_address  <= cpu_address      when busmaster = Processor else
+  bus_address  <= mmu_address      when busmaster = Processor else
                   dbg_mem_address  when busmaster = Debug     else
-                  "000000000000000";
+                  "00000000000000000000000";
 
   sim_bus_address <= bus_address & "0";
   
-  bus_data_out <= cpu_data_out     when busmaster = Processor else
+  bus_data_out <= mmu_data_out     when busmaster = Processor else
                   dbg_mem_data_out when busmaster = Debug     else
                   "0000000000000000";
 
-  bus_write    <= cpu_write        when busmaster = Processor else
+  bus_write    <= mmu_write        when busmaster = Processor else
                   dbg_mem_write    when busmaster = Debug     else
                   '0';
 
-  bus_bls      <= cpu_bls          when busmaster = Processor else
+  bus_bls      <= mmu_bls          when busmaster = Processor else
                   dbg_mem_bls      when busmaster = Debug     else
                   "00";
                 
-  bus_request  <= cpu_request      when busmaster = Processor else
+  bus_request  <= mmu_request      when busmaster = Processor else
                   dbg_mem_request  when busmaster = Debug     else
                   '0'; 
 
-  cpu_acknowledge     <= bus_acknowledge when busmaster = Processor else '0';
+  mmu_acknowledge     <= bus_acknowledge when busmaster = Processor else '0';
   dbg_mem_acknowledge <= bus_acknowledge when busmaster = Debug else '0';
 
   -- Processes
@@ -528,7 +576,7 @@ BEGIN
         -- Priority-encoded bus requests
         if dbg_mem_request = '1' then
           busmaster <= Debug;
-        elsif cpu_request = '1' and not cpu_halted then
+        elsif mmu_request = '1' and not cpu_halted then
           busmaster <= Processor;
         end if;
       else
