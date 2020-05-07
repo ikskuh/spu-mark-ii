@@ -59,7 +59,7 @@ ARCHITECTURE rtl OF VGA_Driver IS
 
 	SIGNAL vga_color : std_logic_vector(5 downto 0);
 
-	function fixed_color_lut(index: unsigned(3 downto 0)) return std_logic_vector(5 downto 0) is
+	function fixed_color_lut(index: unsigned(3 downto 0)) return std_logic_vector is
 		begin
 			case to_integer(index) is
 				when  0 => return "000000"; -- black

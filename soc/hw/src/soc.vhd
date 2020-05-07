@@ -216,8 +216,8 @@ ARCHITECTURE rtl OF SOC IS
     clk           : in  std_logic;
     rst           : in  std_logic;
 
-    cpu_data_out    : out std_logic_vector(15 downto 0);
-    cpu_data_in     : in  std_logic_vector(15 downto 0);
+    cpu_data_out    : in  std_logic_vector(15 downto 0);
+    cpu_data_in     : out std_logic_vector(15 downto 0);
     cpu_address     : in  std_logic_vector(15 downto 1);
     cpu_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
     cpu_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
@@ -542,12 +542,12 @@ BEGIN
 
   rom_range_select <= bus_request when bus_address(23 downto 16) = "00000000" else '0'; -- 0x00****
   ram0_select      <= bus_request when bus_address(23 downto 16) = "00000001" else '0'; -- 0x01****
-  ram1_select      <= bus_request when bus_address(23 downto 20) = "00000010" else '0'; -- 0x02****
-  uart0_select     <= bus_request when bus_address(23 downto 20) = "10000000" else '0'; -- 0x80****
-  vga_select       <= bus_request when bus_address(23 downto 20) = "10000001" else '0'; -- 0x81****
+  ram1_select      <= bus_request when bus_address(23 downto 16) = "00000010" else '0'; -- 0x02****
+  uart0_select     <= bus_request when bus_address(23 downto 16) = "10000000" else '0'; -- 0x80****
+  vga_select       <= bus_request when bus_address(23 downto 16) = "10000001" else '0'; -- 0x81****
 
-  rom0_select      <= bus_request when bus_address(16 downto 12) /= "1111" else '0'; -- 0x00****
-  mmu_ctrl_select  <= bus_request when bus_address(16 downto 12)  = "1111" else '0'; -- 0x00F***
+  rom0_select      <= bus_request when bus_address(15 downto 12) /= "1111" else '0'; -- 0x00****
+  mmu_ctrl_select  <= bus_request when bus_address(15 downto 12)  = "1111" else '0'; -- 0x00F***
 
   bus_acknowledge <= rom0_ack     when rom0_select  = '1' else
                      uart0_ack    when uart0_select = '1' else
@@ -697,7 +697,7 @@ BEGIN
       dbg_state <= Idle;
       dbg_txd <= '0';
       dbg_mem_data_out <= "0000000000000000";
-      dbg_mem_address  <= "000000000000000";
+      dbg_mem_address  <= "00000000000000000000000";
       dbg_mem_write <= '0';
       dbg_mem_bls <= "00";
       dbg_mem_request <= '0';

@@ -1,45 +1,111 @@
 [*]
 [*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Sat Apr 25 13:08:05 2020
+[*] Thu May  7 17:05:29 2020
 [*]
 [dumpfile] "/home/felix/projects/lowlevel/spu-mark-2/soc/hw/simu/testbench_spu.ghw"
-[dumpfile_mtime] "Sat Apr 25 12:55:16 2020"
-[dumpfile_size] 29238
+[dumpfile_mtime] "Thu May  7 17:05:21 2020"
+[dumpfile_size] 365026
 [savefile] "/home/felix/projects/lowlevel/spu-mark-2/soc/hw/simu/spu.gtkw"
 [timestart] 0
 [size] 1920 1056
 [pos] -1 -1
-*-30.000000 2374999962 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-33.563465 50140000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.testbench_spu.
 [treeopen] top.testbench_spu.glue.
-[treeopen] top.testbench_spu.glue.ram0.
+[treeopen] top.testbench_spu.glue.cpu.
+[treeopen] top.testbench_spu.glue.mmu_0.memory_bank.
 [sst_width] 287
-[signals_width] 239
+[signals_width] 279
 [sst_expanded] 1
-[sst_vpaned_height] 322
+[sst_vpaned_height] 335
 @28
 top.testbench_spu.clk
 top.testbench_spu.rst
 @200
 -
-@22
-#{top.testbench_spu.glue.sim_bus_address[15:0]} top.testbench_spu.glue.sim_bus_address[15] top.testbench_spu.glue.sim_bus_address[14] top.testbench_spu.glue.sim_bus_address[13] top.testbench_spu.glue.sim_bus_address[12] top.testbench_spu.glue.sim_bus_address[11] top.testbench_spu.glue.sim_bus_address[10] top.testbench_spu.glue.sim_bus_address[9] top.testbench_spu.glue.sim_bus_address[8] top.testbench_spu.glue.sim_bus_address[7] top.testbench_spu.glue.sim_bus_address[6] top.testbench_spu.glue.sim_bus_address[5] top.testbench_spu.glue.sim_bus_address[4] top.testbench_spu.glue.sim_bus_address[3] top.testbench_spu.glue.sim_bus_address[2] top.testbench_spu.glue.sim_bus_address[1] top.testbench_spu.glue.sim_bus_address[0]
 @28
 top.testbench_spu.glue.bus_request
 top.testbench_spu.glue.bus_acknowledge
+[color] 2
 top.testbench_spu.glue.bus_write
 @200
 -
 @28
 top.testbench_spu.glue.cpu_request
+@22
+#{top.testbench_spu.glue.cpu.mem_data_out[15:0]} top.testbench_spu.glue.cpu.mem_data_out[15] top.testbench_spu.glue.cpu.mem_data_out[14] top.testbench_spu.glue.cpu.mem_data_out[13] top.testbench_spu.glue.cpu.mem_data_out[12] top.testbench_spu.glue.cpu.mem_data_out[11] top.testbench_spu.glue.cpu.mem_data_out[10] top.testbench_spu.glue.cpu.mem_data_out[9] top.testbench_spu.glue.cpu.mem_data_out[8] top.testbench_spu.glue.cpu.mem_data_out[7] top.testbench_spu.glue.cpu.mem_data_out[6] top.testbench_spu.glue.cpu.mem_data_out[5] top.testbench_spu.glue.cpu.mem_data_out[4] top.testbench_spu.glue.cpu.mem_data_out[3] top.testbench_spu.glue.cpu.mem_data_out[2] top.testbench_spu.glue.cpu.mem_data_out[1] top.testbench_spu.glue.cpu.mem_data_out[0]
+#{top.testbench_spu.glue.cpu.mem_data_in[15:0]} top.testbench_spu.glue.cpu.mem_data_in[15] top.testbench_spu.glue.cpu.mem_data_in[14] top.testbench_spu.glue.cpu.mem_data_in[13] top.testbench_spu.glue.cpu.mem_data_in[12] top.testbench_spu.glue.cpu.mem_data_in[11] top.testbench_spu.glue.cpu.mem_data_in[10] top.testbench_spu.glue.cpu.mem_data_in[9] top.testbench_spu.glue.cpu.mem_data_in[8] top.testbench_spu.glue.cpu.mem_data_in[7] top.testbench_spu.glue.cpu.mem_data_in[6] top.testbench_spu.glue.cpu.mem_data_in[5] top.testbench_spu.glue.cpu.mem_data_in[4] top.testbench_spu.glue.cpu.mem_data_in[3] top.testbench_spu.glue.cpu.mem_data_in[2] top.testbench_spu.glue.cpu.mem_data_in[1] top.testbench_spu.glue.cpu.mem_data_in[0]
+@28
 top.testbench_spu.glue.dbg_mem_request
 @200
 -
+@22
+#{top.testbench_spu.glue.cpu.mem_address[15:1]} top.testbench_spu.glue.cpu.mem_address[15] top.testbench_spu.glue.cpu.mem_address[14] top.testbench_spu.glue.cpu.mem_address[13] top.testbench_spu.glue.cpu.mem_address[12] top.testbench_spu.glue.cpu.mem_address[11] top.testbench_spu.glue.cpu.mem_address[10] top.testbench_spu.glue.cpu.mem_address[9] top.testbench_spu.glue.cpu.mem_address[8] top.testbench_spu.glue.cpu.mem_address[7] top.testbench_spu.glue.cpu.mem_address[6] top.testbench_spu.glue.cpu.mem_address[5] top.testbench_spu.glue.cpu.mem_address[4] top.testbench_spu.glue.cpu.mem_address[3] top.testbench_spu.glue.cpu.mem_address[2] top.testbench_spu.glue.cpu.mem_address[1]
+@c00022
+#{top.testbench_spu.glue.sim_bus_address[23:0]} top.testbench_spu.glue.sim_bus_address[23] top.testbench_spu.glue.sim_bus_address[22] top.testbench_spu.glue.sim_bus_address[21] top.testbench_spu.glue.sim_bus_address[20] top.testbench_spu.glue.sim_bus_address[19] top.testbench_spu.glue.sim_bus_address[18] top.testbench_spu.glue.sim_bus_address[17] top.testbench_spu.glue.sim_bus_address[16] top.testbench_spu.glue.sim_bus_address[15] top.testbench_spu.glue.sim_bus_address[14] top.testbench_spu.glue.sim_bus_address[13] top.testbench_spu.glue.sim_bus_address[12] top.testbench_spu.glue.sim_bus_address[11] top.testbench_spu.glue.sim_bus_address[10] top.testbench_spu.glue.sim_bus_address[9] top.testbench_spu.glue.sim_bus_address[8] top.testbench_spu.glue.sim_bus_address[7] top.testbench_spu.glue.sim_bus_address[6] top.testbench_spu.glue.sim_bus_address[5] top.testbench_spu.glue.sim_bus_address[4] top.testbench_spu.glue.sim_bus_address[3] top.testbench_spu.glue.sim_bus_address[2] top.testbench_spu.glue.sim_bus_address[1] top.testbench_spu.glue.sim_bus_address[0]
 @28
+top.testbench_spu.glue.sim_bus_address[23]
+top.testbench_spu.glue.sim_bus_address[22]
+top.testbench_spu.glue.sim_bus_address[21]
+top.testbench_spu.glue.sim_bus_address[20]
+top.testbench_spu.glue.sim_bus_address[19]
+top.testbench_spu.glue.sim_bus_address[18]
+top.testbench_spu.glue.sim_bus_address[17]
+top.testbench_spu.glue.sim_bus_address[16]
+top.testbench_spu.glue.sim_bus_address[15]
+top.testbench_spu.glue.sim_bus_address[14]
+top.testbench_spu.glue.sim_bus_address[13]
+top.testbench_spu.glue.sim_bus_address[12]
+top.testbench_spu.glue.sim_bus_address[11]
+top.testbench_spu.glue.sim_bus_address[10]
+top.testbench_spu.glue.sim_bus_address[9]
+top.testbench_spu.glue.sim_bus_address[8]
+top.testbench_spu.glue.sim_bus_address[7]
+top.testbench_spu.glue.sim_bus_address[6]
+top.testbench_spu.glue.sim_bus_address[5]
+top.testbench_spu.glue.sim_bus_address[4]
+top.testbench_spu.glue.sim_bus_address[3]
+top.testbench_spu.glue.sim_bus_address[2]
+top.testbench_spu.glue.sim_bus_address[1]
+top.testbench_spu.glue.sim_bus_address[0]
+@1401200
+-group_end
+@28
+top.testbench_spu.glue.rom_range_select
 top.testbench_spu.glue.rom0_select
+top.testbench_spu.glue.mmu_ctrl_select
+@29
+[color] 5
 top.testbench_spu.glue.uart0_select
+@28
 top.testbench_spu.glue.ram0_select
 top.testbench_spu.glue.ram1_select
+top.testbench_spu.glue.vga_select
+@200
+-
+@22
+#{top.testbench_spu.glue.bus_data_in[15:0]} top.testbench_spu.glue.bus_data_in[15] top.testbench_spu.glue.bus_data_in[14] top.testbench_spu.glue.bus_data_in[13] top.testbench_spu.glue.bus_data_in[12] top.testbench_spu.glue.bus_data_in[11] top.testbench_spu.glue.bus_data_in[10] top.testbench_spu.glue.bus_data_in[9] top.testbench_spu.glue.bus_data_in[8] top.testbench_spu.glue.bus_data_in[7] top.testbench_spu.glue.bus_data_in[6] top.testbench_spu.glue.bus_data_in[5] top.testbench_spu.glue.bus_data_in[4] top.testbench_spu.glue.bus_data_in[3] top.testbench_spu.glue.bus_data_in[2] top.testbench_spu.glue.bus_data_in[1] top.testbench_spu.glue.bus_data_in[0]
+#{top.testbench_spu.glue.bus_data_out[15:0]} top.testbench_spu.glue.bus_data_out[15] top.testbench_spu.glue.bus_data_out[14] top.testbench_spu.glue.bus_data_out[13] top.testbench_spu.glue.bus_data_out[12] top.testbench_spu.glue.bus_data_out[11] top.testbench_spu.glue.bus_data_out[10] top.testbench_spu.glue.bus_data_out[9] top.testbench_spu.glue.bus_data_out[8] top.testbench_spu.glue.bus_data_out[7] top.testbench_spu.glue.bus_data_out[6] top.testbench_spu.glue.bus_data_out[5] top.testbench_spu.glue.bus_data_out[4] top.testbench_spu.glue.bus_data_out[3] top.testbench_spu.glue.bus_data_out[2] top.testbench_spu.glue.bus_data_out[1] top.testbench_spu.glue.bus_data_out[0]
+@200
+-
+-Banking
+@22
+#{top.testbench_spu.glue.mmu_0.memory_bank[0][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[0][15] top.testbench_spu.glue.mmu_0.memory_bank[0][14] top.testbench_spu.glue.mmu_0.memory_bank[0][13] top.testbench_spu.glue.mmu_0.memory_bank[0][12] top.testbench_spu.glue.mmu_0.memory_bank[0][11] top.testbench_spu.glue.mmu_0.memory_bank[0][10] top.testbench_spu.glue.mmu_0.memory_bank[0][9] top.testbench_spu.glue.mmu_0.memory_bank[0][8] top.testbench_spu.glue.mmu_0.memory_bank[0][7] top.testbench_spu.glue.mmu_0.memory_bank[0][6] top.testbench_spu.glue.mmu_0.memory_bank[0][5] top.testbench_spu.glue.mmu_0.memory_bank[0][4] top.testbench_spu.glue.mmu_0.memory_bank[0][3] top.testbench_spu.glue.mmu_0.memory_bank[0][2] top.testbench_spu.glue.mmu_0.memory_bank[0][1] top.testbench_spu.glue.mmu_0.memory_bank[0][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[1][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[1][15] top.testbench_spu.glue.mmu_0.memory_bank[1][14] top.testbench_spu.glue.mmu_0.memory_bank[1][13] top.testbench_spu.glue.mmu_0.memory_bank[1][12] top.testbench_spu.glue.mmu_0.memory_bank[1][11] top.testbench_spu.glue.mmu_0.memory_bank[1][10] top.testbench_spu.glue.mmu_0.memory_bank[1][9] top.testbench_spu.glue.mmu_0.memory_bank[1][8] top.testbench_spu.glue.mmu_0.memory_bank[1][7] top.testbench_spu.glue.mmu_0.memory_bank[1][6] top.testbench_spu.glue.mmu_0.memory_bank[1][5] top.testbench_spu.glue.mmu_0.memory_bank[1][4] top.testbench_spu.glue.mmu_0.memory_bank[1][3] top.testbench_spu.glue.mmu_0.memory_bank[1][2] top.testbench_spu.glue.mmu_0.memory_bank[1][1] top.testbench_spu.glue.mmu_0.memory_bank[1][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[2][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[2][15] top.testbench_spu.glue.mmu_0.memory_bank[2][14] top.testbench_spu.glue.mmu_0.memory_bank[2][13] top.testbench_spu.glue.mmu_0.memory_bank[2][12] top.testbench_spu.glue.mmu_0.memory_bank[2][11] top.testbench_spu.glue.mmu_0.memory_bank[2][10] top.testbench_spu.glue.mmu_0.memory_bank[2][9] top.testbench_spu.glue.mmu_0.memory_bank[2][8] top.testbench_spu.glue.mmu_0.memory_bank[2][7] top.testbench_spu.glue.mmu_0.memory_bank[2][6] top.testbench_spu.glue.mmu_0.memory_bank[2][5] top.testbench_spu.glue.mmu_0.memory_bank[2][4] top.testbench_spu.glue.mmu_0.memory_bank[2][3] top.testbench_spu.glue.mmu_0.memory_bank[2][2] top.testbench_spu.glue.mmu_0.memory_bank[2][1] top.testbench_spu.glue.mmu_0.memory_bank[2][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[3][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[3][15] top.testbench_spu.glue.mmu_0.memory_bank[3][14] top.testbench_spu.glue.mmu_0.memory_bank[3][13] top.testbench_spu.glue.mmu_0.memory_bank[3][12] top.testbench_spu.glue.mmu_0.memory_bank[3][11] top.testbench_spu.glue.mmu_0.memory_bank[3][10] top.testbench_spu.glue.mmu_0.memory_bank[3][9] top.testbench_spu.glue.mmu_0.memory_bank[3][8] top.testbench_spu.glue.mmu_0.memory_bank[3][7] top.testbench_spu.glue.mmu_0.memory_bank[3][6] top.testbench_spu.glue.mmu_0.memory_bank[3][5] top.testbench_spu.glue.mmu_0.memory_bank[3][4] top.testbench_spu.glue.mmu_0.memory_bank[3][3] top.testbench_spu.glue.mmu_0.memory_bank[3][2] top.testbench_spu.glue.mmu_0.memory_bank[3][1] top.testbench_spu.glue.mmu_0.memory_bank[3][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[4][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[4][15] top.testbench_spu.glue.mmu_0.memory_bank[4][14] top.testbench_spu.glue.mmu_0.memory_bank[4][13] top.testbench_spu.glue.mmu_0.memory_bank[4][12] top.testbench_spu.glue.mmu_0.memory_bank[4][11] top.testbench_spu.glue.mmu_0.memory_bank[4][10] top.testbench_spu.glue.mmu_0.memory_bank[4][9] top.testbench_spu.glue.mmu_0.memory_bank[4][8] top.testbench_spu.glue.mmu_0.memory_bank[4][7] top.testbench_spu.glue.mmu_0.memory_bank[4][6] top.testbench_spu.glue.mmu_0.memory_bank[4][5] top.testbench_spu.glue.mmu_0.memory_bank[4][4] top.testbench_spu.glue.mmu_0.memory_bank[4][3] top.testbench_spu.glue.mmu_0.memory_bank[4][2] top.testbench_spu.glue.mmu_0.memory_bank[4][1] top.testbench_spu.glue.mmu_0.memory_bank[4][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[5][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[5][15] top.testbench_spu.glue.mmu_0.memory_bank[5][14] top.testbench_spu.glue.mmu_0.memory_bank[5][13] top.testbench_spu.glue.mmu_0.memory_bank[5][12] top.testbench_spu.glue.mmu_0.memory_bank[5][11] top.testbench_spu.glue.mmu_0.memory_bank[5][10] top.testbench_spu.glue.mmu_0.memory_bank[5][9] top.testbench_spu.glue.mmu_0.memory_bank[5][8] top.testbench_spu.glue.mmu_0.memory_bank[5][7] top.testbench_spu.glue.mmu_0.memory_bank[5][6] top.testbench_spu.glue.mmu_0.memory_bank[5][5] top.testbench_spu.glue.mmu_0.memory_bank[5][4] top.testbench_spu.glue.mmu_0.memory_bank[5][3] top.testbench_spu.glue.mmu_0.memory_bank[5][2] top.testbench_spu.glue.mmu_0.memory_bank[5][1] top.testbench_spu.glue.mmu_0.memory_bank[5][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[6][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[6][15] top.testbench_spu.glue.mmu_0.memory_bank[6][14] top.testbench_spu.glue.mmu_0.memory_bank[6][13] top.testbench_spu.glue.mmu_0.memory_bank[6][12] top.testbench_spu.glue.mmu_0.memory_bank[6][11] top.testbench_spu.glue.mmu_0.memory_bank[6][10] top.testbench_spu.glue.mmu_0.memory_bank[6][9] top.testbench_spu.glue.mmu_0.memory_bank[6][8] top.testbench_spu.glue.mmu_0.memory_bank[6][7] top.testbench_spu.glue.mmu_0.memory_bank[6][6] top.testbench_spu.glue.mmu_0.memory_bank[6][5] top.testbench_spu.glue.mmu_0.memory_bank[6][4] top.testbench_spu.glue.mmu_0.memory_bank[6][3] top.testbench_spu.glue.mmu_0.memory_bank[6][2] top.testbench_spu.glue.mmu_0.memory_bank[6][1] top.testbench_spu.glue.mmu_0.memory_bank[6][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[7][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[7][15] top.testbench_spu.glue.mmu_0.memory_bank[7][14] top.testbench_spu.glue.mmu_0.memory_bank[7][13] top.testbench_spu.glue.mmu_0.memory_bank[7][12] top.testbench_spu.glue.mmu_0.memory_bank[7][11] top.testbench_spu.glue.mmu_0.memory_bank[7][10] top.testbench_spu.glue.mmu_0.memory_bank[7][9] top.testbench_spu.glue.mmu_0.memory_bank[7][8] top.testbench_spu.glue.mmu_0.memory_bank[7][7] top.testbench_spu.glue.mmu_0.memory_bank[7][6] top.testbench_spu.glue.mmu_0.memory_bank[7][5] top.testbench_spu.glue.mmu_0.memory_bank[7][4] top.testbench_spu.glue.mmu_0.memory_bank[7][3] top.testbench_spu.glue.mmu_0.memory_bank[7][2] top.testbench_spu.glue.mmu_0.memory_bank[7][1] top.testbench_spu.glue.mmu_0.memory_bank[7][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[8][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[8][15] top.testbench_spu.glue.mmu_0.memory_bank[8][14] top.testbench_spu.glue.mmu_0.memory_bank[8][13] top.testbench_spu.glue.mmu_0.memory_bank[8][12] top.testbench_spu.glue.mmu_0.memory_bank[8][11] top.testbench_spu.glue.mmu_0.memory_bank[8][10] top.testbench_spu.glue.mmu_0.memory_bank[8][9] top.testbench_spu.glue.mmu_0.memory_bank[8][8] top.testbench_spu.glue.mmu_0.memory_bank[8][7] top.testbench_spu.glue.mmu_0.memory_bank[8][6] top.testbench_spu.glue.mmu_0.memory_bank[8][5] top.testbench_spu.glue.mmu_0.memory_bank[8][4] top.testbench_spu.glue.mmu_0.memory_bank[8][3] top.testbench_spu.glue.mmu_0.memory_bank[8][2] top.testbench_spu.glue.mmu_0.memory_bank[8][1] top.testbench_spu.glue.mmu_0.memory_bank[8][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[9][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[9][15] top.testbench_spu.glue.mmu_0.memory_bank[9][14] top.testbench_spu.glue.mmu_0.memory_bank[9][13] top.testbench_spu.glue.mmu_0.memory_bank[9][12] top.testbench_spu.glue.mmu_0.memory_bank[9][11] top.testbench_spu.glue.mmu_0.memory_bank[9][10] top.testbench_spu.glue.mmu_0.memory_bank[9][9] top.testbench_spu.glue.mmu_0.memory_bank[9][8] top.testbench_spu.glue.mmu_0.memory_bank[9][7] top.testbench_spu.glue.mmu_0.memory_bank[9][6] top.testbench_spu.glue.mmu_0.memory_bank[9][5] top.testbench_spu.glue.mmu_0.memory_bank[9][4] top.testbench_spu.glue.mmu_0.memory_bank[9][3] top.testbench_spu.glue.mmu_0.memory_bank[9][2] top.testbench_spu.glue.mmu_0.memory_bank[9][1] top.testbench_spu.glue.mmu_0.memory_bank[9][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[10][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[10][15] top.testbench_spu.glue.mmu_0.memory_bank[10][14] top.testbench_spu.glue.mmu_0.memory_bank[10][13] top.testbench_spu.glue.mmu_0.memory_bank[10][12] top.testbench_spu.glue.mmu_0.memory_bank[10][11] top.testbench_spu.glue.mmu_0.memory_bank[10][10] top.testbench_spu.glue.mmu_0.memory_bank[10][9] top.testbench_spu.glue.mmu_0.memory_bank[10][8] top.testbench_spu.glue.mmu_0.memory_bank[10][7] top.testbench_spu.glue.mmu_0.memory_bank[10][6] top.testbench_spu.glue.mmu_0.memory_bank[10][5] top.testbench_spu.glue.mmu_0.memory_bank[10][4] top.testbench_spu.glue.mmu_0.memory_bank[10][3] top.testbench_spu.glue.mmu_0.memory_bank[10][2] top.testbench_spu.glue.mmu_0.memory_bank[10][1] top.testbench_spu.glue.mmu_0.memory_bank[10][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[11][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[11][15] top.testbench_spu.glue.mmu_0.memory_bank[11][14] top.testbench_spu.glue.mmu_0.memory_bank[11][13] top.testbench_spu.glue.mmu_0.memory_bank[11][12] top.testbench_spu.glue.mmu_0.memory_bank[11][11] top.testbench_spu.glue.mmu_0.memory_bank[11][10] top.testbench_spu.glue.mmu_0.memory_bank[11][9] top.testbench_spu.glue.mmu_0.memory_bank[11][8] top.testbench_spu.glue.mmu_0.memory_bank[11][7] top.testbench_spu.glue.mmu_0.memory_bank[11][6] top.testbench_spu.glue.mmu_0.memory_bank[11][5] top.testbench_spu.glue.mmu_0.memory_bank[11][4] top.testbench_spu.glue.mmu_0.memory_bank[11][3] top.testbench_spu.glue.mmu_0.memory_bank[11][2] top.testbench_spu.glue.mmu_0.memory_bank[11][1] top.testbench_spu.glue.mmu_0.memory_bank[11][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[12][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[12][15] top.testbench_spu.glue.mmu_0.memory_bank[12][14] top.testbench_spu.glue.mmu_0.memory_bank[12][13] top.testbench_spu.glue.mmu_0.memory_bank[12][12] top.testbench_spu.glue.mmu_0.memory_bank[12][11] top.testbench_spu.glue.mmu_0.memory_bank[12][10] top.testbench_spu.glue.mmu_0.memory_bank[12][9] top.testbench_spu.glue.mmu_0.memory_bank[12][8] top.testbench_spu.glue.mmu_0.memory_bank[12][7] top.testbench_spu.glue.mmu_0.memory_bank[12][6] top.testbench_spu.glue.mmu_0.memory_bank[12][5] top.testbench_spu.glue.mmu_0.memory_bank[12][4] top.testbench_spu.glue.mmu_0.memory_bank[12][3] top.testbench_spu.glue.mmu_0.memory_bank[12][2] top.testbench_spu.glue.mmu_0.memory_bank[12][1] top.testbench_spu.glue.mmu_0.memory_bank[12][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[13][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[13][15] top.testbench_spu.glue.mmu_0.memory_bank[13][14] top.testbench_spu.glue.mmu_0.memory_bank[13][13] top.testbench_spu.glue.mmu_0.memory_bank[13][12] top.testbench_spu.glue.mmu_0.memory_bank[13][11] top.testbench_spu.glue.mmu_0.memory_bank[13][10] top.testbench_spu.glue.mmu_0.memory_bank[13][9] top.testbench_spu.glue.mmu_0.memory_bank[13][8] top.testbench_spu.glue.mmu_0.memory_bank[13][7] top.testbench_spu.glue.mmu_0.memory_bank[13][6] top.testbench_spu.glue.mmu_0.memory_bank[13][5] top.testbench_spu.glue.mmu_0.memory_bank[13][4] top.testbench_spu.glue.mmu_0.memory_bank[13][3] top.testbench_spu.glue.mmu_0.memory_bank[13][2] top.testbench_spu.glue.mmu_0.memory_bank[13][1] top.testbench_spu.glue.mmu_0.memory_bank[13][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[14][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[14][15] top.testbench_spu.glue.mmu_0.memory_bank[14][14] top.testbench_spu.glue.mmu_0.memory_bank[14][13] top.testbench_spu.glue.mmu_0.memory_bank[14][12] top.testbench_spu.glue.mmu_0.memory_bank[14][11] top.testbench_spu.glue.mmu_0.memory_bank[14][10] top.testbench_spu.glue.mmu_0.memory_bank[14][9] top.testbench_spu.glue.mmu_0.memory_bank[14][8] top.testbench_spu.glue.mmu_0.memory_bank[14][7] top.testbench_spu.glue.mmu_0.memory_bank[14][6] top.testbench_spu.glue.mmu_0.memory_bank[14][5] top.testbench_spu.glue.mmu_0.memory_bank[14][4] top.testbench_spu.glue.mmu_0.memory_bank[14][3] top.testbench_spu.glue.mmu_0.memory_bank[14][2] top.testbench_spu.glue.mmu_0.memory_bank[14][1] top.testbench_spu.glue.mmu_0.memory_bank[14][0]
+#{top.testbench_spu.glue.mmu_0.memory_bank[15][15:0]} top.testbench_spu.glue.mmu_0.memory_bank[15][15] top.testbench_spu.glue.mmu_0.memory_bank[15][14] top.testbench_spu.glue.mmu_0.memory_bank[15][13] top.testbench_spu.glue.mmu_0.memory_bank[15][12] top.testbench_spu.glue.mmu_0.memory_bank[15][11] top.testbench_spu.glue.mmu_0.memory_bank[15][10] top.testbench_spu.glue.mmu_0.memory_bank[15][9] top.testbench_spu.glue.mmu_0.memory_bank[15][8] top.testbench_spu.glue.mmu_0.memory_bank[15][7] top.testbench_spu.glue.mmu_0.memory_bank[15][6] top.testbench_spu.glue.mmu_0.memory_bank[15][5] top.testbench_spu.glue.mmu_0.memory_bank[15][4] top.testbench_spu.glue.mmu_0.memory_bank[15][3] top.testbench_spu.glue.mmu_0.memory_bank[15][2] top.testbench_spu.glue.mmu_0.memory_bank[15][1] top.testbench_spu.glue.mmu_0.memory_bank[15][0]
 [pattern_trace] 1
 [pattern_trace] 0

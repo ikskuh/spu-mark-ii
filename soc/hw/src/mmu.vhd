@@ -8,8 +8,8 @@ ENTITY MMU IS
     rst           : in  std_logic;
 
     -- CPU access to MMU interface
-		cpu_data_out    : out std_logic_vector(15 downto 0);
-		cpu_data_in     : in  std_logic_vector(15 downto 0);
+		cpu_data_out    : in  std_logic_vector(15 downto 0);
+		cpu_data_in     : out std_logic_vector(15 downto 0);
 		cpu_address     : in  std_logic_vector(15 downto 1);
 		cpu_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
 		cpu_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
@@ -62,16 +62,16 @@ BEGIN
           -- translate address to physical memory
           bus_address     <= memory_cfg(15 downto 4) & cpu_address(11 downto 1);
           cpu_acknowledge <= bus_acknowledge;
-          cpu_data_out    <= bus_data_in;
 
-          bus_data_out    <= cpu_data_in;
+          cpu_data_in     <= bus_data_in;
+          bus_data_out    <= cpu_data_out;
           bus_write       <= cpu_write;
           bus_bls         <= cpu_bls;
         else
           -- TODO: trigger BUS error here
           bus_address     <= "00000000000000000000000";
           cpu_acknowledge <= '0';
-          cpu_data_out    <= "0000000000000000";
+          cpu_data_in     <= "0000000000000000";
           bus_data_out    <= "0000000000000000";
           bus_write       <= '0';
           bus_bls         <= "00";  
@@ -79,7 +79,7 @@ BEGIN
       else    
         bus_address     <= "00000000000000000000000";
         cpu_acknowledge <= '0';
-        cpu_data_out    <= "0000000000000000";
+        cpu_data_in     <= "0000000000000000";
         bus_data_out    <= "0000000000000000";
         bus_write       <= '0';
         bus_bls         <= "00";   
@@ -97,12 +97,10 @@ BEGIN
     elsif rising_edge(clk) then
       if ctrl_request = '1' then
         if ctrl_bls = "11" then
-          if unsigned(ctrl_address) < 16 then
-            if ctrl_write = '1' then
-              memory_bank(to_integer(unsigned(ctrl_address))) <= ctrl_data_in;
-            else
-              ctrl_data_out <= memory_bank(to_integer(unsigned(ctrl_address)));
-            end if;
+          if ctrl_write = '1' then
+            memory_bank(to_integer(unsigned(ctrl_address(4 downto 1)))) <= ctrl_data_in;
+          else
+            ctrl_data_out <= memory_bank(to_integer(unsigned(ctrl_address(4 downto 1))));
           end if;
         else 
           ctrl_data_out <= "1111111111111111";
