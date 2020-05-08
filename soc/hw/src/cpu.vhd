@@ -240,6 +240,7 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 			& " -> " & outputName(instruction(9 downto 8))
 			& flagName(instruction(7));
 	end function;
+
  
 BEGIN
 
@@ -334,7 +335,7 @@ BEGIN
 		procedure finish_instruction(output : in CPU_WORD) is
 			variable temp : cpu_word;
 		begin
-			report "finalize instruction: " & to_hstring(output);
+			report "finalize instruction: I0=" & to_hstring(REG_I0) & ", I1=" & to_hstring(REG_I1) & " => " & to_hstring(output);
 			if INSTR_FLAG = '1' then
 				FLAG_N <= '1' when output >= 16#8000# else '0';
 				FLAG_Z <= '1' when output =  0        else '0';
@@ -442,6 +443,8 @@ BEGIN
 					
 					WHEN FETCH_INSTR => -- use with readMem16!
 						REG_INSTR <= mem_data_in;
+
+						report "Fetch " & to_hstring(REG_IP);
 						
 						if isInstructionExecuted(mem_data_in(2 downto 0)) then
 							

@@ -35,7 +35,7 @@ ARCHITECTURE rtl OF UART_Sender IS
 		STATE_BIT7,
 		STATE_STOP,
 		STATE_DONE
-	  );
+  );
 
 	SIGNAL clkdiv : unsigned(31 downto 0);
 	SIGNAL state : UartState := STATE_IDLE;

@@ -96,7 +96,7 @@ BEGIN
 
 	-- Fake some 8 bit RAM interface
 	vga_ram_access <= '1' when bus_request = '1' and ((bus_bls = "10") or (bus_bls = "01")) else '0';
-	vga_ram_address <= bus_address(14 downto 1) & bus_bls(0); -- we only enable for byte access
+	vga_ram_address <= bus_address(14 downto 1) & bus_bls(1); -- we only enable for byte access
 	vga_ram_data_in  <= bus_data_in(11 downto 8) when bus_bls(1) = '1' else bus_data_in(3 downto 0);
 	bus_data_out <= "0000" & vga_ram_data_out & "0000" & vga_ram_data_out;
 

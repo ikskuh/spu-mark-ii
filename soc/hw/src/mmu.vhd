@@ -59,6 +59,10 @@ BEGIN
         -- check if page is mapped and the access is valid
         if memory_cfg(0) = '1' and (cpu_write = '0' or memory_cfg(1) = '0') then
           
+          if bus_request = '0' then
+            report "translate CPU(" & to_hstring(cpu_address & "0") & ") to BUS(" & to_hstring(memory_cfg(15 downto 4) & cpu_address(11 downto 1) & "0") & ")";
+          end if;
+
           -- translate address to physical memory
           bus_address     <= memory_cfg(15 downto 4) & cpu_address(11 downto 1);
           cpu_acknowledge <= bus_acknowledge;

@@ -250,19 +250,23 @@ ARCHITECTURE rtl OF SOC IS
 
       -- Actions
       WriteMem8_AddrLow,
+      WriteMem8_AddrMid,
       WriteMem8_AddrHigh,
       WriteMem8_Value,
 
       WriteMem16_AddrLow,
+      WriteMem16_AddrMid,
       WriteMem16_AddrHigh,
       WriteMem16_ValueLow,
       WriteMem16_ValueHigh,
 
       ReadMem8_AddrLow,
+      ReadMem8_AddrMid,
       ReadMem8_AddrHigh,
       ReadMem8_Value,
 
       ReadMem16_AddrLow,
+      ReadMem16_AddrMid,
       ReadMem16_AddrHigh,
       ReadMem16_ValueLow,
       ReadMem16_ValueHigh,
@@ -300,7 +304,7 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL dbg_txd_done : std_logic;
   SIGNAL dbg_rxd_done : std_logic;
 
-  SIGNAL dbg_buf_addr : std_logic_vector(15 downto 0);
+  SIGNAL dbg_buf_addr : std_logic_vector(23 downto 0);
   SIGNAL dbg_buf_data : std_logic_vector(15 downto 0);
 
   -- Memory Bus
@@ -546,8 +550,8 @@ BEGIN
   uart0_select     <= bus_request when bus_address(23 downto 16) = "10000000" else '0'; -- 0x80****
   vga_select       <= bus_request when bus_address(23 downto 16) = "10000001" else '0'; -- 0x81****
 
-  rom0_select      <= bus_request when bus_address(15 downto 12) /= "1111" else '0'; -- 0x00****
-  mmu_ctrl_select  <= bus_request when bus_address(15 downto 12)  = "1111" else '0'; -- 0x00F***
+  rom0_select      <= rom_range_select when bus_address(15 downto 12) /= "1111" else '0'; -- 0x00****
+  mmu_ctrl_select  <= rom_range_select when bus_address(15 downto 12)  = "1111" else '0'; -- 0x00F***
 
   bus_acknowledge <= rom0_ack     when rom0_select  = '1' else
                      uart0_ack    when uart0_select = '1' else
@@ -636,11 +640,11 @@ BEGIN
       dbg_state_continuation <= stateAfter;
     end procedure;
 
-    procedure busWrite8(stateAfter: TDebugState; address: std_logic_vector(15 downto 0); value: std_logic_vector(7 downto 0)) is
+    procedure busWrite8(stateAfter: TDebugState; address: std_logic_vector(23 downto 0); value: std_logic_vector(7 downto 0)) is
     begin
       dbg_mem_request <= '1';
       dbg_mem_write   <= '1';
-      dbg_mem_address <= address(15 downto 1);
+      dbg_mem_address <= address(23 downto 1);
 
       if address(0) = '0' then
         dbg_mem_data_out <= "00000000" & value;
@@ -654,7 +658,7 @@ BEGIN
       dbg_state_continuation <= stateAfter;
     end procedure;
 
-    procedure busWrite16(stateAfter: TDebugState; address: std_logic_vector(15 downto 1); value: std_logic_vector(15 downto 0)) is
+    procedure busWrite16(stateAfter: TDebugState; address: std_logic_vector(23 downto 1); value: std_logic_vector(15 downto 0)) is
     begin
       dbg_mem_request <= '1';
       dbg_mem_write   <= '1';
@@ -665,22 +669,22 @@ BEGIN
       dbg_state_continuation <= stateAfter;
     end procedure;
 
-    procedure busRead16(stateAfter: TDebugState; address: std_logic_vector(15 downto 0)) is
+    procedure busRead16(stateAfter: TDebugState; address: std_logic_vector(23 downto 0)) is
     begin
       dbg_mem_request <= '1';
       dbg_mem_write   <= '0';
-      dbg_mem_address <= address(15 downto 1);
+      dbg_mem_address <= address(23 downto 1);
       dbg_mem_bls     <= "11";
 
       dbg_state <= ReadBus;
       dbg_state_continuation <= stateAfter;
     end procedure;
 
-    procedure busRead8(stateAfter: TDebugState; address: std_logic_vector(15 downto 0)) is
+    procedure busRead8(stateAfter: TDebugState; address: std_logic_vector(23 downto 0)) is
     begin
       dbg_mem_request <= '1';
       dbg_mem_write   <= '0';
-      dbg_mem_address <= address(15 downto 1);
+      dbg_mem_address <= address(23 downto 1);
 
       if address(0) = '0' then
         dbg_mem_bls <= "01";
@@ -757,10 +761,14 @@ BEGIN
 
         when WriteMem8_AddrLow => 
           dbg_buf_addr(7 downto 0) <= dbg_data_in;
+          dbgRead(WriteMem8_AddrMid);
+
+        when WriteMem8_AddrMid => 
+          dbg_buf_addr(15 downto 8) <= dbg_data_in;
           dbgRead(WriteMem8_AddrHigh);
 
         when WriteMem8_AddrHigh => 
-          dbg_buf_addr(15 downto 8) <= dbg_data_in;
+          dbg_buf_addr(23 downto 16) <= dbg_data_in;
           dbgRead(WriteMem8_Value);
 
         when WriteMem8_Value => 
@@ -770,10 +778,14 @@ BEGIN
 
         when WriteMem16_AddrLow => 
           dbg_buf_addr(7 downto 0) <= dbg_data_in;
+          dbgRead(WriteMem16_AddrMid);
+
+        when WriteMem16_AddrMid => 
+          dbg_buf_addr(15 downto 8) <= dbg_data_in;
           dbgRead(WriteMem16_AddrHigh);
 
         when WriteMem16_AddrHigh => 
-          dbg_buf_addr(15 downto 8) <= dbg_data_in;
+          dbg_buf_addr(23 downto 16) <= dbg_data_in;
           dbgRead(WriteMem16_ValueLow);
 
         when WriteMem16_ValueLow => 
@@ -781,16 +793,20 @@ BEGIN
           dbgRead(WriteMem16_ValueHigh);
 
         when WriteMem16_ValueHigh => 
-          busWrite16(Idle, dbg_buf_addr(15 downto 1), dbg_data_in & dbg_buf_data(7 downto 0));
+          busWrite16(Idle, dbg_buf_addr(23 downto 1), dbg_data_in & dbg_buf_data(7 downto 0));
 
         -- Read a 8 bit word from the bus
 
         when ReadMem8_AddrLow =>
           dbg_buf_addr(7 downto 0) <= dbg_data_in;
+          dbgRead(ReadMem8_AddrMid);
+
+        when ReadMem8_AddrMid =>
+          dbg_buf_addr(15 downto 8) <= dbg_data_in;
           dbgRead(ReadMem8_AddrHigh);
 
         when ReadMem8_AddrHigh =>
-          dbg_buf_addr(15 downto 8) <= dbg_data_in;
+          dbg_buf_addr(23 downto 16) <= dbg_data_in;
           busRead8(ReadMem8_Value, dbg_buf_addr);
 
         when ReadMem8_Value =>
@@ -800,10 +816,14 @@ BEGIN
 
         when ReadMem16_AddrLow =>
           dbg_buf_addr(7 downto 0) <= dbg_data_in;
+          dbgRead(ReadMem16_AddrMid);
+
+        when ReadMem16_AddrMid =>
+          dbg_buf_addr(15 downto 8) <= dbg_data_in;
           dbgRead(ReadMem16_AddrHigh);
 
         when ReadMem16_AddrHigh =>
-          dbg_buf_addr(15 downto 8) <= dbg_data_in;
+          dbg_buf_addr(23 downto 16) <= dbg_data_in;
           busRead16(ReadMem16_ValueLow, dbg_buf_addr);
 
         when ReadMem16_ValueLow =>

@@ -25,7 +25,7 @@ pub fn main() !void {
         var x: usize = 0;
         while (x < 256) : (x += 1) {
             try ostream.writeIntLittle(u8, 'B');
-            try ostream.writeIntLittle(u16, 0x8000 | @intCast(u16, y << 8) | @intCast(u16, x));
+            try ostream.writeIntLittle(u24, 0x810000 | @intCast(u24, y << 8) | @intCast(u24, x));
             try ostream.writeIntLittle(u8, img.bpp8.pixels[y * img.bpp8.width + x]);
         }
     }

@@ -3,6 +3,8 @@ const argsParser = @import("args");
 const ihex = @import("ihex");
 const zig_serial = @import("serial");
 
+const BusAddress = u24;
+
 pub fn main() anyerror!u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
@@ -72,14 +74,14 @@ pub fn main() anyerror!u8 {
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                 break;
             };
-            if (std.fmt.parseInt(u16, addrstr, 16)) |addr| {
+            if (std.fmt.parseInt(BusAddress, addrstr, 16)) |addr| {
                 try stdout.writeAll("value   = ");
                 var valstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                     break;
                 };
                 if (std.fmt.parseInt(u8, valstr, 16)) |value| {
                     try serout.writeByte('B');
-                    try serout.writeIntLittle(u16, addr);
+                    try serout.writeIntLittle(BusAddress, addr);
                     try serout.writeIntLittle(u8, value);
                 } else |err| {
                     try stdout.print("failed to parse value: {}'\n", .{err});
@@ -92,14 +94,14 @@ pub fn main() anyerror!u8 {
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                 break;
             };
-            if (std.fmt.parseInt(u16, addrstr, 16)) |addr| {
+            if (std.fmt.parseInt(BusAddress, addrstr, 16)) |addr| {
                 try stdout.writeAll("value   = ");
                 var valstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                     break;
                 };
                 if (std.fmt.parseInt(u16, valstr, 16)) |value| {
                     try serout.writeByte('W');
-                    try serout.writeIntLittle(u16, addr);
+                    try serout.writeIntLittle(BusAddress, addr);
                     try serout.writeIntLittle(u16, value);
                 } else |err| {
                     try stdout.print("failed to parse value: {}'\n", .{err});
@@ -112,9 +114,9 @@ pub fn main() anyerror!u8 {
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                 break;
             };
-            if (std.fmt.parseInt(u16, addrstr, 16)) |addr| {
+            if (std.fmt.parseInt(BusAddress, addrstr, 16)) |addr| {
                 try serout.writeByte('b');
-                try serout.writeIntLittle(u16, addr);
+                try serout.writeIntLittle(BusAddress, addr);
 
                 const value = try serin.readIntLittle(u8);
 
@@ -130,9 +132,9 @@ pub fn main() anyerror!u8 {
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                 break;
             };
-            if (std.fmt.parseInt(u16, addrstr, 16)) |addr| {
+            if (std.fmt.parseInt(BusAddress, addrstr, 16)) |addr| {
                 try serout.writeByte('w');
-                try serout.writeIntLittle(u16, addr);
+                try serout.writeIntLittle(BusAddress, addr);
 
                 const value = try serin.readIntLittle(u16);
 
@@ -147,11 +149,11 @@ pub fn main() anyerror!u8 {
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {
                 break;
             };
-            if (std.fmt.parseInt(u16, addrstr, 16)) |addr| {
+            if (std.fmt.parseInt(BusAddress, addrstr, 16)) |addr| {
                 var last: ?u16 = null;
                 while (true) {
                     try serout.writeByte('w');
-                    try serout.writeIntLittle(u16, addr);
+                    try serout.writeIntLittle(BusAddress, addr);
 
                     const value = try serin.readIntLittle(u16);
 
@@ -190,7 +192,7 @@ pub fn main() anyerror!u8 {
                         std.debug.assert(base + data.len < 0x10000);
                         for (data) |value, offset| {
                             try p.output.writeByte('B');
-                            try p.output.writeIntLittle(u16, @intCast(u16, base + offset));
+                            try p.output.writeIntLittle(BusAddress, @intCast(BusAddress, base + offset));
                             try p.output.writeIntLittle(u8, value);
                         }
                     }
@@ -233,7 +235,7 @@ pub fn main() anyerror!u8 {
                     hash.update(std.mem.asBytes(&i));
 
                     try serout.writeByte('B');
-                    try serout.writeIntLittle(u16, @intCast(u16, 0x8000 + i));
+                    try serout.writeIntLittle(BusAddress, @intCast(BusAddress, 0x8000 + i));
                     try serout.writeIntLittle(u8, @truncate(u8, hash.final()));
 
                     if ((i % 0x200) == 0)
@@ -249,7 +251,7 @@ pub fn main() anyerror!u8 {
                     hash.update(std.mem.asBytes(&i));
 
                     try serout.writeByte('b');
-                    try serout.writeIntLittle(u16, @intCast(u16, 0x8000 + i));
+                    try serout.writeIntLittle(BusAddress, @intCast(BusAddress, 0x8000 + i));
                     const value = try serin.readIntLittle(u8);
                     if (value != @truncate(u8, hash.final()))
                         errors += 1;
@@ -272,7 +274,7 @@ pub fn main() anyerror!u8 {
 
                 while (i < 0x1_0000) : (i += 1) {
                     try serout.writeByte('B');
-                    try serout.writeIntLittle(u16, @intCast(u16, i));
+                    try serout.writeIntLittle(BusAddress, @intCast(BusAddress, i));
                     try serout.writeIntLittle(u8, color);
                 }
             } else |err| {

@@ -1,17 +1,18 @@
 ## ISA Changes
 - Refine interrupt handling
+- Add instruction `cpuid`
+- Add instruction `cpuctrl` (reset, halt, soft-interrupt, ...)
 
 ## SOC Changes
 - Design and calculate GPU
-  - Add basic VGA module (only "background color")
-  - 320×240 VGA resolution
-  - 256×128 pixel output
-  - 8-Color RGB (RGB111)
+  x Add basic VGA module (only "background color")
+  x 640x480 VGA resolution
+  x 256×128 pixel output
+  - 64-Color RGB (RGB222)
   - Use 4 bit dual port frame buffer RAM 
-- Finalize blitter design (see blitter.md)
-- Finalize sprite design (see sprite-unit.md)
+- Finalize blitter design (see vchip.md)
+- Finalize sprite design (see vga.md)
 - Make bus mastering configurable
-- Implement MMU
 
 ## Firmware changes
 - add monitor features
@@ -25,6 +26,11 @@
   - improve error reporting
   - Refine function call syntax `#bswap()` to have simpler parsing
 - Support new debug features
+  - break
+  - inspect/write registers
+  - restart
+- Add feature: Load ihex with offset / banking (16 MB memory space vs. 64k)
+
 
 ## Documentation Change
 - Write about common patterns in AN000
