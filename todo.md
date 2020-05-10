@@ -13,6 +13,8 @@
 - Finalize blitter design (see vchip.md)
 - Finalize sprite design (see vga.md)
 - Make bus mastering configurable
+- Fix stuff in CPU with interrupts and *hlt* (hlt, interrupt will finish current instruction instead of stopping CPU busmastering)
+
 
 ## Firmware changes
 - add monitor features
@@ -40,3 +42,12 @@
   - Add assembler
   - Add controls
   - Add hex view
+
+
+<xTr1m> To overcome the 64k memory limitation own to 16 bit cpus is overcome by a paging...
+
+<xTr1m> The SPU Mark II uses the little endian encoding, so the less significant byte is at the lower address, the more significant byte at the higher address.
+<xTr1m> bit, not byte
+<xTr1m> least significant bit, most significant bit
+
+<xTr1m> ist der MSB bei LOAD8 undefined?

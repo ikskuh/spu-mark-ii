@@ -28,11 +28,13 @@ ENTITY MMU IS
     -- System bus to mmu interface
 		ctrl_data_out    : out std_logic_vector(15 downto 0);
 		ctrl_data_in     : in  std_logic_vector(15 downto 0);
-		ctrl_address     : in std_logic_vector(15 downto 1);
-		ctrl_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
-		ctrl_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
-		ctrl_request     : in std_logic; -- when set to '1', the bus operation is requested
-		ctrl_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+		ctrl_address     : in  std_logic_vector(15 downto 1);
+		ctrl_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
+		ctrl_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		ctrl_request     : in  std_logic; -- when set to '1', the bus operation is requested
+    ctrl_acknowledge : out std_logic; -- when set to '1', the bus operation is acknowledged
+    
+    intr_bus_error   : out std_logic  -- '1' for 1 clk when a bus error happend
 	);
 END ENTITY MMU;
 
@@ -49,7 +51,8 @@ BEGIN
     VARIABLE memory_cfg : std_logic_vector(15 downto 0);
   begin
     if rst = '0' then
-			-- memory_bank is resetted in p1
+      -- memory_bank is resetted in p1
+      intr_bus_error <= '0';
     elsif rising_edge(clk) then
       bus_request  <= cpu_request;
       if cpu_request = '1' then
@@ -71,8 +74,10 @@ BEGIN
           bus_data_out    <= cpu_data_out;
           bus_write       <= cpu_write;
           bus_bls         <= cpu_bls;
+          intr_bus_error <= '0';
+
         else
-          -- TODO: trigger BUS error here
+          intr_bus_error <= '1';
           bus_address     <= "00000000000000000000000";
           cpu_acknowledge <= '0';
           cpu_data_in     <= "0000000000000000";
@@ -80,13 +85,14 @@ BEGIN
           bus_write       <= '0';
           bus_bls         <= "00";  
          end if;
-      else    
+      else
+        intr_bus_error <= '0';
         bus_address     <= "00000000000000000000000";
         cpu_acknowledge <= '0';
         cpu_data_in     <= "0000000000000000";
         bus_data_out    <= "0000000000000000";
         bus_write       <= '0';
-        bus_bls         <= "00";   
+        bus_bls         <= "00";
       end if;
     end if;
   end process;

@@ -31,6 +31,10 @@ END ENTITY SOC;
 use work.generated.all;
 
 ARCHITECTURE rtl OF SOC IS
+  
+  CONSTANT clkfreq : natural := 48_000_000;
+  CONSTANT uart_baud : natural := 460_800;
+  CONSTANT debug_baud : natural := 460_800;
 
   COMPONENT SPU_Mark_II
   PORT(
@@ -42,7 +46,12 @@ ARCHITECTURE rtl OF SOC IS
     bus_address     : OUT std_logic_vector(15 downto 1);
     bus_write       : OUT std_logic;
     bus_bls         : OUT std_logic_vector(1 downto 0);
-    bus_request     : OUT std_logic
+    bus_request     : OUT std_logic;
+
+    intr_nmi        : in  std_logic;
+    intr_bus        : in  std_logic;
+    intr_irq        : in  std_logic;
+    intr_reset      : in  std_logic 
     );
   END COMPONENT;
 
@@ -234,15 +243,15 @@ ARCHITECTURE rtl OF SOC IS
 
 		ctrl_data_out    : out std_logic_vector(15 downto 0);
 		ctrl_data_in     : in  std_logic_vector(15 downto 0);
-		ctrl_address     : in std_logic_vector(15 downto 1);
-		ctrl_write       : in std_logic; -- when '1' then bus write is requested, otherwise a read.
-		ctrl_bls         : in std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
-		ctrl_request     : in std_logic; -- when set to '1', the bus operation is requested
-		ctrl_acknowledge : out  std_logic  -- when set to '1', the bus operation is acknowledged
+		ctrl_address     : in  std_logic_vector(15 downto 1);
+		ctrl_write       : in  std_logic; -- when '1' then bus write is requested, otherwise a read.
+		ctrl_bls         : in  std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
+		ctrl_request     : in  std_logic; -- when set to '1', the bus operation is requested
+		ctrl_acknowledge : out std_logic; -- when set to '1', the bus operation is acknowledged
+    
+    intr_bus_error   : out std_logic  -- '1' for 1 clk when a bus error happend
   );
   END COMPONENT MMU;
-  
-  CONSTANT clkfreq : natural := 48_000_000;
 
   TYPE TDebugState IS (
       -- Standard State
@@ -356,28 +365,37 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL uart0_ack : std_logic;
   SIGNAL uart0_out : std_logic_vector(15 downto 0);
 
+  SIGNAL rom_range_select : std_logic;
+
   SIGNAL rom0_select : std_logic;
   SIGNAL rom0_ack : std_logic;
   SIGNAL rom0_out : std_logic_vector(15 downto 0);
-
-  SIGNAL vga_select : std_logic;
-  SIGNAL vga_ack : std_logic;
-  SIGNAL vga_out : std_logic_vector(15 downto 0);
 
   SIGNAL mmu_ctrl_select : std_logic;
   SIGNAL mmu_ctrl_ack : std_logic;
   SIGNAL mmu_ctrl_out : std_logic_vector(15 downto 0);
 
-  SIGNAL rom_range_select : std_logic;
+
+  SIGNAL vga_select : std_logic;
+  SIGNAL vga_ack : std_logic;
+  SIGNAL vga_out : std_logic_vector(15 downto 0);
+
+
+  -- Interrupts
+  SIGNAL cpu_reset : std_logic;
+  SIGNAL mmu_bus_error : std_logic;
+
 
   SIGNAL sim_bus_address :  std_logic_vector(23 downto 0);
+
+
 
 BEGIN	
 
   -- Entities
 
   dbg_rx: UART_Receiver
-  GENERIC MAP(clkfreq => clkfreq,  baudrate => 19_200)
+  GENERIC MAP(clkfreq => clkfreq,  baudrate => debug_baud)
   PORT MAP(
     rst => rst,
     clk => clk,
@@ -388,7 +406,7 @@ BEGIN
   );
 
   dbg_tx: UART_Sender
-    GENERIC MAP(clkfreq => clkfreq,  baudrate => 19_200)
+    GENERIC MAP(clkfreq => clkfreq,  baudrate => debug_baud)
     PORT MAP(
       rst => rst,
       clk => clk,
@@ -410,7 +428,11 @@ BEGIN
     bus_write       => cpu_write,
     bus_bls         => cpu_bls,
     bus_request     => cpu_request,
-    bus_acknowledge => cpu_acknowledge
+    bus_acknowledge => cpu_acknowledge,
+    intr_nmi        => '0', -- always zero
+    intr_bus        => mmu_bus_error,
+    intr_irq        => '0', -- not implemented yet
+    intr_reset      => cpu_reset
   );
 
   mmu_0: MMU PORT MAP (
@@ -439,7 +461,9 @@ BEGIN
     ctrl_write       => bus_write,
     ctrl_bls         => bus_bls,
     ctrl_request     => mmu_ctrl_select,
-    ctrl_acknowledge => mmu_ctrl_ack
+    ctrl_acknowledge => mmu_ctrl_ack,
+
+    intr_bus_error   => mmu_bus_error
   );
 
   -- Bus Slaves
@@ -459,7 +483,7 @@ BEGIN
     );
 
   uart0 : Serial_Port
-    GENERIC MAP (clkfreq  => clkfreq, baudrate => 19200)
+    GENERIC MAP (clkfreq  => clkfreq, baudrate => uart_baud)
     PORT MAP (
       rst             => rst,
       clk             => clk,
@@ -728,6 +752,7 @@ BEGIN
       case dbg_state is
         when Idle =>
           if dbg_rxd_done = '1' then
+            cpu_reset <= '0';
             case character'val(to_integer(unsigned(dbg_data_in))) is
               when 'B' => -- 'B'yte write { AL, AH, V }
                 dbgRead(WriteMem8_AddrLow);
@@ -743,6 +768,9 @@ BEGIN
 
               when 'R' => -- 'R'eset system
                 sync_rst <= '0';
+
+              when 'r' => -- 'r'eset CPU
+                cpu_reset <= '1';
 
               when 'H' => -- 'H'alt system
                 cpu_halted <= true;

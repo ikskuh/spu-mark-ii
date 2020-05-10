@@ -37,7 +37,7 @@ pub fn main() anyerror!u8 {
     defer serial.close();
 
     try zig_serial.configureSerialPort(serial, zig_serial.SerialConfig{
-        .baud_rate = 19200,
+        .baud_rate = 460800,
         .parity = .none,
         .stop_bits = .one,
         .handshake = .none,

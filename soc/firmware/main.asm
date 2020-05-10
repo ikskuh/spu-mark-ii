@@ -55,15 +55,51 @@ bios_entrypoint:
 bios_restart:
 
 	spset 0x0000    ; 2048 Element Stack at the end of the memory
-	bpset 0x0000    ; Stack bottom
 
 	push bios_startup_msg
 	ipget 2
 	jmp serial_puts
 	pop
 
+	bpget [f:yes]
+	[ex:zero] jmp bios_mainmenu [i1:pop]
+
+	lsl ; *2
+	add bios_reset_reason_table
+	ld 
+	ipget 2
+	jmp serial_puts
+	pop
+
 ; go into the bios mainmenu
 	jmp bios_mainmenu
+
+; Reset Reasons:
+; 0x0000 => CPU Reset
+; 0x0001 => NMI
+; 0x0002 => BUS Error
+; 0x0003 => IRQ
+; 0x0004 => Unimplemented Instruction
+bios_reset_reason_table:
+.dw bios_reset_reason_rst
+.dw bios_reset_reason_nmi
+.dw bios_reset_reason_bus
+.dw bios_reset_reason_irq
+.dw bios_reset_reason_nij
+.dw bios_reset_reason_reserved
+
+bios_reset_reason_rst:
+	.asciiz "\r\nReset Reason: Reset\r\n"
+bios_reset_reason_nmi:
+	.asciiz "\r\nReset Reason: NMI\r\n"
+bios_reset_reason_bus:
+	.asciiz "\r\nReset Reason: BUS\r\n"
+bios_reset_reason_irq:
+	.asciiz "\r\nReset Reason: IRQ\r\n"
+bios_reset_reason_nij:
+	.asciiz "\r\nReset Reason: Unsupported Instruction\r\n"
+bios_reset_reason_reserved:
+	.asciiz "\r\nReset Reason: Reserved Instruction\r\n"
 
 bios_startup_msg:
 	.db    ASCII_ESC, '[', 'H' ; Home Cursor
@@ -79,6 +115,9 @@ bios_startup_msg:
 ; the main menu of the Ashet BIOS
 ; 
 bios_mainmenu:
+	spset 0x0000 ; BIOS mainmenu has no stack items, ever
+	bpset 0x0000 ; Stack bottom
+
 	st 0x4000, ASCII_CR
 	st 0x4000, '>'
 	st 0x4000, ' '
@@ -474,7 +513,6 @@ bios_readline_demo:
 
 	jmp bios_mainmenu
 
-
 ; fn(str: *u8, len: u16) void
 ; reads a line from the serial terminal. Allows the user to edit the text
 ; with backspace and correct the input by that.
@@ -563,6 +601,6 @@ serial_read_line:
 	ret
 
 ; end of code
-.org 0x6000
+.org 0x8000
 bios_readline_demo_buf:
 .space 32

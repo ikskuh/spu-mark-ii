@@ -19,10 +19,10 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.bit</File>
-			<FileTime>05/07/20 22:37:01</FileTime>
-			<JedecChecksum>N/A</JedecChecksum>
-			<Operation>SRAM Erase,Program,Verify</Operation>
+			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.jed</File>
+			<FileTime>05/09/20 17:11:39</FileTime>
+			<JedecChecksum>0xD5BB</JedecChecksum>
+			<Operation>FLASH Erase,Program,Verify</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
 				<IOState>HighZ</IOState>
@@ -32,7 +32,7 @@
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
 				<Usercode>0x12345678</Usercode>
-				<AccessMode>SRAM</AccessMode>
+				<AccessMode>FLASH</AccessMode>
 			</Option>
 		</Device>
 	</Chain>
@@ -47,8 +47,8 @@
 	</ProjectOptions>
 	<CableOptions>
 		<CableName>USB2</CableName>
-		<PortAdd>FTUSB-1</PortAdd>
-		<USBID>LATTICE XO3LF STARTER KIT A Location 0001 Serial LATTICE XO3LF STARTER KIT A</USBID>
+		<PortAdd>FTUSB-0</PortAdd>
+		<USBID>LATTICE XO3LF STARTER KIT A Location 0000 Serial LATTICE XO3LF STARTER KIT A</USBID>
 		<JTAGPinSetting>
 			TRST	ABSENT;
 			ISPEN	ABSENT;

@@ -12,7 +12,13 @@ ENTITY SPU_Mark_II IS
 		bus_write       : out std_logic; -- when '1' then bus write is requested, otherwise a read.
 		bus_bls         : out std_logic_vector(1 downto 0); -- selects the byte lanes for the memory operation
 		bus_request     : out std_logic; -- when set to '1', the bus operation is requested
-		bus_acknowledge : in  std_logic  -- when set to '1', the bus operation is acknowledged
+		bus_acknowledge : in  std_logic; -- when set to '1', the bus operation is acknowledged
+
+		-- interrupt lanes
+		intr_nmi        : in  std_logic; -- when '1', a NMI is signalled
+		intr_bus        : in  std_logic; -- when '1', a BUS interrupt is signalled
+		intr_irq        : in  std_logic; -- when '1', a IRQ is signalled
+		intr_reset      : in  std_logic  -- when '1', a reset is requested
 	);
 	
 END ENTITY SPU_Mark_II;
@@ -59,7 +65,8 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 		EXEC_BSWAP,
 		EXEC_ASR,
 		EXEC_LSL,
-		EXEC_LSR
+		EXEC_LSR,
+		EXEC_RESERVED
 	);
 
 	SUBTYPE CPU_BITS IS std_logic_vector(15 downto 0);
@@ -117,8 +124,8 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 			when "00101" => return EXEC_STORE16; -- store16
 			when "00110" => return EXEC_LOAD8; -- load8
 			when "00111" => return EXEC_LOAD16; -- load16
-			when "01000" => return RESET;           -- RESERVED
-			when "01001" => return RESET;           -- RESERVED
+			when "01000" => return EXEC_RESERVED;           -- RESERVED
+			when "01001" => return EXEC_RESERVED;           -- RESERVED
 			when "01010" => return EXEC_FRGET; -- frget
 			when "01011" => return EXEC_FRSET; -- frset
 			when "01100" => return EXEC_BPGET; -- bpget
@@ -141,7 +148,7 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 			when "11101" => return EXEC_ASR; -- asr
 			when "11110" => return EXEC_LSL; -- lsl
 			when "11111" => return EXEC_LSR; -- lsr
-			when others  => return RESET;           -- undefined anyways
+			when others  => return EXEC_RESERVED;           -- undefined anyways
 		end case;
 	end;
 
@@ -330,10 +337,33 @@ BEGIN
 			REG_SP <= REG_SP - 2;
 		end procedure;
 
+		procedure reset_cpu(reason: in CPU_WORD) is
+		begin
+			REG_BP <= reason;
+			state <= RESET;
+		end procedure;
+
+		procedure fetch_next_instruction(address: in CPU_WORD) is
+		begin
+
+			if intr_reset = '1' then
+				reset_cpu("0000000000000000");
+			elsif intr_nmi = '1' then
+				reset_cpu("0000000000000001");
+			elsif intr_bus = '1' then
+				reset_cpu("0000000000000010");
+			elsif intr_irq = '1' then
+				reset_cpu("0000000000000011");
+			else
+				REG_IP <= address;
+				beginReadMemory16(address, FETCH_INSTR);
+			end if;
+
+		end procedure;
+
 		-- completes execution of a instruction and handles
 		-- post-command processing.
 		procedure finish_instruction(output : in CPU_WORD) is
-			variable temp : cpu_word;
 		begin
 			report "finalize instruction: I0=" & to_hstring(REG_I0) & ", I1=" & to_hstring(REG_I1) & " => " & to_hstring(output);
 			if INSTR_FLAG = '1' then
@@ -343,22 +373,18 @@ BEGIN
 
 			case INSTR_OUT is
 				when "00" => -- discard
-					beginReadMemory16(REG_IP, FETCH_INSTR);
+					fetch_next_instruction(REG_IP);
 				
 				when "01" => -- push
 					beginPush(output, PUSH_OUTPUT);
-					
+				
 				when "10" => -- jmp
-					REG_IP <= output;
-					beginReadMemory16(output, FETCH_INSTR);
+					fetch_next_instruction(output);
 				
 				when "11" => -- jmp rel
-					temp := REG_IP + (output(14 downto 0) & "0");
-					REG_IP <= temp;
-					beginReadMemory16(temp, FETCH_INSTR);
+					fetch_next_instruction(REG_IP + (output(14 downto 0) & "0"));
 				
 				when others =>
-					state <= RESET;
 			end case;		
 		end procedure;
 
@@ -415,16 +441,23 @@ BEGIN
 
 	BEGIN
 	  if rst = '0' then
-			state <= RESET;
+			reset_cpu("0000000000000000");
 		else
 			if rising_edge(clk) then
+				TODO: Latch the interrupt bits here!
 				CASE state IS
 					WHEN RESET =>
 						REG_FR <= NUL_BITS;
-						REG_BP <= NUL;
-						REG_SP <= NUL;
 						REG_IP <= NUL;
-						beginReadMemory16(NUL, FETCH_INSTR);
+
+						-- reset bus interface
+						mem_data_out <= "0000000000000000";
+						mem_address  <= "000000000000000";
+						mem_write    <= '0';
+						mem_bls      <= "00";
+						mem_req      <= '0';
+
+						fetch_next_instruction(NUL);
 
 					WHEN DO_MEMORY =>
 						if mem_ack = '1' then
@@ -496,8 +529,7 @@ BEGIN
 								temp := REG_IP + 2;
 							end if;
 							
-							REG_IP <= temp;
-							beginReadMemory16(temp, FETCH_INSTR);
+							fetch_next_instruction(temp);
 
 						end if;
 					
@@ -510,7 +542,7 @@ BEGIN
 						state <= getInstructionStartState(INSTR_CMD);
 						
 					WHEN PUSH_OUTPUT =>
-						beginReadMemory16(REG_IP, FETCH_INSTR);
+						fetch_next_instruction(REG_IP);
 
 					WHEN EXEC_COPY =>
 						finish_instruction(REG_I0);
@@ -574,13 +606,13 @@ BEGIN
 						finish_instruction(arith_temp(15 downto 0));
 					
 					when EXEC_MUL =>
-						state <= RESET; -- not implemented yet
+						reset_cpu("0000000000000100");
 						
 					when EXEC_DIV =>
-						state <= RESET; -- not implemented yet
+						reset_cpu("0000000000000100");
 						
 					when EXEC_MOD =>
-						state <= RESET; -- not implemented yet
+						reset_cpu("0000000000000100"); 
 					
 					when EXEC_AND =>
 						finish_instruction(REG_I0 and REG_I1);
@@ -623,6 +655,9 @@ BEGIN
 					when EXEC_LSR =>
 						finish_instruction("0" & REG_I0(15 downto 1));
 					
+					when EXEC_RESERVED =>
+						reset_cpu("0000000000000101");
+
 				END CASE;
 			end if;
 		end if;	

@@ -182,6 +182,12 @@ pub fn build(b: *std.build.Builder) !void {
     wasm_emulator.step.dependOn(&gen_firmware_blob.step);
     wasm_emulator.install();
 
+    const bitmap_converter = b.addExecutable("bit-loader", "tools/bit-loader/main.zig");
+    bitmap_converter.addPackage(packages.args);
+    bitmap_converter.setTarget(target);
+    bitmap_converter.setBuildMode(mode);
+    bitmap_converter.install();
+
     const emulate_step = b.step("emulate", "Run the emulator");
     emulate_step.dependOn(&emulate_cmd.step);
 
