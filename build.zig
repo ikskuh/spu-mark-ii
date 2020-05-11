@@ -133,6 +133,13 @@ pub fn build(b: *std.build.Builder) !void {
     make_vhd.setBuildMode(mode);
     make_vhd.install();
 
+    const hex2mem = b.addExecutable("hex2mem", "tools/hex2mem/main.zig");
+    hex2mem.addPackage(packages.args);
+    hex2mem.addPackage(packages.ihex);
+    hex2mem.setTarget(target);
+    hex2mem.setBuildMode(mode);
+    hex2mem.install();
+
     inline for (examples) |src_file| {
         const step = nativeToolchain.assembler.run();
         step.addArgs(&[_][]const u8{
@@ -161,11 +168,20 @@ pub fn build(b: *std.build.Builder) !void {
     const refresh_cmd = make_vhd.run();
     refresh_cmd.step.dependOn(&gen_firmware_blob.step);
     refresh_cmd.addArgs(&[_][]const u8{
-        "-o",
+        "--output",
         "./soc/hw/src/builtin-rom.vhd",
         "./soc/firmware/firmware.bin",
     });
 
+    const gen_mem_file = hex2mem.run();
+    gen_mem_file.step.dependOn(&assemble_step.step);
+    gen_mem_file.addArgs(&[_][]const u8{
+        "--output",
+        "./soc/hw/firmware.mem",
+        "./soc/firmware/firmware.hex",
+    });
+
+    b.getInstallStep().dependOn(&gen_mem_file.step);
     b.getInstallStep().dependOn(&refresh_cmd.step);
 
     const emulate_cmd = nativeToolchain.emulator.run();

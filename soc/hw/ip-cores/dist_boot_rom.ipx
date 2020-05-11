@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="dist_boot_rom" module="Distributed_ROM" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 05 12 01:03:20.491" version="2.8" type="Module" synthesis="lse" source_format="VHDL">
+  <Package>
+		<File name="/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firmware.mem" type="mem" modified="2020 05 11 23:45:43.000"/>
+		<File name="dist_boot_rom.lpc" type="lpc" modified="2020 05 12 01:03:19.000"/>
+		<File name="dist_boot_rom.vhd" type="top_level_vhdl" modified="2020 05 12 01:03:19.000"/>
+		<File name="dist_boot_rom_tmpl.vhd" type="template_vhdl" modified="2020 05 12 01:03:19.000"/>
+		<File name="tb_dist_boot_rom_tmpl.vhd" type="testbench_vhdl" modified="2020 05 12 01:03:19.000"/>
+  </Package>
+</DiamondModule>

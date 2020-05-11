@@ -13,8 +13,10 @@
 - Finalize blitter design (see vchip.md)
 - Finalize sprite design (see vga.md)
 - Make bus mastering configurable
-- Fix stuff in CPU with interrupts and *hlt* (hlt, interrupt will finish current instruction instead of stopping CPU busmastering)
 
+- FIX: EBR ROM is zero all the time :(
+- ADD: Read CPU registers via CMD
+- ADD: Write CPU registers via CMD
 
 ## Firmware changes
 - add monitor features

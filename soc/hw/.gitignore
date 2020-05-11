@@ -20,4 +20,4 @@ debugging/
 *.lst
 *.sty
 testbench_fifo
-testbench_spu
+testbench_spu*.mem

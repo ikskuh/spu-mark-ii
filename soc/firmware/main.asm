@@ -1,5 +1,3 @@
-
-
 .include "../../apps/library/ascii.inc"
 
 .org 0x0000
@@ -603,4 +601,4 @@ serial_read_line:
 ; end of code
 .org 0x8000
 bios_readline_demo_buf:
-.space 32
+;.space 32

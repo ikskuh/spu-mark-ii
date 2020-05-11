@@ -5,6 +5,39 @@ const zig_serial = @import("serial");
 
 const BusAddress = u24;
 
+pub const NUL = 0x00;
+pub const SOH = 0x01;
+pub const STX = 0x02;
+pub const ETX = 0x03;
+pub const EOT = 0x04;
+pub const ENQ = 0x05;
+pub const ACK = 0x06;
+pub const BEL = 0x07;
+pub const BS = 0x08;
+pub const TAB = 0x09;
+pub const LF = 0x0A;
+pub const VT = 0x0B;
+pub const FF = 0x0C;
+pub const CR = 0x0D;
+pub const SO = 0x0E;
+pub const SI = 0x0F;
+pub const DLE = 0x10;
+pub const DC1 = 0x11;
+pub const DC2 = 0x12;
+pub const DC3 = 0x13;
+pub const DC4 = 0x14;
+pub const NAK = 0x15;
+pub const SYN = 0x16;
+pub const ETB = 0x17;
+pub const CAN = 0x18;
+pub const EM = 0x19;
+pub const SUB = 0x1A;
+pub const ESC = 0x1B;
+pub const FS = 0x1C;
+pub const GS = 0x1D;
+pub const RS = 0x1E;
+pub const US = 0x1F;
+
 pub fn main() anyerror!u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
@@ -64,11 +97,24 @@ pub fn main() anyerror!u8 {
         if (std.mem.eql(u8, cmd, "quit")) {
             break;
         } else if (std.mem.eql(u8, cmd, "reset")) {
+            try serout.writeByte('r');
+        } else if (std.mem.eql(u8, cmd, "system-reset")) {
             try serout.writeByte('R');
         } else if (std.mem.eql(u8, cmd, "halt")) {
             try serout.writeByte('H');
+            if ((try serin.readByte()) != ACK) {
+                try stdout.writeAll("Failed to halt CPU!\n");
+            }
         } else if (std.mem.eql(u8, cmd, "resume")) {
             try serout.writeByte('h');
+            if ((try serin.readByte()) != ACK) {
+                try stdout.writeAll("Failed to resume CPU!\n");
+            }
+        } else if (std.mem.eql(u8, cmd, "step")) {
+            try serout.writeByte('s');
+            if ((try serin.readByte()) != ACK) {
+                try stdout.writeAll("Failed to execute step!\n");
+            }
         } else if (std.mem.eql(u8, cmd, "write8")) {
             try stdout.writeAll("address = ");
             var addrstr = if (try stdin.readUntilDelimiterOrEof(&inputbuf, '\n')) |c| c else {

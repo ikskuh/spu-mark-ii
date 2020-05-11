@@ -1,8 +1,10 @@
 LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.numeric_std.ALL;
-	
+USE WORK.SPU_Mark_II_Types.ALL;
+
 ENTITY SPU_Mark_II IS
+
 	PORT (
 		rst             : in  std_logic; -- asynchronous reset
 	  clk             : in  std_logic; -- system clock
@@ -18,7 +20,18 @@ ENTITY SPU_Mark_II IS
 		intr_nmi        : in  std_logic; -- when '1', a NMI is signalled
 		intr_bus        : in  std_logic; -- when '1', a BUS interrupt is signalled
 		intr_irq        : in  std_logic; -- when '1', a IRQ is signalled
-		intr_reset      : in  std_logic  -- when '1', a reset is requested
+		intr_reset      : in  std_logic; -- when '1', a reset is requested
+
+		-- halt handling
+		hlt_req         : in  std_logic; -- when '1', the CPU will halt eventually after the current instruction
+		hlt_active      : out std_logic; -- when '1', the CPU is halted
+		hlt_continue    : in  std_logic; -- when '1', the CPU will continue execution
+
+		-- register interface 
+		reg_select      : in  RegisterName;                  -- selects a register to interact with
+		reg_value       : out std_logic_vector(15 downto 0); -- value of the register
+		reg_set_value   : in  std_logic_vector(15 downto 0); -- value that should be written into the register
+		reg_set         : in  std_logic                      -- when '1', the selected register value is replaced with reg_set_value
 	);
 	
 END ENTITY SPU_Mark_II;
@@ -26,6 +39,8 @@ END ENTITY SPU_Mark_II;
 ARCHITECTURE rtl OF SPU_Mark_II IS
 	TYPE FSM_State IS (
 		RESET, 
+		HALT,
+
 		FETCH_INSTR, 
 		FETCH_INPUT0,
 		FETCH_INPUT1,
@@ -86,6 +101,7 @@ ARCHITECTURE rtl OF SPU_Mark_II IS
 	SIGNAL REG_BP : CPU_WORD; -- base pointer
 	SIGNAL REG_IP : CPU_WORD; -- instruction pointer
 	SIGNAL REG_FR : CPU_BITS; -- flag register
+	SIGNAL REG_IR : CPU_BITS; -- interrupt register
 	
 	SIGNAL REG_INSTR : CPU_BITS; -- current instruction word
 	SIGNAL REG_I0    : CPU_WORD; -- input0
@@ -258,6 +274,14 @@ BEGIN
 	bus_address  <= mem_address;
 	mem_ack      <= bus_acknowledge;
 
+	-- Register selector for debugging
+	reg_value    <= std_logic_vector(REG_SP) when reg_select = SP else
+									std_logic_vector(REG_BP) when reg_select = BP else
+									std_logic_vector(REG_IP) when reg_select = IP else
+									std_logic_vector(REG_FR) when reg_select = FR else
+									std_logic_vector(REG_IR) when reg_select = IR else
+									std_logic_vector(NUL);
+
 	P0: PROCESS (clk, rst) is
 
 		procedure beginMemInput(address : in CPU_WORD; bls : std_logic_vector(1 downto 0); stateAfter : FSM_State) is
@@ -339,24 +363,28 @@ BEGIN
 
 		procedure reset_cpu(reason: in CPU_WORD) is
 		begin
+			REG_IR <= "0000000000000000";
 			REG_BP <= reason;
 			state <= RESET;
 		end procedure;
 
 		procedure fetch_next_instruction(address: in CPU_WORD) is
 		begin
-
-			if intr_reset = '1' then
+			if REG_IR(0) = '1' then
 				reset_cpu("0000000000000000");
-			elsif intr_nmi = '1' then
+			elsif REG_IR(1) = '1' then
 				reset_cpu("0000000000000001");
-			elsif intr_bus = '1' then
+			elsif REG_IR(2) = '1' then
 				reset_cpu("0000000000000010");
-			elsif intr_irq = '1' then
+			elsif REG_IR(7) = '1' then
 				reset_cpu("0000000000000011");
 			else
 				REG_IP <= address;
-				beginReadMemory16(address, FETCH_INSTR);
+				if hlt_req = '1' then
+					state <= HALT;
+				else
+					beginReadMemory16(address, FETCH_INSTR);
+				end if;
 			end if;
 
 		end procedure;
@@ -444,7 +472,24 @@ BEGIN
 			reset_cpu("0000000000000000");
 		else
 			if rising_edge(clk) then
-				TODO: Latch the interrupt bits here!
+
+				hlt_active <= '1' when state = HALT else '0';
+
+				if reg_set = '1' then
+					case reg_select is
+						when SP => REG_SP <= CPU_WORD(reg_set_value);
+						when BP => REG_BP <= CPU_WORD(reg_set_value);
+						when IP => REG_IP <= CPU_WORD(reg_set_value);
+						when FR => REG_FR <= CPU_BITS(reg_set_value);
+						when IR => REG_IR <= CPU_BITS(reg_set_value);
+					end case;
+				end if;
+
+				REG_IR(0) <= REG_IR(0) or intr_reset;
+				REG_IR(1) <= REG_IR(1) or intr_nmi;
+				REG_IR(2) <= REG_IR(2) or intr_bus;
+				REG_IR(7) <= REG_IR(7) or intr_irq;
+
 				CASE state IS
 					WHEN RESET =>
 						REG_FR <= NUL_BITS;
@@ -458,6 +503,11 @@ BEGIN
 						mem_req      <= '0';
 
 						fetch_next_instruction(NUL);
+
+					WHEN HALT =>
+						if hlt_continue = '1' or hlt_req = '0' then
+							beginReadMemory16(REG_IP, FETCH_INSTR);
+						end if;
 
 					WHEN DO_MEMORY =>
 						if mem_ack = '1' then

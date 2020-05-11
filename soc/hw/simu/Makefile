@@ -1,5 +1,5 @@
 
-SOURCES=ip-cores/fastram_ebr.vhd $(addprefix ../src/,mmu.vhd fastram.vhd vga.vhd debug-port-in.vhd debug-port-out.vhd sram-controller.vhd uart_sender.vhd uart_receiver.vhd register-ram.vhd fifo.vhd serial-port.vhd cpu.vhd builtin-rom.vhd rom.vhd soc.vhd root.vhd testbench_fifo.vhd testbench_spu.vhd testbench_vga.vhd)
+SOURCES=ip-cores/fastram_ebr.vhd $(addprefix ../src/,cpu_types.vhd mmu.vhd fastram.vhd vga.vhd debug-port-in.vhd debug-port-out.vhd sram-controller.vhd uart_sender.vhd uart_receiver.vhd register-ram.vhd fifo.vhd serial-port.vhd cpu.vhd builtin-rom.vhd rom.vhd soc.vhd root.vhd testbench_fifo.vhd testbench_spu.vhd testbench_vga.vhd)
 
 OBJS=$(addprefix obj/,$(notdir $(SOURCES:.vhd=.o)))
 

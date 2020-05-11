@@ -1,0 +1,40 @@
+[Device]
+Family=machxo3lf
+PartType=LCMXO3LF-6900C
+PartName=LCMXO3LF-6900C-6BG256I
+SpeedGrade=6
+Package=CABGA256
+OperatingCondition=IND
+Status=S
+
+[IP]
+VendorName=Lattice Semiconductor Corporation
+CoreType=LPM
+CoreStatus=Demo
+CoreName=Distributed_ROM
+CoreRevision=2.8
+ModuleName=dist_boot_rom
+SourceFormat=VHDL
+ParameterFileVersion=1.0
+Date=05/12/2020
+Time=01:03:19
+
+[Parameters]
+Verilog=0
+VHDL=1
+EDIF=1
+Destination=Synplicity
+Expression=BusA(0 to 7)
+Order=Big Endian [MSB:LSB]
+IO=0
+Addresses=1024
+Data=16
+LUT=0
+MemFile=/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firmware.mem
+MemFormat=orca
+
+[FilesGenerated]
+/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firmware.mem=mem
+
+[Command]
+cmd_line= -w -n dist_boot_rom -lang vhdl -synth lse -bus_exp 7 -bb -arch xo3c00f -dram -type romblk -addr_width 10 -num_words 1024 -data_width 16 -outdata UNREGISTERED -memfile /home/felix/projects/lowlevel/spu-mark-2/soc/hw/firmware.mem -memformat orca

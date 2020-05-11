@@ -3,6 +3,7 @@
 LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.numeric_std.ALL;
+USE WORK.SPU_Mark_II_Types.ALL;
 
 ENTITY SOC IS
   PORT (
@@ -51,8 +52,19 @@ ARCHITECTURE rtl OF SOC IS
     intr_nmi        : in  std_logic;
     intr_bus        : in  std_logic;
     intr_irq        : in  std_logic;
-    intr_reset      : in  std_logic 
-    );
+    intr_reset      : in  std_logic;
+
+		-- halt handling
+		hlt_req         : in  std_logic; -- when '1', the CPU will halt eventually after the current instruction
+		hlt_active      : out std_logic; -- when '1', the CPU is halted
+		hlt_continue    : in  std_logic; -- when '1', the CPU will continue execution
+
+		-- register interface 
+		reg_select      : in  RegisterName;                  -- selects a register to interact with
+		reg_value       : out std_logic_vector(15 downto 0); -- value of the register
+		reg_set_value   : in  std_logic_vector(15 downto 0); -- value that should be written into the register
+		reg_set         : in  std_logic                      -- when '1', the selected register value is replaced with reg_set_value
+  );
   END COMPONENT;
 
   COMPONENT Register_RAM IS
@@ -280,6 +292,10 @@ ARCHITECTURE rtl OF SOC IS
       ReadMem16_ValueLow,
       ReadMem16_ValueHigh,
 
+      WaitForHalt,
+      WaitForContinue,
+      StepCpu,
+
       -- Debug Port Access
       WriteDebugPort,
       ReadDebugPort,
@@ -301,7 +317,9 @@ ARCHITECTURE rtl OF SOC IS
 
   SIGNAL led_state : std_logic_vector(7 downto 0);
 
-  SIGNAL cpu_halted : boolean;
+  SIGNAL cpu_halted : std_logic;
+  SIGNAL cpu_continue : std_logic;
+  SIGNAL cpu_is_halted : std_logic;
 
   -- Debug Interface
 
@@ -432,7 +450,14 @@ BEGIN
     intr_nmi        => '0', -- always zero
     intr_bus        => mmu_bus_error,
     intr_irq        => '0', -- not implemented yet
-    intr_reset      => cpu_reset
+    intr_reset      => cpu_reset,
+    hlt_req         => cpu_halted,
+    hlt_active      => cpu_is_halted,
+    hlt_continue    => cpu_continue,
+    reg_select      => IR,
+    reg_value       => open,
+    reg_set_value   => "0000000000000000",
+    reg_set         => '0'
   );
 
   mmu_0: MMU PORT MAP (
@@ -562,9 +587,9 @@ BEGIN
   logic_dbg(2) <= bus_write;
   logic_dbg(3) <= bus_acknowledge;
   logic_dbg(4) <= rom0_select;
-  logic_dbg(5) <= uart0_select;
-  logic_dbg(6) <= ram0_select;
-  logic_dbg(7) <= ram1_select;
+  logic_dbg(5) <= cpu_halted;
+  logic_dbg(6) <= cpu_is_halted;
+  logic_dbg(7) <= cpu_reset;
 
   -- Bus Combinatorics (Bus Slaves)
 
@@ -631,7 +656,7 @@ BEGIN
         -- Priority-encoded bus requests
         if dbg_mem_request = '1' then
           busmaster <= Debug;
-        elsif mmu_request = '1' and not cpu_halted then
+        elsif mmu_request = '1' then
           busmaster <= Processor;
         end if;
       else
@@ -730,7 +755,8 @@ BEGIN
       dbg_mem_bls <= "00";
       dbg_mem_request <= '0';
       sync_rst <= '1';
-      cpu_halted <= false;
+      cpu_halted <= '0';
+      cpu_continue <= '0';
       led_state <= "00000000";
     end procedure;
 
@@ -773,10 +799,22 @@ BEGIN
                 cpu_reset <= '1';
 
               when 'H' => -- 'H'alt system
-                cpu_halted <= true;
+                cpu_halted <= '1';
+                dbg_state <= WaitForHalt;
                
               when 'h' => -- un'h'alt system
-                cpu_halted <= false;
+                cpu_halted <= '0';
+                dbg_state <= WaitForContinue;
+
+              when 's' => -- step the CPU one time
+                if cpu_is_halted = '1' then
+                  cpu_continue <= '1';
+                  dbg_state <= StepCpu;
+                else
+                  dbgSendChar(Idle, NAK);
+                end if;
+
+              when 'S' => -- send status
 
               when others => -- 'E'rror
                 dbgSendChar(Idle, 'E');
@@ -784,6 +822,23 @@ BEGIN
             end case;
 
           end if;
+
+        when WaitForHalt => 
+          if cpu_is_halted = '1' then
+            dbg_state <= Idle;
+            dbgSendChar(Idle, ACK);
+          end if;
+
+        when WaitForContinue => 
+          if cpu_is_halted = '0' then
+            dbg_state <= Idle;
+            dbgSendChar(Idle, ACK);
+          end if;
+         
+        when StepCpu =>
+          cpu_continue <= '0';
+          dbgSendChar(Idle, ACK);
+
 
         -- 8 Bit Write Access
 

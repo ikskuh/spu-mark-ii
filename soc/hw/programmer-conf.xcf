@@ -19,10 +19,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.jed</File>
-			<FileTime>05/09/20 17:11:39</FileTime>
-			<JedecChecksum>0xD5BB</JedecChecksum>
-			<Operation>FLASH Erase,Program,Verify</Operation>
+			<File>/home/felix/projects/lowlevel/spu-mark-2/soc/hw/firstdesign/spumark2_firstdesign.bit</File>
+			<FileTime>05/12/20 00:58:58</FileTime>
+			<Operation>SRAM Erase,Program,Verify</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
 				<IOState>HighZ</IOState>
@@ -32,7 +31,7 @@
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
 				<Usercode>0x12345678</Usercode>
-				<AccessMode>FLASH</AccessMode>
+				<AccessMode>SRAM</AccessMode>
 			</Option>
 		</Device>
 	</Chain>
