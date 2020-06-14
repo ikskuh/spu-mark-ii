@@ -42,7 +42,7 @@ pub const Emulator = struct {
         };
     }
 
-    fn readByte(self: *Self, address: u16) !u8 {
+    pub fn readByte(self: *Self, address: u16) !u8 {
         return switch (address) {
             0x0000...0x3FFF => self.rom[address],
             0x4000...0x4FFF => @truncate(u8, try @import("root").SerialEmulator.read()),
@@ -55,7 +55,7 @@ pub const Emulator = struct {
         };
     }
 
-    fn writeByte(self: *Self, address: u16, value: u8) !void {
+    pub fn writeByte(self: *Self, address: u16, value: u8) !void {
         return switch (address) {
             0x4000...0x4FFF => try @import("root").SerialEmulator.write(value),
             0x6000...0x6FFF => self.ram0[address - 0x6000] = value,
@@ -67,7 +67,7 @@ pub const Emulator = struct {
         };
     }
 
-    fn readWord(self: *Self, address: u16) !u16 {
+    pub fn readWord(self: *Self, address: u16) !u16 {
         if ((address & 1) != 0)
             return error.UnalignedAccess;
         return switch (address) {
@@ -82,7 +82,7 @@ pub const Emulator = struct {
         };
     }
 
-    fn writeWord(self: *Self, address: u16, value: u16) !void {
+    pub fn writeWord(self: *Self, address: u16, value: u16) !void {
         if ((address & 1) != 0)
             return error.UnalignedAccess;
         return switch (address) {
@@ -96,28 +96,28 @@ pub const Emulator = struct {
         };
     }
 
-    fn fetch(self: *Self) !u16 {
+    pub fn fetch(self: *Self) !u16 {
         const value = try self.readWord(self.ip);
         self.ip +%= 2;
         return value;
     }
 
-    fn peek(self: *Self) !u16 {
+    pub fn peek(self: *Self) !u16 {
         return try self.readWord(self.sp);
     }
 
-    fn pop(self: *Self) !u16 {
+    pub fn pop(self: *Self) !u16 {
         const value = try self.readWord(self.sp);
         self.sp +%= 2;
         return value;
     }
 
-    fn push(self: *Self, value: u16) !void {
+    pub fn push(self: *Self, value: u16) !void {
         self.sp -%= 2;
         try self.writeWord(self.sp, value);
     }
 
-    fn executeSingle(self: *Self) !void {
+    pub fn executeSingle(self: *Self) !void {
         self.stage = .decode;
 
         const start_ip = self.ip;

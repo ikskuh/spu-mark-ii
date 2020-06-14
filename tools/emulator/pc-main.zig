@@ -214,6 +214,8 @@ pub fn main() !u8 {
             return error.FailedToSetConsole;
     }
 
+    defer std.debug.warn("Executed {} instructions!\n", .{emu.count});
+
     var timer = try std.time.Timer.start();
 
     if (cli_args.options.@"enable-graphics") {

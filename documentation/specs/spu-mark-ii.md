@@ -229,7 +229,7 @@ Some hints on notation:
 | `01000`₂  (8₁₀) | ???     | Invokes undefined behavior                                         |
 | `01001`₂  (9₁₀) | ???     | Invokes undefined behavior                                         |
 | `01010`₂ (10₁₀) | FRGET   | `output = (FR & ~input1)`                                          |
-| `01011`₂ (11₁₀) | FRSET   | `output = FR₀; FR₁ = (input0 & ~input1) | (FR & input1)`           |
+| `01011`₂ (11₁₀) | FRSET   | `output = FR₀; FR₁ = (input0 & ~input1) \| (FR & input1)`           |
 | `01100`₂ (12₁₀) | BPGET   | `output = BP`                                                      |
 | `01101`₂ (13₁₀) | BPSET   | `output = BP₀; BP₁ = input0`                                       |
 | `01110`₂ (14₁₀) | SPGET   | `output = SP`                                                      |
@@ -240,10 +240,10 @@ Some hints on notation:
 | `10011`₂ (19₁₀) | DIV     | `output = input0 / input1`                                         |
 | `10100`₂ (20₁₀) | MOD     | `output = input0 % input1`                                         |
 | `10101`₂ (21₁₀) | AND     | `output = input0 & input1`                                         |
-| `10110`₂ (22₁₀) | OR      | `output = input0 | input1`                                         |
+| `10110`₂ (22₁₀) | OR      | `output = input0 \| input1`                                         |
 | `10111`₂ (23₁₀) | XOR     | `output = input0 ^ input1`                                         |
 | `11000`₂ (24₁₀) | NOT     | `output = ~input0`                                                 |
-| `11001`₂ (25₁₀) | SIGNEXT | `output = if(input[7] = 1) (0xFF00 | input0) else (input0 & 0xFF)` |
+| `11001`₂ (25₁₀) | SIGNEXT | `output = if(input[7] = 1) (0xFF00 \| input0) else (input0 & 0xFF)` |
 | `11010`₂ (26₁₀) | ROL     | `output = concat(input0[14:0], input0[15])`                        |
 | `11011`₂ (27₁₀) | ROR     | `output = concat(input0[0], input0[15:1])`                         |
 | `11100`₂ (28₁₀) | BSWAP   | `output = concat(input0[7:0], input0[15:8])`                       |
