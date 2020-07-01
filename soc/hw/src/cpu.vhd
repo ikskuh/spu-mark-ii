@@ -370,13 +370,13 @@ BEGIN
 
 		procedure fetch_next_instruction(address: in CPU_WORD) is
 		begin
-			if REG_IR(0) = '1' then
+			if REG_IR(0) = '1' then -- reset
 				reset_cpu("0000000000000000");
-			elsif REG_IR(1) = '1' then
+			elsif REG_IR(1) = '1' then -- NMI
 				reset_cpu("0000000000000001");
-			elsif REG_IR(2) = '1' then
+			elsif REG_IR(2) = '1' then -- BUS
 				reset_cpu("0000000000000010");
-			elsif REG_IR(7) = '1' then
+			elsif REG_IR(7) = '1' then -- IRQ
 				reset_cpu("0000000000000011");
 			else
 				REG_IP <= address;

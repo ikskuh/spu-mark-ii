@@ -29,8 +29,6 @@ ENTITY SOC IS
   );
 END ENTITY SOC;
 
-use work.generated.all;
-
 ARCHITECTURE rtl OF SOC IS
   
   CONSTANT clkfreq : natural := 48_000_000;
@@ -296,6 +294,11 @@ ARCHITECTURE rtl OF SOC IS
       WaitForContinue,
       StepCpu,
 
+      ReadRegister_High,
+      
+      WriteRegister_Low,
+      WriteRegister_High,
+
       -- Debug Port Access
       WriteDebugPort,
       ReadDebugPort,
@@ -407,6 +410,13 @@ ARCHITECTURE rtl OF SOC IS
   SIGNAL sim_bus_address :  std_logic_vector(23 downto 0);
 
 
+  SIGNAL register_select        : RegisterName;
+  SIGNAL register_value_current : std_logic_vector(15 downto 0);
+  SIGNAL register_value_new     : std_logic_vector(15 downto 0);
+  SIGNAL register_write         : std_logic;
+  
+  -- saves the upper 8 bit of the register_value when reading
+  SIGNAL register_buffer        : std_logic_vector(7 downto 0);
 
 BEGIN	
 
@@ -454,11 +464,11 @@ BEGIN
     hlt_req         => cpu_halted,
     hlt_active      => cpu_is_halted,
     hlt_continue    => cpu_continue,
-    reg_select      => IR,
-    reg_value       => open,
-    reg_set_value   => "0000000000000000",
-    reg_set         => '0'
-  );
+    reg_select      => register_select,
+    reg_value       => register_value_current,
+    reg_set_value   => register_value_new,
+    reg_set         => register_write
+  ); 
 
   mmu_0: MMU PORT MAP (
     clk              => clk,
@@ -758,7 +768,12 @@ BEGIN
       cpu_halted <= '0';
       cpu_continue <= '0';
       led_state <= "00000000";
+      register_select <= IP;
+      register_value_new <= "0000000000000000";
+      register_write <= '0';
     end procedure;
+
+    variable rcv_val : unsigned(7 downto 0);
 
   BEGIN
 
@@ -779,48 +794,70 @@ BEGIN
         when Idle =>
           if dbg_rxd_done = '1' then
             cpu_reset <= '0';
-            case character'val(to_integer(unsigned(dbg_data_in))) is
-              when 'B' => -- 'B'yte write { AL, AH, V }
-                dbgRead(WriteMem8_AddrLow);
+            register_write <= '0';
 
-              when 'b' => -- 'b'yte read { AL, AH }
-                dbgRead(ReadMem8_AddrLow);
+            rcv_val := unsigned(dbg_data_in);
 
-              when 'W' => -- 'W'ord write { AL, AH, VL, VH }
-                dbgRead(WriteMem16_AddrLow);
+            if rcv_val < 128 then
+              case character'val(to_integer(rcv_val)) is
+                when 'B' => -- 'B'yte write { AL, AH, V }
+                  dbgRead(WriteMem8_AddrLow);
 
-              when 'w' => -- 'w'ord read { AL, AH }
-                dbgRead(ReadMem16_AddrLow);
+                when 'b' => -- 'b'yte read { AL, AH }
+                  dbgRead(ReadMem8_AddrLow);
 
-              when 'R' => -- 'R'eset system
-                sync_rst <= '0';
+                when 'W' => -- 'W'ord write { AL, AH, VL, VH }
+                  dbgRead(WriteMem16_AddrLow);
 
-              when 'r' => -- 'r'eset CPU
-                cpu_reset <= '1';
+                when 'w' => -- 'w'ord read { AL, AH }
+                  dbgRead(ReadMem16_AddrLow);
 
-              when 'H' => -- 'H'alt system
-                cpu_halted <= '1';
-                dbg_state <= WaitForHalt;
-               
-              when 'h' => -- un'h'alt system
-                cpu_halted <= '0';
-                dbg_state <= WaitForContinue;
+                when 'R' => -- 'R'eset system
+                  sync_rst <= '0';
 
-              when 's' => -- step the CPU one time
-                if cpu_is_halted = '1' then
-                  cpu_continue <= '1';
-                  dbg_state <= StepCpu;
-                else
-                  dbgSendChar(Idle, NAK);
-                end if;
+                when 'r' => -- 'r'eset CPU
+                  cpu_reset <= '1';
 
-              when 'S' => -- send status
+                when 'H' => -- 'H'alt system
+                  cpu_halted <= '1';
+                  dbg_state <= WaitForHalt;
+                 
+                when 'h' => -- un'h'alt system
+                  cpu_halted <= '0';
+                  dbg_state <= WaitForContinue;
 
-              when others => -- 'E'rror
+                when 's' => -- step the CPU one time
+                  if cpu_is_halted = '1' then
+                    cpu_continue <= '1';
+                    dbg_state <= StepCpu;
+                  else
+                    dbgSendChar(Idle, NAK);
+                  end if;
+
+                when 'c' => -- get CPU register { RL, RH }
+                  register_buffer <= register_value_current(15 downto 8);
+                  dbgWrite(ReadRegister_High, register_value_current(7 downto 0));
+
+                when 'C' => -- set CPU register { RL, RH }
+                  dbgRead(WriteRegister_Low);
+
+                when others => -- 'E'rror
+                  dbgSendChar(Idle, 'E');
+
+              end case;
+            else
+              if dbg_data_in(7 downto 3) = "10000" then -- select register
+                case dbg_data_in(2 downto 0) is
+                  when "0000" => register_select <= IP;
+                  when "0001" => register_select <= SP;
+                  when "0010" => register_select <= BP;
+                  when "0011" => register_select <= IR;
+                  when "0100" => register_select <= FR;
+                end case;
+              else
                 dbgSendChar(Idle, 'E');
-
-            end case;
-
+              end if;
+            end if;
           end if;
 
         when WaitForHalt => 
@@ -839,6 +876,19 @@ BEGIN
           cpu_continue <= '0';
           dbgSendChar(Idle, ACK);
 
+
+        when ReadRegister_High =>
+          dbgWrite(Idle, register_buffer);
+
+
+        when WriteRegister_Low =>
+          register_value_new(7 downto 0) <= dbg_data_in;
+          dbgRead(WriteMem8_AddrMid);
+
+        when WriteRegister_High =>
+          register_value_new(15 downto 8) <= dbg_data_in;
+          register_write <= '1';
+          dbg_state <= Idle;
 
         -- 8 Bit Write Access
 

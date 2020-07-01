@@ -69,10 +69,7 @@
         <Source name="src/cpu_types.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="ip-cores/boot_rom.vhd" type="VHDL" type_short="VHDL" excluded="TRUE">
-            <Options/>
-        </Source>
-        <Source name="ip-cores/boot_rom.ipx" type="IPX_Module" type_short="IPX">
+        <Source name="ip-cores/dist_boot_rom.ipx" type="IPX_Module" type_short="IPX">
             <Options/>
         </Source>
         <Source name="programmer-conf.xcf" type="Programming Project File" type_short="Programming">

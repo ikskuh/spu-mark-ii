@@ -27,8 +27,6 @@ ENTITY root IS
 	
 END ENTITY root;
 
-use work.generated.all;
-
 ARCHITECTURE rtl OF root IS
 	COMPONENT SOC IS
 		PORT (

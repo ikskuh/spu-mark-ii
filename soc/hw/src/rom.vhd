@@ -16,8 +16,6 @@ ENTITY ROM IS
 	);
 END ENTITY ROM;
 
-use work.generated.all;
-
 ARCHITECTURE rtl OF ROM IS
   component boot_rom
   port (

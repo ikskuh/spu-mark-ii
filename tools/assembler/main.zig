@@ -53,44 +53,6 @@ pub fn main() !u8 {
         try assembler.assemble(path, dir, file.inStream());
     }
 
-    // std.debug.warn("assembler output:\n", .{});
-    // {
-    //     var iter = assembler.sections.first;
-    //     while (iter) |section_node| : (iter = section_node.next) {
-    //         const section = &section_node.data;
-
-    //         std.debug.warn(
-    //             \\  section:
-    //             \\    offset: {X:0>4}
-    //             \\    length: {X:0>4}
-    //             \\    data:   {X}
-    //             \\    patches:
-    //             \\
-    //         , .{
-    //             section.offset,
-    //             section.bytes.items.len,
-    //             section.bytes.items,
-    //         });
-
-    //         for (section.patches.items) |patch| {
-    //             std.debug.warn("      - {X:0>4} → \"{}\"\n", .{
-    //                 patch.offset,
-    //                 patch.value,
-    //             });
-    //         }
-    //     }
-    // }
-    // {
-    //     std.debug.warn("  symbols:\n", .{});
-    //     var iter = assembler.symbols.iterator();
-    //     while (iter.next()) |sym| {
-    //         std.debug.warn("    `{}` → {X:0>4}\n", .{
-    //             sym.key,
-    //             sym.value,
-    //         });
-    //     }
-    // }
-
     try assembler.finalize();
 
     if (assembler.errors.items.len > 0) {
