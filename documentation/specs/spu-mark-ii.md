@@ -216,40 +216,40 @@ Some hints on notation:
 - `MEM16[x]` is the 16 bit word at address `x`
 - `MEM8[x]` is the 8 bit word at address `x`
 
-| Value           | Name    | Pseudo-Code                                                        |
-|-----------------|---------|--------------------------------------------------------------------|
-| `00000`₂  (0₁₀) | COPY    | `output = input0`                                                  |
-| `00001`₂  (1₁₀) | IPGET   | `output = IP + 2 * input0`                                         |
-| `00010`₂  (2₁₀) | GET     | `output = MEM16[BP + 2 * input0]`                                  |
-| `00011`₂  (3₁₀) | SET     | `output = input1; MEM16[BP + 2 * input0] = input1`                 |
-| `00100`₂  (4₁₀) | STORE8  | `output = input1 & 0xFF; MEM8[input0] = input1`                    |
-| `00101`₂  (5₁₀) | STORE16 | `output = input1; MEM16[input0] = input1`                          |
-| `00110`₂  (6₁₀) | LOAD8   | `output = MEM8[input0]`                                            |
-| `00111`₂  (7₁₀) | LOAD16  | `output = MEM16[input0]`                                           |
-| `01000`₂  (8₁₀) | ???     | Invokes undefined behavior                                         |
-| `01001`₂  (9₁₀) | ???     | Invokes undefined behavior                                         |
-| `01010`₂ (10₁₀) | FRGET   | `output = (FR & ~input1)`                                          |
+| Value           | Name    | Pseudo-Code                                                         |
+|-----------------|---------|---------------------------------------------------------------------|
+| `00000`₂  (0₁₀) | COPY    | `output = input0`                                                   |
+| `00001`₂  (1₁₀) | IPGET   | `output = IP + 2 * input0`                                          |
+| `00010`₂  (2₁₀) | GET     | `output = MEM16[BP + 2 * input0]`                                   |
+| `00011`₂  (3₁₀) | SET     | `output = input1; MEM16[BP + 2 * input0] = input1`                  |
+| `00100`₂  (4₁₀) | STORE8  | `output = input1 & 0xFF; MEM8[input0] = input1`                     |
+| `00101`₂  (5₁₀) | STORE16 | `output = input1; MEM16[input0] = input1`                           |
+| `00110`₂  (6₁₀) | LOAD8   | `output = MEM8[input0]`                                             |
+| `00111`₂  (7₁₀) | LOAD16  | `output = MEM16[input0]`                                            |
+| `01000`₂  (8₁₀) | CPUID   | *See below*                                                         |
+| `01001`₂  (9₁₀) | CPUCTRL | *See below*                                                         |
+| `01010`₂ (10₁₀) | FRGET   | `output = (FR & ~input1)`                                           |
 | `01011`₂ (11₁₀) | FRSET   | `output = FR₀; FR₁ = (input0 & ~input1) \| (FR & input1)`           |
-| `01100`₂ (12₁₀) | BPGET   | `output = BP`                                                      |
-| `01101`₂ (13₁₀) | BPSET   | `output = BP₀; BP₁ = input0`                                       |
-| `01110`₂ (14₁₀) | SPGET   | `output = SP`                                                      |
-| `01111`₂ (15₁₀) | SPSET   | `output = SP₀; SP₁ = input0`                                       |
-| `10000`₂ (16₁₀) | ADD     | `output = input0 + input1 + (C & CE)`                              |
-| `10001`₂ (17₁₀) | SUB     | `output = input0 - input1 - (C & CE)`                              |
-| `10010`₂ (18₁₀) | MUL     | `output = input0 * input1`                                         |
-| `10011`₂ (19₁₀) | DIV     | `output = input0 / input1`                                         |
-| `10100`₂ (20₁₀) | MOD     | `output = input0 % input1`                                         |
-| `10101`₂ (21₁₀) | AND     | `output = input0 & input1`                                         |
+| `01100`₂ (12₁₀) | BPGET   | `output = BP`                                                       |
+| `01101`₂ (13₁₀) | BPSET   | `output = BP₀; BP₁ = input0`                                        |
+| `01110`₂ (14₁₀) | SPGET   | `output = SP`                                                       |
+| `01111`₂ (15₁₀) | SPSET   | `output = SP₀; SP₁ = input0`                                        |
+| `10000`₂ (16₁₀) | ADD     | `output = input0 + input1 + (C & CE)`                               |
+| `10001`₂ (17₁₀) | SUB     | `output = input0 - input1 - (C & CE)`                               |
+| `10010`₂ (18₁₀) | MUL     | `output = input0 * input1`                                          |
+| `10011`₂ (19₁₀) | DIV     | `output = input0 / input1`                                          |
+| `10100`₂ (20₁₀) | MOD     | `output = input0 % input1`                                          |
+| `10101`₂ (21₁₀) | AND     | `output = input0 & input1`                                          |
 | `10110`₂ (22₁₀) | OR      | `output = input0 \| input1`                                         |
-| `10111`₂ (23₁₀) | XOR     | `output = input0 ^ input1`                                         |
-| `11000`₂ (24₁₀) | NOT     | `output = ~input0`                                                 |
+| `10111`₂ (23₁₀) | XOR     | `output = input0 ^ input1`                                          |
+| `11000`₂ (24₁₀) | NOT     | `output = ~input0`                                                  |
 | `11001`₂ (25₁₀) | SIGNEXT | `output = if(input[7] = 1) (0xFF00 \| input0) else (input0 & 0xFF)` |
-| `11010`₂ (26₁₀) | ROL     | `output = concat(input0[14:0], input0[15])`                        |
-| `11011`₂ (27₁₀) | ROR     | `output = concat(input0[0], input0[15:1])`                         |
-| `11100`₂ (28₁₀) | BSWAP   | `output = concat(input0[7:0], input0[15:8])`                       |
-| `11101`₂ (29₁₀) | ASR     | `output = concat(input0[15], input0[15:1])`                        |
-| `11110`₂ (30₁₀) | LSL     | `output = concat(input0[14:0], '0')`                               |
-| `11111`₂ (31₁₀) | LSR     | `output = concat('0', input0[15:1])`                               |
+| `11010`₂ (26₁₀) | ROL     | `output = concat(input0[14:0], input0[15])`                         |
+| `11011`₂ (27₁₀) | ROR     | `output = concat(input0[0], input0[15:1])`                          |
+| `11100`₂ (28₁₀) | BSWAP   | `output = concat(input0[7:0], input0[15:8])`                        |
+| `11101`₂ (29₁₀) | ASR     | `output = concat(input0[15], input0[15:1])`                         |
+| `11110`₂ (30₁₀) | LSL     | `output = concat(input0[14:0], '0')`                                |
+| `11111`₂ (31₁₀) | LSR     | `output = concat('0', input0[15:1])`                                |
 
 `MUL`, `DIV` and `MOD` use signed values as input and output. It is not possible to get the upper 16 bit of the multiplication result.
 
@@ -262,6 +262,26 @@ Some hints on notation:
 - When `MUL` is overflowig and setting any bits in the upper half of the virtual 32 bit result, carry will be set.
 
 In all other cases when one of the carry modifying command is invoked, carry is cleared. Other commands then those specified above will not modify carry in any way.
+
+##### `CPUID`
+This instruction is meant to return the current set of CPU features or possible future extensions. For now, this instruction requires both `input0` and `input1` to be zero, the output will be `zero` as well.
+
+Executing instructions not defined in the list below are considered undefined behaviour and may 
+
+##### `CPUCTRL`
+This instruction is a meta-instruction that allows controlling the CPU behaviour. `input0` selects the instruction that should be executed, `input1` defines an optional argument.
+
+###### HARD_RESET (`input0 = 0`)
+This will trigger a hard-reset and will restart execution from the beginning. Hardware attached to the CPU may react to the soft-reset and reset itself as well.
+
+###### SOFT_RESET (`input0 = 1`)
+This will trigger a soft-reset and will restart execution from the beginning. Hardware attached to the CPU is not able to react to the soft-reset and will keep its state over the reset.
+
+###### HALT (`input0 = 2`)
+This will halt the CPU until the next interrupt occurs. No instructions will be executed when the CPU is halted.
+
+###### INTERRUPT (`input0 = 3`)
+This will set the interrupt triggered flag in the CPU and can be used to enable soft-interrupts. It's possible to activate all interrupts with this.
 
 ### Memory Access
 
@@ -355,8 +375,6 @@ else
 		IP += 2
 ```
 
-
-
 ### Interrupt handling
 
 > **Note:** Interrupt handling is not available in *SPU Mark II-L*
@@ -380,7 +398,7 @@ It is possible to assign each interrupt another handler address. The entry point
 | 2    | BUS       | `0x04`          |
 | 3    | RESERVED  | `0x06`          |
 | 4    | ARITH     | `0x08`          |
-| 5    | RESERVED  | `0x0A`          |
+| 5    | SOFTWARE  | `0x0A`          |
 | 6    | RESERVED  | `0x0C`          |
 | 7    | IRQ       | `0x0E`          |
 
@@ -401,6 +419,9 @@ The `BUS` interrupt is meant for an MMU interface and will prevent the currently
 This interrupt is triggered when an error happens in the ALU. The reasons may be:
 
 - Division by zero
+
+##### SOFTWARE
+This interrupt is meant to be triggered by executing `CPUCTRL` and will never be triggered by either peripherial hardware or internal circumstances.
 
 ##### IRQ
 This interrupt is the maskable external interrupt. If the `IRQ` pin is signalled, the interrupt will be triggered.
@@ -423,6 +444,10 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 - output TYPE signal (tells if memory access is for code or data)
 
 ## Changelog
+
+### v1.10
+- Introduces `CPUID` and `CPUCTRL`
+- Introduces `SOFTWARE` interrupt.
 
 ### v1.9
 - Introduces the concept of *Carry*
