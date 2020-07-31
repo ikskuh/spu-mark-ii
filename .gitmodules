@@ -7,3 +7,6 @@
 [submodule "tools/modules/zig-serial"]
 	path = tools/modules/zig-serial
 	url = https://github.com/MasterQ32/zig-serial
+[submodule "hardware/digikey-kicad-library"]
+	path = hardware/digikey-kicad-library
+	url = https://github.com/Digi-Key/digikey-kicad-library

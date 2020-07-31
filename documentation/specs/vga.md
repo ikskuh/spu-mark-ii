@@ -14,6 +14,7 @@ struct SpriteDef {
 	byte config; // [ w: u4, h: u4 ]
 }
 ```
+
 width  = u4 & "00"
 height = u4 & "00"
 
