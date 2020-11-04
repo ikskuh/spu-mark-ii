@@ -15,7 +15,7 @@ pub fn main() !u8 {
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len != 1) {
-        try std.io.getStdOut().outStream().writeAll(
+        try std.io.getStdOut().writer().writeAll(
             \\bit-converter --help [--output file] pcx-file
             \\Converts a PCX file into a bit-bang sequence for the 
             \\
@@ -34,7 +34,7 @@ pub fn main() !u8 {
     defer img.deinit();
 
     if (img != .bpp8) {
-        try std.io.getStdErr().outStream().print("The provided file is not a file with 8 bit per pixel, but uses the format {}!\n", .{
+        try std.io.getStdErr().writer().print("The provided file is not a file with 8 bit per pixel, but uses the format {}!\n", .{
             @as(pcx.Format, img),
         });
         return 1;
@@ -48,7 +48,7 @@ pub fn main() !u8 {
     defer if (cli_args.options.output) |_|
         out.close();
 
-    var ostream = out.outStream();
+    var ostream = out.writer();
 
     var y: usize = 0;
     while (y < 128) : (y += 1) {

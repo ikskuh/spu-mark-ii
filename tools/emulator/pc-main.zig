@@ -12,7 +12,7 @@ usingnamespace @import("spu-mk2");
 extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
 
 pub fn dumpState(emu: *Emulator) !void {
-    const stdout = std.io.getStdOut().outStream();
+    const stdout = std.io.getStdOut().writer();
     try stdout.print(
         "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={}\r\n",
         .{
@@ -44,7 +44,7 @@ pub fn dumpState(emu: *Emulator) !void {
 }
 
 pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) !void {
-    const stdout = std.io.getStdOut().outStream();
+    const stdout = std.io.getStdOut().writer();
     try stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
         ip,
         instruction,
@@ -69,7 +69,7 @@ var texture: *c.SDL_Texture = undefined;
 
 var framebuffer: [128][256]u8 = undefined;
 
-fn outputErrorMsg(emu: *Emulator, err: var) !u8 {
+fn outputErrorMsg(emu: *Emulator, err: anytype) !u8 {
     const stdin = std.io.getStdIn();
 
     // reset terminal before outputting error messages
@@ -79,7 +79,7 @@ fn outputErrorMsg(emu: *Emulator, err: var) !u8 {
 
     // const time = timer.read();
 
-    try std.io.getStdOut().outStream().print("\nerror: {}\n", .{
+    try std.io.getStdOut().writer().print("\nerror: {}\n", .{
         @errorName(err),
     });
 
@@ -107,7 +107,7 @@ pub fn main() !u8 {
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len == 0) {
-        try std.io.getStdOut().outStream().writeAll(
+        try std.io.getStdOut().writer().writeAll(
             \\emulator [--help] initialization.hex […]
             \\Emulates the Ashet Home Computer, based on the SPU Mark II.
             \\Each file passed as an argument will be loaded into the memory
@@ -158,13 +158,13 @@ pub fn main() !u8 {
         defer file.close();
 
         // Emulator will always start at address 0x0000 or CLI given entry point.
-        _ = try ihex.parseData(file.inStream(), hexParseMode, &emu, Emulator.LoaderError, Emulator.loadHexRecord);
+        _ = try ihex.parseData(file.reader(), hexParseMode, &emu, Emulator.LoaderError, Emulator.loadHexRecord);
     }
 
     emu.ip = cli_args.options.@"entry-point";
 
     const stdin = std.io.getStdIn();
-    if (std.builtin.os.tag == .linux) blk: {
+    if (std.builtin.os.tag == .linux) {
         const original = try std.os.tcgetattr(stdin.handle);
 
         var modified_raw = original;
@@ -264,7 +264,7 @@ pub const SerialEmulator = struct {
             };
             _ = try std.os.poll(&fds, 0);
             if ((fds[0].revents & std.os.POLLIN) != 0) {
-                const val = @as(u16, try stdin.inStream().readByte());
+                const val = @as(u16, try stdin.reader().readByte());
                 if (val == 0x03) // CTRL_C
                     return error.UserBreak;
                 return val;
@@ -275,7 +275,7 @@ pub const SerialEmulator = struct {
                 error.WaitTimeOut => return 0xFFFF,
                 else => return err,
             };
-            const val = @as(u16, try stdin.inStream().readByte());
+            const val = @as(u16, try stdin.reader().readByte());
             if (val == 0x03) // CTRL_C
                 return error.UserBreak;
             return val;
@@ -284,7 +284,7 @@ pub const SerialEmulator = struct {
     }
 
     pub fn write(value: u16) !void {
-        try std.io.getStdOut().outStream().print("{c}", .{@truncate(u8, value)});
+        try std.io.getStdOut().writer().print("{c}", .{@truncate(u8, value)});
         // std.time.sleep(50 * std.time.millisecond);
     }
 };

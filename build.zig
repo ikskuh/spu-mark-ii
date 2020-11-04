@@ -123,7 +123,7 @@ pub fn build(b: *std.build.Builder) !void {
 
     const test_step = b.step("test", "Tests the code");
     test_step.dependOn(&b.addTest("tools/debugger/main.zig").step);
-    test_step.dependOn(&b.addTest("tools/emulator/main.zig").step);
+    test_step.dependOn(&b.addTest("tools/emulator/pc-main.zig").step);
     test_step.dependOn(&b.addTest("tools/make-vhd/main.zig").step);
     test_step.dependOn(&b.addTest("tools/hex2bin/main.zig").step);
 
@@ -211,4 +211,7 @@ pub fn build(b: *std.build.Builder) !void {
 
     const debug_step = b.step("debug", "Run the debugger");
     debug_step.dependOn(&debug_cmd.step);
+
+    const emulator_step = b.step("emulator", "Compiles the emulator");
+    emulator_step.dependOn(&nativeToolchain.emulator.step);
 }

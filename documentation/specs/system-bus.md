@@ -7,11 +7,16 @@
 - BLS0, BLS1 (Byte selector)
 - /OE (Output Enable)
 - /WE (Write Enable)
-- /CE (Chip/Module Enable)
+- /ME (Module Enable)
 - 4×GND
 - 2×3V3
 - 2×5V0
 - IRQ
+
+Total: 50 pins required, 64 pin connector used
+Signal Pins: 45
+
+## 
 
 ## Planned Modules
 

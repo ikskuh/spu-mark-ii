@@ -8,7 +8,7 @@ const FileFormat = enum { ihex, binary };
 const DisasmError = error{EndOfStream} || std.os.WriteError || std.io.FixedBufferStream([]const u8).ReadError;
 
 fn processRecord(out: *const std.io.OutStream(std.fs.File, std.os.WriteError, std.fs.File.write), base: u32, data: []const u8) DisasmError!void {
-    const in = std.io.fixedBufferStream(data).inStream();
+    const in = std.io.fixedBufferStream(data).reader();
 
     var offset = base;
 
@@ -68,8 +68,10 @@ pub fn main() !u8 {
     }, std.heap.page_allocator);
     defer cli_args.deinit();
 
+    const out = std.io.getStdOut().writer();
+
     if (cli_args.options.help or cli_args.positionals.len == 0) {
-        try std.io.getStdOut().outStream().writeAll(
+        try out.writeAll(
             \\disassembler --help [--format ihex|binary] [--offset XXXX] fileA fileB
             \\Disassembles code for the SPU Mark II platform.
             \\
@@ -83,8 +85,6 @@ pub fn main() !u8 {
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
 
-    const out = std.io.getStdOut().outStream();
-
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
@@ -94,9 +94,9 @@ pub fn main() !u8 {
         defer file.close();
         if (std.mem.endsWith(u8, path, ".hex")) {
             // Emulator will always start at address 0x0000 or CLI given entry point.
-            _ = try ihex.parseData(&file.inStream(), hexParseMode, &out, DisasmError, processRecord);
+            _ = try ihex.parseData(file.reader(), hexParseMode, &out, DisasmError, processRecord);
         } else {
-            const buffer = try file.inStream().readAllAlloc(&arena.allocator, 65536);
+            const buffer = try file.reader().readAllAlloc(&arena.allocator, 65536);
             defer arena.allocator.free(buffer);
 
             try processRecord(&out, cli_args.options.offset orelse 0x0000, buffer);

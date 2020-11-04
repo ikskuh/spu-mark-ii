@@ -34,8 +34,8 @@ pub fn main() anyerror!u8 {
     const outfile = try std.fs.cwd().createFile(cli_args.options.output.?, .{ .exclusive = false, .read = false });
     defer outfile.close();
 
-    var istream = infile.inStream();
-    var ostream = outfile.outStream();
+    var istream = infile.reader();
+    var ostream = outfile.writer();
 
     try ostream.writeAll(
         \\LIBRARY IEEE;

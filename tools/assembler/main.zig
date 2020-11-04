@@ -21,7 +21,7 @@ pub fn main() !u8 {
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len == 0) {
-        try std.io.getStdOut().outStream().writeAll(
+        try std.io.getStdOut().writer().writeAll(
             \\assembler --help [--format ihex|binary] [--output file] fileA fileB …
             \\Assembles code for the SPU Mark II platform.
             \\
@@ -50,13 +50,13 @@ pub fn main() !u8 {
         var dir = try root_dir.openDir(std.fs.path.dirname(path) orelse ".", .{ .access_sub_paths = true, .iterate = false });
         defer dir.close();
 
-        try assembler.assemble(path, dir, file.inStream());
+        try assembler.assemble(path, dir, file.reader());
     }
 
     try assembler.finalize();
 
     if (assembler.errors.items.len > 0) {
-        const stdout = std.io.getStdOut().outStream();
+        const stdout = std.io.getStdOut().writer();
 
         try stdout.writeAll("Errors appeared while assembling:\n");
 
@@ -77,7 +77,7 @@ pub fn main() !u8 {
         var file = try root_dir.createFile(cli_args.options.output, .{ .truncate = true, .exclusive = false });
         defer file.close();
 
-        var outstream = file.outStream();
+        var outstream = file.writer();
 
         var iter = assembler.sections.first;
         while (iter) |section_node| : (iter = section_node.next) {
@@ -179,12 +179,14 @@ pub const Assembler = struct {
         var node = try assembler.allocator.create(SectionNode);
         errdefer assembler.allocator.destroy(node);
 
-        node.* = SectionNode.init(Section{
-            .offset = offset,
-            .bytes = std.ArrayList(u8).init(assembler.allocator),
-            .patches = std.ArrayList(Patch).init(assembler.allocator),
-            .dot_offset = offset,
-        });
+        node.* = SectionNode{
+            .data = Section{
+                .offset = offset,
+                .bytes = std.ArrayList(u8).init(assembler.allocator),
+                .patches = std.ArrayList(Patch).init(assembler.allocator),
+                .dot_offset = offset,
+            },
+        };
 
         assembler.sections.append(node);
 
@@ -198,7 +200,7 @@ pub const Assembler = struct {
     pub fn init(allocator: *std.mem.Allocator) !Assembler {
         var a = Self{
             .allocator = allocator,
-            .sections = std.TailQueue(Section).init(),
+            .sections = std.TailQueue(Section){},
             .symbols = std.StringHashMap(u16).init(allocator),
             .local_symbols = std.StringHashMap(u16).init(allocator),
             .errors = std.ArrayList(CompileError).init(allocator),
@@ -242,7 +244,7 @@ pub const Assembler = struct {
         }
     }
 
-    fn emitError(self: *Self, kind: CompileError.Type, token: ?Token, comptime fmt: []const u8, args: var) !void {
+    fn emitError(self: *Self, kind: CompileError.Type, token: ?Token, comptime fmt: []const u8, args: anytype) !void {
         const msg = try std.fmt.allocPrint(self.allocator, fmt, args);
         errdefer self.allocator.free(msg);
 
@@ -275,7 +277,7 @@ pub const Assembler = struct {
         StreamTooLong,
         ParensImbalance,
     };
-    pub fn assemble(self: *Assembler, fileName: []const u8, directory: std.fs.Dir, stream: var) AssembleError!void {
+    pub fn assemble(self: *Assembler, fileName: []const u8, directory: std.fs.Dir, stream: anytype) AssembleError!void {
         var parser = try Parser.fromStream(self.allocator, stream);
         defer parser.deinit();
 
@@ -305,15 +307,11 @@ pub const Assembler = struct {
 
                     if (name[0] == '.') {
                         // local label
-                        if (try self.local_symbols.put(name, offset)) |kv| {
-                            try self.emitError(.@"error", token.?, "duplicate symbol: {}", .{name});
-                        }
+                        try self.local_symbols.put(name, offset);
                     } else {
                         // global label
                         self.local_symbols = std.StringHashMap(u16).init(self.allocator);
-                        if (try self.symbols.put(name, offset)) |kv| {
-                            try self.emitError(.@"error", token.?, "duplicate symbol: {}", .{name});
-                        }
+                        try self.symbols.put(name, offset);
                     }
                 },
 
@@ -557,9 +555,8 @@ pub const Assembler = struct {
             if (value != .number)
                 return error.TypeMismatch;
 
-            if (try assembler.symbols.put(name, value.number)) |kv| {
-                return error.DuplicateSymbol;
-            }
+            // TODO: reinclude duplicatesymbol
+            try assembler.symbols.put(name, value.number);
         }
 
         fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
@@ -572,7 +569,7 @@ pub const Assembler = struct {
             var blob = try assembler.directory.readFileAlloc(assembler.allocator, filename.string, 65536);
             defer assembler.allocator.free(blob);
 
-            try assembler.currentSection().bytes.outStream().writeAll(blob);
+            try assembler.currentSection().bytes.writer().writeAll(blob);
         }
 
         fn @".include"(assembler: *Assembler, parser: *Parser) !void {
@@ -594,14 +591,14 @@ pub const Assembler = struct {
             var dir = try assembler.directory.openDir(std.fs.path.dirname(filename.string) orelse ".", .{ .access_sub_paths = true, .iterate = false });
             defer dir.close();
 
-            try assembler.assemble(filename.string, dir, file.inStream());
+            try assembler.assemble(filename.string, dir, file.reader());
         }
     };
     // Output handling:
 
     fn emit(assembler: *Assembler, bytes: []const u8) !void {
         const sect = assembler.currentSection();
-        try sect.bytes.outStream().writeAll(bytes);
+        try sect.bytes.writer().writeAll(bytes);
     }
 
     fn emitU8(assembler: *Assembler, value: u8) !void {
@@ -685,7 +682,7 @@ pub const Assembler = struct {
 
         for (expression.sequence) |item| {
             switch (item.type) {
-                .identifier => if (assembler.symbols.get(item.text)) |sym|
+                .identifier => if (assembler.symbols.getEntry(item.text)) |sym|
                     try stack.append(Value{ .number = sym.value })
                 else {
                     if (emitErrorOnMissing) {
@@ -694,7 +691,7 @@ pub const Assembler = struct {
                     return error.MissingIdentifiers;
                 },
 
-                .dot_identifier => if (assembler.local_symbols.get(item.text)) |sym|
+                .dot_identifier => if (assembler.local_symbols.getEntry(item.text)) |sym|
                     try stack.append(Value{ .number = sym.value })
                 else {
                     if (emitErrorOnMissing) {
@@ -987,7 +984,7 @@ pub const Parser = struct {
 
     const Self = @This();
 
-    fn fromStream(allocator: *std.mem.Allocator, stream: var) !Self {
+    fn fromStream(allocator: *std.mem.Allocator, stream: anytype) !Self {
         return Self{
             .allocator = allocator,
             .source = try stream.readAllAlloc(allocator, 16 << 20), // 16 MB
@@ -1034,7 +1031,7 @@ pub const Parser = struct {
         return error.UnexpectedToken;
     }
 
-    fn expectAny(parser: *Self, types: var) !Token {
+    fn expectAny(parser: *Self, types: anytype) !Token {
         const tok = (try parser.parse()) orelse return error.UnexpectedEndOfFile;
         inline for (types) |t| {
             if (tok.type == @as(TokenType, t))
@@ -1354,7 +1351,7 @@ pub const Parser = struct {
         return token;
     }
 
-    fn lastOfSlice(slice: var) @TypeOf(slice[0]) {
+    fn lastOfSlice(slice: anytype) @TypeOf(slice[0]) {
         return slice[slice.len - 1];
     }
 
@@ -1363,7 +1360,7 @@ pub const Parser = struct {
         expression: Expression,
         terminator: Token,
     };
-    fn parseExpression(parser: *Parser, allocator: *std.mem.Allocator, terminators: var) !ParseExpressionResult {
+    fn parseExpression(parser: *Parser, allocator: *std.mem.Allocator, terminators: anytype) !ParseExpressionResult {
         var stack = std.ArrayList(Token).init(allocator);
         defer stack.deinit();
 
@@ -1497,7 +1494,7 @@ const Expression = struct {
         expr.* = undefined;
     }
 
-    pub fn format(value: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: var) !void {
+    pub fn format(value: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
         for (value.sequence) |item, i| {
             if (i > 0)
                 try stream.writeAll(" ");

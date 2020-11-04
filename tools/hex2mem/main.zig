@@ -22,8 +22,8 @@ pub fn main() anyerror!u8 {
     }, std.heap.page_allocator);
     defer cli_args.deinit();
 
-    const stdout = std.io.getStdOut().outStream();
-    const stdin = std.io.getStdOut().inStream();
+    const stdout = std.io.getStdOut().writer();
+    const stdin = std.io.getStdOut().reader();
 
     if (cli_args.options.help or cli_args.positionals.len == 0 or cli_args.options.output == null) {
         try stdout.writeAll(
@@ -49,7 +49,7 @@ pub fn main() anyerror!u8 {
         file: *const std.fs.File,
 
         fn load(p: *const Self, base: u32, data: []const u8) Error!void {
-            const out = p.file.outStream();
+            const out = p.file.writer();
 
             try out.print("{X} :", .{@divExact(base, 2)});
 
@@ -73,7 +73,7 @@ pub fn main() anyerror!u8 {
         var infile = try std.fs.cwd().openFile(file_name, .{ .read = true, .write = false });
         defer infile.close();
 
-        _ = try ihex.parseData(infile.inStream(), parseMode, &loader, MemPrinter.Error, MemPrinter.load);
+        _ = try ihex.parseData(infile.reader(), parseMode, &loader, MemPrinter.Error, MemPrinter.load);
     }
 
     return 0;

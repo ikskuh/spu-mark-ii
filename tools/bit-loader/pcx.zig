@@ -51,7 +51,7 @@ fn SubImage(comptime Pixel: type) type {
         height: usize,
         palette: ?*PaletteType,
 
-        pub fn initLinear(allocator: *std.mem.Allocator, header: Header, file: *std.fs.File, stream: var) !Self {
+        pub fn initLinear(allocator: *std.mem.Allocator, header: Header, file: *std.fs.File, stream: anytype) !Self {
             const width = @as(usize, header.xmax - header.xmin + 1);
             const height = @as(usize, header.ymax - header.ymin + 1);
 
@@ -164,7 +164,7 @@ pub const Image = union(Format) {
 };
 
 pub fn load(allocator: *std.mem.Allocator, file: *std.fs.File) !Image {
-    var stream = &file.inStream();
+    var stream = file.reader();
 
     var header: Header = undefined;
     try stream.readNoEof(std.mem.asBytes(&header));
@@ -201,10 +201,10 @@ const RLEDecoder = struct {
         remaining: usize,
     };
 
-    stream: *std.fs.File.InStream,
+    stream: std.fs.File.Reader,
     currentRun: ?Run,
 
-    fn init(stream: *std.fs.File.InStream) RLEDecoder {
+    fn init(stream: std.fs.File.Reader) RLEDecoder {
         return RLEDecoder{
             .stream = stream,
             .currentRun = null,

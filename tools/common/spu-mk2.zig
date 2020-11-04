@@ -69,7 +69,7 @@ pub const Instruction = packed struct {
     command: Command,
     reserved: u1 = 0,
 
-    pub fn format(instr: Instruction, comptime fmt: []const u8, options: std.fmt.FormatOptions, out: var) !void {
+    pub fn format(instr: Instruction, comptime fmt: []const u8, options: std.fmt.FormatOptions, out: anytype) !void {
         try out.writeAll(switch (instr.condition) {
             .always => "    ",
             .when_zero => "== 0",

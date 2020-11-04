@@ -51,18 +51,18 @@ pub fn main() anyerror!u8 {
     defer cli_args.deinit();
 
     if (cli_args.positionals.len != 0) {
-        try std.io.getStdOut().outStream().writeAll("Positional arguments are not allowed.\n");
+        try std.io.getStdOut().writer().writeAll("Positional arguments are not allowed.\n");
         return 1;
     }
 
     if (cli_args.options.@"port-name" == null) {
-        try std.io.getStdOut().outStream().writeAll("Serial port name is required.\n");
+        try std.io.getStdOut().writer().writeAll("Serial port name is required.\n");
         return 1;
     }
 
     var serial = std.fs.cwd().openFile(cli_args.options.@"port-name".?, .{ .read = true, .write = true }) catch |err| switch (err) {
         error.FileNotFound => {
-            try std.io.getStdOut().outStream().print("The serial port {} does not exist.\n", .{cli_args.options.@"port-name"});
+            try std.io.getStdOut().writer().print("The serial port {} does not exist.\n", .{cli_args.options.@"port-name"});
             return 1;
         },
         else => return err,
@@ -77,11 +77,11 @@ pub fn main() anyerror!u8 {
         .word_size = 8,
     });
 
-    const stdin = std.io.getStdIn().inStream();
-    const stdout = std.io.getStdOut().outStream();
+    const stdin = std.io.getStdIn().reader();
+    const stdout = std.io.getStdOut().writer();
 
-    const serin = serial.inStream();
-    const serout = serial.outStream();
+    const serin = serial.reader();
+    const serout = serial.writer();
 
     var inputbuf: [256]u8 = undefined;
     while (true) {
@@ -253,11 +253,11 @@ pub fn main() anyerror!u8 {
                     .output = &serout,
                 };
 
-                if (ihex.parseData(file.inStream(), parseMode, &parser, HexParser.Error, HexParser.verify)) |_| {
+                if (ihex.parseData(file.reader(), parseMode, &parser, HexParser.Error, HexParser.verify)) |_| {
                     try file.seekTo(0);
 
                     try stdout.writeAll("starting transfer...\n");
-                    const entry_point = try ihex.parseData(file.inStream(), parseMode, &parser, HexParser.Error, HexParser.load);
+                    const entry_point = try ihex.parseData(file.reader(), parseMode, &parser, HexParser.Error, HexParser.load);
                     if (entry_point) |ep| {
                         try stdout.print("hex loading done, entry point = 0x{X}\n", .{ep});
                     } else {
