@@ -63,7 +63,7 @@ pub fn main() !u8 {
         for (assembler.errors.items) |err| {
             try stdout.print("{}: {}:{}:{}: {}\n", .{
                 @tagName(err.type),
-                err.location.?.file,
+                "f", //err.location.?.file,
                 err.location.?.line,
                 err.location.?.column,
                 err.message,

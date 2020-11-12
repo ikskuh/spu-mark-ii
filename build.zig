@@ -112,32 +112,6 @@ pub fn build(b: *std.build.Builder) !void {
     nativeToolchain.hex2bin.install();
     nativeToolchain.ashet_emulator.install();
 
-    // Cross-target
-    {
-        const debug_step = b.step("cross-build", "Builds all the toolchain for all cross targets.");
-
-        const MyTarget = struct {
-            target: std.zig.CrossTarget,
-            folder: []const u8,
-        };
-
-        const targets = [_]MyTarget{
-            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-windows" }), .folder = "build/x86_64-windows" },
-            // .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-macosx" }), .folder = "build/x86_64-macosx" }, // not supported by zig-serial atm
-            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-linux" }), .folder = "build/x86_64-linux" },
-            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "i386-windows" }), .folder = "build/i386-windows" }, // linker error _GetCommState
-        };
-
-        for (targets) |cross_target| {
-            const crossToolchain = try buildToolchain(b, cross_target.folder, cross_target.target, mode);
-            debug_step.dependOn(&crossToolchain.debugger.step);
-            debug_step.dependOn(&crossToolchain.emulator.step);
-            debug_step.dependOn(&crossToolchain.disassembler.step);
-            debug_step.dependOn(&crossToolchain.assembler.step);
-            debug_step.dependOn(&crossToolchain.hex2bin.step);
-        }
-    }
-
     const test_step = b.step("test", "Tests the code");
     test_step.dependOn(&b.addTest("tools/debugger/main.zig").step);
     test_step.dependOn(&b.addTest("tools/emulator/pc-main.zig").step);
@@ -182,6 +156,9 @@ pub fn build(b: *std.build.Builder) !void {
         "./soc/firmware/firmware.hex",
     });
 
+    const firmware_step = b.step("firmware", "Builds the BIOS for Ashet");
+    firmware_step.dependOn(&gen_firmware_blob.step);
+
     const refresh_cmd = make_vhd.run();
     refresh_cmd.step.dependOn(&gen_firmware_blob.step);
     refresh_cmd.addArgs(&[_][]const u8{
@@ -207,13 +184,17 @@ pub fn build(b: *std.build.Builder) !void {
         "./soc/firmware/firmware.hex",
     });
 
-    const wasm_emulator = b.addStaticLibrary("emulator", "tools/emulator/web-main.zig");
-    wasm_emulator.addPackage(packages.ihex);
-    wasm_emulator.addPackage(packages.spumk2);
-    wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
-    wasm_emulator.setBuildMode(.ReleaseSafe);
-    wasm_emulator.step.dependOn(&gen_firmware_blob.step);
-    wasm_emulator.install();
+    {
+        const wasm_emulator = b.addStaticLibrary("emulator", "tools/emulator/web-main.zig");
+        wasm_emulator.addPackage(packages.ihex);
+        wasm_emulator.addPackage(packages.spumk2);
+        wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
+        wasm_emulator.setBuildMode(.ReleaseSafe);
+        wasm_emulator.step.dependOn(&gen_firmware_blob.step);
+
+        const wasm_step = b.step("wasm", "Builds the WASM emulator");
+        wasm_step.dependOn(&wasm_emulator.step);
+    }
 
     const bitmap_converter = b.addExecutable("bit-loader", "tools/bit-loader/main.zig");
     bitmap_converter.addPackage(packages.args);
@@ -231,4 +212,31 @@ pub fn build(b: *std.build.Builder) !void {
 
     const emulator_step = b.step("emulator", "Compiles the emulator");
     emulator_step.dependOn(&nativeToolchain.emulator.step);
+
+    // Cross-target
+    {
+        const cross_step = b.step("cross-build", "Builds all the toolchain for all cross targets.");
+
+        const MyTarget = struct {
+            target: std.zig.CrossTarget,
+            folder: []const u8,
+        };
+
+        const targets = [_]MyTarget{
+            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-windows" }), .folder = "build/x86_64-windows" },
+            // .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-macosx" }), .folder = "build/x86_64-macosx" }, // not supported by zig-serial atm
+            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "x86_64-linux" }), .folder = "build/x86_64-linux" },
+            .{ .target = try std.zig.CrossTarget.parse(.{ .arch_os_abi = "i386-windows" }), .folder = "build/i386-windows" }, // linker error _GetCommState
+        };
+
+        for (targets) |cross_target| {
+            const crossToolchain = try buildToolchain(b, cross_target.folder, cross_target.target, mode);
+            cross_step.dependOn(&crossToolchain.debugger.step);
+            cross_step.dependOn(&crossToolchain.emulator.step);
+            cross_step.dependOn(&crossToolchain.disassembler.step);
+            cross_step.dependOn(&crossToolchain.assembler.step);
+            cross_step.dependOn(&crossToolchain.hex2bin.step);
+            cross_step.dependOn(&crossToolchain.ashet_emulator.step);
+        }
+    }
 }
