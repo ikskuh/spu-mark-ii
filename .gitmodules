@@ -7,3 +7,6 @@
 [submodule "tools/modules/zig-serial"]
 	path = tools/modules/zig-serial
 	url = https://github.com/MasterQ32/zig-serial
+[submodule "tools/modules/SDL.zig"]
+	path = tools/modules/SDL.zig
+	url = https://github.com/MasterQ32/SDL.zig

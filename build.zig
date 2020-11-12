@@ -17,6 +17,10 @@ const packages = struct {
         .name = "spu-mk2",
         .path = "./tools/common/spu-mk2.zig",
     };
+    const sdl2 = std.build.Pkg{
+        .name = "sdl2",
+        .path = "./tools/modules/SDL.zig/src/lib.zig",
+    };
 };
 
 const examples = [_][]const u8{
@@ -30,6 +34,7 @@ const Toolchain = struct {
     disassembler: *std.build.LibExeObjStep,
     assembler: *std.build.LibExeObjStep,
     hex2bin: *std.build.LibExeObjStep,
+    ashet_emulator: *std.build.LibExeObjStep,
 };
 
 fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig.CrossTarget, mode: std.builtin.Mode) !Toolchain {
@@ -51,6 +56,16 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     emulator.setBuildMode(mode);
 
     if (outputDir) |od| emulator.setOutputDir(od);
+
+    const ashet_emulator = b.addExecutable("ashet", "tools/ashet-emulator/main.zig");
+    ashet_emulator.addPackage(packages.sdl2);
+    ashet_emulator.addPackage(packages.ihex);
+    ashet_emulator.addPackage(packages.args);
+    ashet_emulator.addPackage(packages.spumk2);
+    ashet_emulator.linkSystemLibrary("SDL2");
+    ashet_emulator.setTarget(target);
+    ashet_emulator.setBuildMode(mode);
+    if (outputDir) |od| ashet_emulator.setOutputDir(od);
 
     const disassembler = b.addExecutable("disassembler", "tools/disassembler/main.zig");
     disassembler.addPackage(packages.args);
@@ -81,6 +96,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
         .disassembler = disassembler,
         .emulator = emulator,
         .debugger = debugger,
+        .ashet_emulator = ashet_emulator,
     };
 }
 
@@ -94,6 +110,7 @@ pub fn build(b: *std.build.Builder) !void {
     nativeToolchain.disassembler.install();
     nativeToolchain.assembler.install();
     nativeToolchain.hex2bin.install();
+    nativeToolchain.ashet_emulator.install();
 
     // Cross-target
     {

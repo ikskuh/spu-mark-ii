@@ -3,7 +3,7 @@
 
 Fakten:
 - 4096 Byte Platz
-- 16 * 16²-Sprites mit 8 bpp
+- 16 × 16²-Sprites mit 8 bpp
 
 ```
 struct SpriteDef {

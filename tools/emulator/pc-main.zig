@@ -2,10 +2,6 @@ const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
 
-const c = @cImport({
-    @cInclude("SDL.h");
-});
-
 usingnamespace @import("emulator.zig");
 usingnamespace @import("spu-mk2");
 
@@ -54,13 +50,6 @@ pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16,
     });
 }
 
-fn SdlError() error{SdlError} {
-    if (c.SDL_GetError()) |err| {
-        std.debug.warn("sdl error: {}\n", .{err});
-    }
-    return error.SdlError;
-}
-
 var termios_bak: std.os.termios = undefined;
 
 var window: *c.SDL_Window = undefined;
@@ -96,7 +85,6 @@ pub fn main() !u8 {
     const cli_args = try argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         @"entry-point": u16 = 0x0000,
-        @"enable-graphics": bool = true,
         @"video-scaling": u32 = 3,
 
         pub const shorthands = .{
@@ -118,37 +106,6 @@ pub fn main() !u8 {
         );
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
-
-    if (cli_args.options.@"enable-graphics") {
-        if (c.SDL_Init(c.SDL_INIT_EVERYTHING) < 0) {
-            return SdlError();
-        }
-
-        window = if (c.SDL_CreateWindow(
-            "🐈 Ashet Home Computer",
-            c.SDL_WINDOWPOS_CENTERED,
-            c.SDL_WINDOWPOS_CENTERED,
-            @intCast(c_int, 320 * cli_args.options.@"video-scaling"),
-            @intCast(c_int, 240 * cli_args.options.@"video-scaling"),
-            c.SDL_WINDOW_SHOWN,
-        )) |w|
-            w
-        else
-            return SdlError();
-
-        renderer = if (c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED)) |r|
-            r
-        else
-            return SdlError();
-
-        texture = if (c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_BGRA8888, c.SDL_TEXTUREACCESS_STREAMING, 256, 128)) |t|
-            t
-        else
-            return SdlError();
-    }
-    defer if (cli_args.options.@"enable-graphics") {
-        _ = c.SDL_Quit();
-    };
 
     var emu = Emulator.init();
 
@@ -218,35 +175,7 @@ pub fn main() !u8 {
 
     var timer = try std.time.Timer.start();
 
-    if (cli_args.options.@"enable-graphics") {
-        main_loop: while (true) {
-            var e: c.SDL_Event = undefined;
-            while (c.SDL_PollEvent(&e) != 0) {
-                switch (e.type) {
-                    c.SDL_QUIT => break :main_loop,
-                    else => {},
-                }
-            }
-
-            emu.runBatch(10_000) catch |err| return outputErrorMsg(&emu, err);
-
-            _ = c.SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0x00, 0xFF);
-            _ = c.SDL_RenderClear(renderer);
-
-            const src = c.SDL_Rect{
-                .x = @intCast(c_int, cli_args.options.@"video-scaling" * (320 - 256) / 2),
-                .y = @intCast(c_int, cli_args.options.@"video-scaling" * (240 - 128) / 2),
-                .w = @intCast(c_int, 256 * cli_args.options.@"video-scaling"),
-                .h = @intCast(c_int, 128 * cli_args.options.@"video-scaling"),
-            };
-
-            _ = c.SDL_RenderCopy(renderer, texture, null, &src);
-
-            _ = c.SDL_RenderPresent(renderer);
-        }
-    } else {
-        emu.run() catch |err| return outputErrorMsg(&emu, err);
-    }
+    emu.run() catch |err| return outputErrorMsg(&emu, err);
 
     return @as(u8, 0);
 }
