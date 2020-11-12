@@ -1,5 +1,243 @@
 const std = @import("std");
 
+pub const MemoryInterface = struct {
+    const Self = @This();
+    pub const Error = error{BusError};
+
+    readByteFn: fn (self: *Self, address: u16) Error!u8,
+    writeByteFn: fn (self: *Self, address: u16, value: u8) Error!void,
+    readWordFn: fn (self: *Self, address: u16) Error!u16,
+    writeWordFn: fn (self: *Self, address: u16, value: u16) Error!void,
+
+    pub fn readByte(self: *Self, address: u16) !u8 {
+        return self.readByteFn(self, address);
+    }
+    pub fn writeByte(self: *Self, address: u16, value: u8) !void {
+        return self.writeByteFn(self, address, value);
+    }
+    pub fn readWord(self: *Self, address: u16) !u16 {
+        return self.readWordFn(self, address);
+    }
+    pub fn writeWord(self: *Self, address: u16, value: u16) !void {
+        return self.writeWordFn(self, address, value);
+    }
+};
+
+pub const SpuMk2 = struct {
+    const Self = @This();
+    const Stage = enum {
+        decode,
+        execute,
+        postprocess,
+    };
+
+    memory: *MemoryInterface,
+
+    ip: u16,
+    bp: u16,
+    fr: FlagRegister,
+    sp: u16,
+
+    bus_addr: u16,
+    stage: Stage,
+
+    pub fn init(memory: *MemoryInterface) Self {
+        return Self{
+            .memory = memory,
+
+            .ip = 0x0000,
+            .fr = std.mem.zeroes(FlagRegister),
+            .bp = undefined,
+            .sp = undefined,
+
+            .bus_addr = undefined,
+            .stage = undefined,
+        };
+    }
+
+    pub fn readByte(self: *Self, address: u16) !u8 {
+        return self.memory.readByte(address);
+    }
+
+    pub fn writeByte(self: *Self, address: u16, value: u8) !void {
+        return self.memory.writeByte(address, value);
+    }
+
+    pub fn readWord(self: *Self, address: u16) !u16 {
+        if ((address & 1) != 0)
+            return error.UnalignedAccess;
+        return self.memory.readWord(address);
+    }
+
+    pub fn writeWord(self: *Self, address: u16, value: u16) !void {
+        if ((address & 1) != 0)
+            return error.UnalignedAccess;
+        return self.memory.writeWord(address, value);
+    }
+
+    pub fn fetch(self: *Self) !u16 {
+        const value = try self.readWord(self.ip);
+        self.ip +%= 2;
+        return value;
+    }
+
+    pub fn peek(self: *Self) !u16 {
+        return try self.readWord(self.sp);
+    }
+
+    pub fn pop(self: *Self) !u16 {
+        const value = try self.readWord(self.sp);
+        self.sp +%= 2;
+        return value;
+    }
+
+    pub fn push(self: *Self, value: u16) !void {
+        self.sp -%= 2;
+        try self.writeWord(self.sp, value);
+    }
+
+    pub fn executeSingle(self: *Self) !void {
+        self.stage = .decode;
+
+        const start_ip = self.ip;
+
+        const instruction = @bitCast(Instruction, try self.fetch());
+
+        if (instruction.reserved == 1) {
+            switch (@bitCast(u16, instruction)) {
+                //0x8000 => self.tracing = false,
+                //0x8001 => self.tracing = true,
+                //0x8002 => try @import("root").dumpState(self),
+                else => return error.BadInstruction,
+            }
+            return;
+        }
+
+        const execute = switch (instruction.condition) {
+            .always => true,
+            .when_zero => self.fr.zero,
+            .not_zero => !self.fr.zero,
+            .greater_zero => !self.fr.zero and !self.fr.negative,
+            .less_than_zero => !self.fr.zero and self.fr.negative,
+            .greater_or_equal_zero => self.fr.zero or !self.fr.negative,
+            .less_or_equal_zero => self.fr.zero or self.fr.negative,
+            .overflow => self.fr.carry,
+        };
+
+        if (execute) {
+            const input0 = switch (instruction.input0) {
+                .zero => @as(u16, 0),
+                .immediate => try self.fetch(),
+                .peek => try self.peek(),
+                .pop => try self.pop(),
+            };
+            const input1 = switch (instruction.input1) {
+                .zero => @as(u16, 0),
+                .immediate => try self.fetch(),
+                .peek => try self.peek(),
+                .pop => try self.pop(),
+            };
+
+            self.stage = .execute;
+
+            const output = switch (instruction.command) {
+                .copy => input0,
+                .ipget => self.ip +% 2 *% input0,
+                .get => try self.readWord(self.bp +% 2 *% input0),
+                .set => blk: {
+                    try self.writeWord(self.bp +% 2 *% input0, input1);
+                    break :blk input1;
+                },
+                .store8 => blk: {
+                    const val = @truncate(u8, input1);
+                    try self.writeByte(input0, val);
+                    break :blk val;
+                },
+                .store16 => blk: {
+                    try self.writeWord(input0, input1);
+                    break :blk input1;
+                },
+                .load8 => try self.readByte(input0),
+                .load16 => try self.readWord(input0),
+                .frget => @bitCast(u16, self.fr) & ~input1,
+                .frset => blk: {
+                    const value = (@bitCast(u16, self.fr) & input1) | (input0 & ~input1);
+                    self.fr = @bitCast(FlagRegister, value);
+                    break :blk value;
+                },
+                .bpget => self.bp,
+                .bpset => blk: {
+                    self.bp = input0;
+                    break :blk self.bp;
+                },
+                .spget => self.sp,
+                .spset => blk: {
+                    self.sp = input0;
+                    break :blk self.sp;
+                },
+                .add => blk: {
+                    var result: u16 = undefined;
+                    self.fr.carry = @addWithOverflow(u16, input0, input1, &result);
+                    break :blk result;
+                },
+                .sub => blk: {
+                    var result: u16 = undefined;
+                    self.fr.carry = @subWithOverflow(u16, input0, input1, &result);
+                    break :blk result;
+                },
+                .mul => blk: {
+                    var result: u16 = undefined;
+                    self.fr.carry = @mulWithOverflow(u16, input0, input1, &result);
+                    break :blk result;
+                },
+                .div => input0 / input1,
+                .mod => input0 % input1,
+                .@"and" => input0 & input1,
+                .@"or" => input0 | input1,
+                .xor => input0 ^ input1,
+                .not => ~input0,
+                .signext => if ((input0 & 0x80) != 0)
+                    (input0 & 0xFF) | 0xFF00
+                else
+                    (input0 & 0xFF),
+                .rol => (input0 << 1) | (input0 >> 15),
+                .ror => (input0 >> 1) | (input0 << 15),
+                .bswap => (input0 << 8) | (input0 >> 8),
+                .asr => (input0 & 0x8000) | (input0 >> 1),
+                .lsl => input0 << 1,
+                .lsr => input0 >> 1,
+                .undefined0, .undefined1 => return error.BadInstruction,
+            };
+
+            self.stage = .postprocess;
+            switch (instruction.output) {
+                .discard => {},
+                .push => try self.push(output),
+                .jump => self.ip = output,
+                .jump_relative => self.ip +%= 2 * output,
+            }
+            if (instruction.modify_flags) {
+                self.fr.negative = (output & 0x8000) != 0;
+                self.fr.zero = (output == 0x0000);
+            }
+            // if (self.tracing) {
+            //     try @import("root").dumpTrace(self, start_ip, instruction, input0, input1, output);
+            // }
+        } else {
+            if (instruction.input0 == .immediate) self.ip +%= 2;
+            if (instruction.input1 == .immediate) self.ip +%= 2;
+        }
+    }
+
+    pub fn runBatch(self: *Self, count: u64) !void {
+        var i: u64 = count;
+        while (i > 0) {
+            i -= 1;
+            try self.executeSingle();
+        }
+    }
+};
+
 pub const ExecutionCondition = enum(u3) {
     always = 0,
     when_zero = 1,

@@ -151,7 +151,9 @@ const Ashet = struct {
     pub fn init(self: *Self) void {
         self.* = Self{
             .bus = Bus{},
-            .mmu = MMU{},
+            .mmu = MMU{
+                .bus = &self.bus,
+            },
 
             .rom = Memory{ .data = &self.rom_buffer, .read_only = true },
             .ram = Memory{ .data = &self.rom_buffer, .read_only = false },
@@ -407,6 +409,38 @@ const MMU = struct {
 
     page_fault_register: u16 = 0,
     write_fault_register: u16 = 0,
+
+    bus_device: BusDevice = BusDevice{
+        .read8Fn = BusDevice.read8With16,
+        .write8Fn = BusDevice.write8With16,
+
+        .read16Fn = registerRead16,
+        .write16Fn = registerWrite16,
+    },
+
+    bus: *Bus,
+
+    fn registerRead16(busdev: *BusDevice, address: u24) u16 {
+        const mmu = @fieldParentPtr(Self, "bus_device", busdev);
+        const register = (address & 0x7FF) >> 1;
+        return switch (register) {
+            0x000...0x00F => @bitCast(u16, mmu.page_config[register]),
+            0x010 => mmu.page_fault_register,
+            0x011 => mmu.write_fault_register,
+            else => 0xFFFF,
+        };
+    }
+
+    fn registerWrite16(busdev: *BusDevice, address: u24, value: u16) void {
+        const mmu = @fieldParentPtr(Self, "bus_device", busdev);
+        const register = (address & 0x7FF) >> 1;
+        switch (register) {
+            0x000...0x00F => mmu.page_config[register] = @bitCast(Register, value),
+            0x010 => mmu.page_fault_register = value,
+            0x011 => mmu.write_fault_register = value,
+            else => {},
+        }
+    }
 };
 
 comptime {

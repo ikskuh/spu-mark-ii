@@ -1,22 +1,23 @@
 const std = @import("std");
 
-usingnamespace @import("emulator.zig");
-usingnamespace @import("spu-mk2");
+const spu = @import("spu-mk2");
+const common = @import("shared.zig");
 
-var emulator: Emulator = undefined;
+var memory = common.BasicMemory{};
+var emulator: spu.SpuMk2 = undefined;
 
 const bootrom = @embedFile("../../soc/firmware/firmware.bin");
 
-pub fn dumpState(emu: *Emulator) !void {}
+pub fn dumpState(emu: *spu.SpuMk2) !void {}
 
-pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) !void {}
+pub fn dumpTrace(emu: *spu.SpuMk2, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {}
 
 export fn init() void {
     serialWrite("a", 1);
-    emulator = Emulator.init();
+    emulator = spu.SpuMk2.init(&memory.interface);
     serialWrite("b", 1);
 
-    std.mem.copy(u8, &emulator.rom, bootrom[0..std.math.min(emulator.rom.len, bootrom.len)]);
+    std.mem.copy(u8, &memory.rom, bootrom[0..std.math.min(memory.rom.len, bootrom.len)]);
     serialWrite("c", 1);
 }
 

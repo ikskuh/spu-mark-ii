@@ -1,13 +1,12 @@
 const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
-
-usingnamespace @import("emulator.zig");
-usingnamespace @import("spu-mk2");
+const spu = @import("spu-mk2");
+const common = @import("shared.zig");
 
 extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
 
-pub fn dumpState(emu: *Emulator) !void {
+pub fn dumpState(emu: *spu.SpuMk2) !void {
     const stdout = std.io.getStdOut().writer();
     try stdout.print(
         "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={}\r\n",
@@ -39,7 +38,7 @@ pub fn dumpState(emu: *Emulator) !void {
     }
 }
 
-pub fn dumpTrace(emu: *Emulator, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) !void {
+pub fn dumpTrace(emu: *spu.SpuMk2, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {
     const stdout = std.io.getStdOut().writer();
     try stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
         ip,
@@ -58,7 +57,7 @@ var texture: *c.SDL_Texture = undefined;
 
 var framebuffer: [128][256]u8 = undefined;
 
-fn outputErrorMsg(emu: *Emulator, err: anytype) !u8 {
+fn outputErrorMsg(emu: *spu.SpuMk2, err: anyerror) !u8 {
     const stdin = std.io.getStdIn();
 
     // reset terminal before outputting error messages
@@ -107,7 +106,9 @@ pub fn main() !u8 {
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
 
-    var emu = Emulator.init();
+    var memory = common.BasicMemory{};
+
+    var emu = spu.SpuMk2.init(&memory.interface);
 
     const hexParseMode = ihex.ParseMode{ .pedantic = true };
     for (cli_args.positionals) |path| {
@@ -115,7 +116,7 @@ pub fn main() !u8 {
         defer file.close();
 
         // Emulator will always start at address 0x0000 or CLI given entry point.
-        _ = try ihex.parseData(file.reader(), hexParseMode, &emu, Emulator.LoaderError, Emulator.loadHexRecord);
+        _ = try ihex.parseData(file.reader(), hexParseMode, &memory, common.BasicMemory.LoaderError, common.BasicMemory.loadHexRecord);
     }
 
     emu.ip = cli_args.options.@"entry-point";
@@ -171,11 +172,13 @@ pub fn main() !u8 {
             return error.FailedToSetConsole;
     }
 
-    defer std.debug.warn("Executed {} instructions!\n", .{emu.count});
+    // defer std.debug.warn("Executed {} instructions!\n", .{emu.count});
 
     var timer = try std.time.Timer.start();
 
-    emu.run() catch |err| return outputErrorMsg(&emu, err);
+    while (true) {
+        emu.runBatch(10_000) catch |err| return outputErrorMsg(&emu, err);
+    }
 
     return @as(u8, 0);
 }
