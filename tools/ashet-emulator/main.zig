@@ -2,8 +2,39 @@ const std = @import("std");
 
 const sdl = @import("sdl2");
 const spu = @import("spu-mk2");
+const args = @import("args");
 
-pub fn main() !void {
+const CliArgs = struct {
+    const SerialPort = enum {
+        none,
+        stdio,
+    };
+
+    help: bool = false,
+    serial1: SerialPort = .none,
+    serial2: SerialPort = .none,
+};
+
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const global_allocator = &gpa.allocator;
+
+pub fn main() !u8 {
+    const stderr = std.io.getStdErr().writer();
+    const stdout = std.io.getStdOut().writer();
+
+    const cli = try args.parseForCurrentProcess(CliArgs, global_allocator);
+    defer cli.deinit();
+
+    if (cli.options.help) {
+        try usage(stderr);
+        return 0;
+    }
+
+    if (cli.positionals.len == 0) {
+        try usage(stderr);
+        return 1;
+    }
+
     try sdl.init(.{
         .video = true,
         .events = true,
@@ -40,7 +71,29 @@ pub fn main() !void {
     Ashet.init(ashet);
     defer ashet.deinit();
 
-    _ = try std.fs.cwd().readFile("./soc/firmware/firmware.bin", &ashet.rom_buffer);
+    var success = true; //  we require at least one boot image file
+
+    for (cli.positionals) |file, i| {
+        const ext = fileExtension(file) orelse {
+            try stderr.print("{} is missing a file extension, cannot autodetect the file type!\n", .{file});
+            success = false;
+            continue;
+        };
+
+        if (std.mem.eql(u8, ext, "bin")) {
+            _ = try std.fs.cwd().readFile("./soc/firmware/firmware.bin", &ashet.rom_buffer);
+        } else if (std.mem.eql(u8, ext, "hex")) {
+            try stderr.writeAll("ihex loading is not implemented yet!\n");
+            success = false;
+        } else {
+            try stderr.print("{} is not a supported BIOS format!\n", .{ext});
+            success = false;
+        }
+    }
+
+    if (!success) {
+        return 1;
+    }
 
     main_loop: while (true) {
         while (sdl.pollEvent()) |event| {
@@ -63,6 +116,19 @@ pub fn main() !void {
 
         renderer.present();
     }
+
+    return 0;
+}
+
+fn usage(out: anytype) !void {
+    try out.writeAll(
+        \\ashet [BIOS.bin]
+        \\--help                             Displays this help message
+        \\--serial1, --serial2 [none|stdio]  Configures the serial port 1 or 2.
+        \\                                   none:  The serial port has no I/O capabilities.
+        \\                                   stdio: The serial port is emulated via stdin and stdout.
+        \\
+    );
 }
 
 const BusDevice = struct {
@@ -834,4 +900,15 @@ const hexfont_8x8 = [16][7]u8{
 
 fn isWordAlignedAddress(address: u24) bool {
     return (address & 1) == 0;
+}
+
+pub fn fileExtension(path: []const u8) ?[]const u8 {
+    const filename = std.fs.path.basename(path);
+    return if (std.mem.lastIndexOf(u8, filename, ".")) |index|
+        if (index == 0 or index == filename.len - 1)
+            null
+        else
+            filename[index + 1 ..]
+    else
+        null;
 }
