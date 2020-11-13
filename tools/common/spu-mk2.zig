@@ -23,35 +23,39 @@ pub const MemoryInterface = struct {
     }
 };
 
+pub const TracingInterface = struct {
+    const Self = @This();
+
+    traceInstructionFn: fn (self: *Self, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) void,
+
+    pub fn traceInstruction(self: *Self, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) void {
+        self.traceInstructionFn(self, ip, instruction, input0, input1, output);
+    }
+};
+
 pub const SpuMk2 = struct {
     const Self = @This();
-    const Stage = enum {
-        decode,
-        execute,
-        postprocess,
-    };
 
     memory: *MemoryInterface,
+    tracing: ?*TracingInterface,
+    trace_enabled: bool,
 
     ip: u16,
     bp: u16,
     fr: FlagRegister,
     sp: u16,
 
-    bus_addr: u16,
-    stage: Stage,
-
     pub fn init(memory: *MemoryInterface) Self {
         return Self{
             .memory = memory,
+
+            .tracing = null,
+            .trace_enabled = false,
 
             .ip = 0x0000,
             .fr = std.mem.zeroes(FlagRegister),
             .bp = undefined,
             .sp = undefined,
-
-            .bus_addr = undefined,
-            .stage = undefined,
         };
     }
 
@@ -97,16 +101,14 @@ pub const SpuMk2 = struct {
     }
 
     pub fn executeSingle(self: *Self) !void {
-        self.stage = .decode;
-
         const start_ip = self.ip;
 
         const instruction = @bitCast(Instruction, try self.fetch());
 
         if (instruction.reserved == 1) {
             switch (@bitCast(u16, instruction)) {
-                //0x8000 => self.tracing = false,
-                //0x8001 => self.tracing = true,
+                0x8000 => self.trace_enabled = false,
+                0x8001 => self.trace_enabled = true,
                 //0x8002 => try @import("root").dumpState(self),
                 else => return error.BadInstruction,
             }
@@ -137,8 +139,6 @@ pub const SpuMk2 = struct {
                 .peek => try self.peek(),
                 .pop => try self.pop(),
             };
-
-            self.stage = .execute;
 
             const output = switch (instruction.command) {
                 .copy => input0,
@@ -209,7 +209,6 @@ pub const SpuMk2 = struct {
                 .undefined0, .undefined1 => return error.BadInstruction,
             };
 
-            self.stage = .postprocess;
             switch (instruction.output) {
                 .discard => {},
                 .push => try self.push(output),
@@ -220,9 +219,11 @@ pub const SpuMk2 = struct {
                 self.fr.negative = (output & 0x8000) != 0;
                 self.fr.zero = (output == 0x0000);
             }
-            // if (self.tracing) {
-            //     try @import("root").dumpTrace(self, start_ip, instruction, input0, input1, output);
-            // }
+
+            if (self.tracing) |intf| {
+                if (self.trace_enabled)
+                    intf.traceInstruction(start_ip, instruction, input0, input1, output);
+            }
         } else {
             if (instruction.input0 == .immediate) self.ip +%= 2;
             if (instruction.input1 == .immediate) self.ip +%= 2;

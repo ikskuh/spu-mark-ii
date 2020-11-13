@@ -52,9 +52,9 @@ Planned features:
 
 | Offset  | Size | Access | Description           |
 |---------|------|--------|-----------------------|
-| `0x000` |    1 | R      | Status Register       |
-| `0x001` |    2 | R      | Receive Data Register |
-| `0x001` |    2 | W      | Write Data Register   |
+| `0x000` |    2 | R      | Status Register       |
+| `0x002` |    2 | R      | Receive Data Register |
+| `0x002` |    2 | W      | Write Data Register   |
 
 #### Status Register
 

@@ -9,14 +9,14 @@ extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMod
 pub fn dumpState(emu: *spu.SpuMk2) !void {
     const stdout = std.io.getStdOut().writer();
     try stdout.print(
-        "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4} BUS={X:0>4} STAGE={}\r\n",
+        "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4}\r\n",
         .{
             emu.ip,
             emu.sp,
             emu.bp,
             @bitCast(u16, emu.fr),
-            emu.bus_addr,
-            @tagName(emu.stage),
+            // emu.bus_addr,
+            // @tagName(emu.stage),
         },
     );
 

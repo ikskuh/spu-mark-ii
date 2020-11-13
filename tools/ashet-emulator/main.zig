@@ -18,6 +18,20 @@ const CliArgs = struct {
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const global_allocator = &gpa.allocator;
 
+var debug_tracer = spu.TracingInterface{
+    .traceInstructionFn = struct {
+        fn traceInstruction(intf: *spu.TracingInterface, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) void {
+            std.debug.warn("IP={X:0>4} I0={X:0>4} I1={X:0>4} OUT={X:0>4} OP=[{}]\n", .{
+                ip,
+                input0,
+                input1,
+                output,
+                instruction,
+            });
+        }
+    }.traceInstruction,
+};
+
 pub fn main() !u8 {
     const stderr = std.io.getStdErr().writer();
     const stdout = std.io.getStdOut().writer();
@@ -104,7 +118,14 @@ pub fn main() !u8 {
         }
 
         // Step the emulation
+
+        // const timer = try std.time.Timer.start();
+
         try ashet.runFor(16 * std.time.ns_per_ms);
+
+        // const time = @intToFloat(f64, timer.read()) / std.time.ns_per_ms;
+
+        // std.debug.warn("emulation time: {d}ms\n", .{time});
 
         // Fetch the VGA screen output
         var fb: [480][640]VGA.RGB = undefined;
@@ -217,7 +238,7 @@ const Ashet = struct {
     const Self = @This();
 
     // System configuration
-    cpu_clock: u64 = 1_000_000, // instructions per second
+    cpu_clock: u64 = 10_000_000, // instructions per second
 
     // Memory buffers
     rom_buffer: [8388608]u8 = undefined, // 8 MB Flash
@@ -232,11 +253,16 @@ const Ashet = struct {
     ram: Memory,
     rom: Memory,
     vga: VGA,
+    uart0: UART,
+    uart1: UART,
+    sdio0: SDIO,
+    sdio1: SDIO,
 
     // Emulation state
 
     /// emulation time in nanoseconds
-    time: u64 = 0,
+    emulation_time: u64 = 0,
+    real_time: u64 = 0,
 
     // After a call to init, `self` must not be moved anymore!
     pub fn init(self: *Self) void {
@@ -254,6 +280,10 @@ const Ashet = struct {
                 .bus = &self.bus,
                 .framebuffer_address = 0x000000,
             },
+            .uart0 = UART{},
+            .uart1 = UART{},
+            .sdio0 = SDIO{ .bus = &self.bus },
+            .sdio1 = SDIO{ .bus = &self.bus },
         };
 
         self.bus.mapRange(0x000000, 0x7FFFFF, &self.rom.bus_device);
@@ -261,12 +291,12 @@ const Ashet = struct {
 
         self.bus.mapAddress(0x7F0000, &self.mmu.bus_device);
         // - `0x7F1***`: (*Peripherial*) IRQ Controller
-        // - `0x7F2***`: (*Peripherial*) UART'0
-        // - `0x7F3***`: (*Peripherial*) UART'1
+        self.bus.mapAddress(0x7F2000, &self.uart0.bus_device);
+        self.bus.mapAddress(0x7F3000, &self.uart1.bus_device);
         // - `0x7F4***`: (*Peripherial*) PS/2'1 (Keyboar
         // - `0x7F5***`: (*Peripherial*) PS/2'2 (Mouse)
-        // - `0x7F6***`: (*Peripherial*) SDIO'1
-        // - `0x7F7***`: (*Peripherial*) SDIO'2
+        self.bus.mapAddress(0x7F6000, &self.sdio0.bus_device);
+        self.bus.mapAddress(0x7F7000, &self.sdio1.bus_device);
         // - `0x7F8***`: (*Peripherial*) Timer + RTC
         // - `0x7F9***`: (*Peripherial*) IrDA Interface
         // - `0x7FA***`: (*Peripherial*) Joystick Interf
@@ -279,6 +309,8 @@ const Ashet = struct {
         // MMU is by-default in an identity mapping, so we need to map the MMU into the visible range.
         // In this case, we map the MMU into the last page of memory space
         self.mmu.page_config[0xF].physical_address = 0x7F0;
+
+        self.cpu.tracing = &debug_tracer;
     }
 
     pub fn deinit(self: *Self) void {
@@ -287,52 +319,68 @@ const Ashet = struct {
 
     /// Runs the emulation for the given amount of nanoseconds
     pub fn runFor(self: *Self, ns: u64) !void {
+        const granularity = 1 * std.time.ns_per_us; // Run with 1µs steps
+
+        self.real_time += ns;
+
         // this has a minimal error per clock, but we accept this
         const ns_per_cycle = std.time.ns_per_s / self.cpu_clock;
+        const cycles_per_step = granularity / ns_per_cycle;
 
-        const current_cycle = self.time / ns_per_cycle;
-        const end_cycle = (self.time + ns) / ns_per_cycle;
+        while (self.emulation_time < self.real_time) : (self.emulation_time += granularity) {
 
-        self.cpu.runBatch(end_cycle - current_cycle) catch |err| {
-            self.bus.enable_debug_msg = false;
-            defer self.bus.enable_debug_msg = true;
+            // TODO: Process inputs from UART1, PS/2, IrDA
 
-            std.debug.print("CPU crashed at {X:0>4}:\n", .{
-                self.cpu.ip,
-            });
+            // Now, run the CPU
+            self.cpu.runBatch(cycles_per_step) catch |err| {
+                self.bus.enable_debug_msg = false;
+                defer self.bus.enable_debug_msg = true;
 
-            std.debug.print("   IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4}\n", .{
-                self.cpu.ip,
-                self.cpu.sp,
-                self.cpu.bp,
-                @bitCast(u16, self.cpu.fr),
-            });
+                std.debug.print("CPU crashed at {X:0>4}:\n", .{
+                    self.cpu.ip,
+                });
 
-            var stack_ptr: u16 = self.cpu.sp -% 8;
-            while (stack_ptr != self.cpu.sp +% 10) : (stack_ptr +%= 2) {
-                const value = self.mmu.interface.readWord(stack_ptr) catch null;
-                const indicator = if (stack_ptr == self.cpu.sp)
-                    "-->"
-                else
-                    "   ";
-                if (value) |val| {
-                    std.debug.print("{}{X:0>4}: {X:0>4}\n", .{
-                        indicator,
-                        stack_ptr,
-                        value,
-                    });
-                } else {
-                    std.debug.print("{}{X:0>4}: ????\n", .{
-                        indicator,
-                        stack_ptr,
-                    });
+                std.debug.print("   IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4}\n", .{
+                    self.cpu.ip,
+                    self.cpu.sp,
+                    self.cpu.bp,
+                    @bitCast(u16, self.cpu.fr),
+                });
+
+                var stack_ptr: u16 = self.cpu.sp -% 8;
+                while (stack_ptr != self.cpu.sp +% 10) : (stack_ptr +%= 2) {
+                    const value = self.mmu.interface.readWord(stack_ptr) catch null;
+                    const indicator = if (stack_ptr == self.cpu.sp)
+                        "-->"
+                    else
+                        "   ";
+                    if (value) |val| {
+                        std.debug.print("{}{X:0>4}: {X:0>4}\n", .{
+                            indicator,
+                            stack_ptr,
+                            value,
+                        });
+                    } else {
+                        std.debug.print("{}{X:0>4}: ????\n", .{
+                            indicator,
+                            stack_ptr,
+                        });
+                    }
                 }
+
+                return err;
+            };
+
+            // TODO: Process outputs from UART1, PS/2, IrDA
+
+            while (self.uart0.output.readItem()) |item| {
+                std.debug.print("UART0: {X:0>2} {c}\n", .{ item, item });
             }
 
-            return err;
-        };
-
-        self.time += ns;
+            while (self.uart1.output.readItem()) |item| {
+                std.debug.print("UART1: {X:0>2} {c}\n", .{ item, item });
+            }
+        }
     }
 };
 
@@ -739,6 +787,90 @@ const MMU = struct {
             0x000...0x00F => mmu.page_config[register] = @bitCast(Register, value),
             0x010 => mmu.page_fault_register = value,
             0x011 => mmu.write_fault_register = value,
+            else => return error.BusError,
+        }
+    }
+};
+
+const UART = struct {
+    const Self = @This();
+    const Fifo = std.fifo.LinearFifo(u8, .{ .Static = 16 });
+
+    bus_device: BusDevice = BusDevice{
+        .read8Fn = BusDevice.read8With16,
+        .write8Fn = BusDevice.write8With16,
+
+        .read16Fn = read16,
+        .write16Fn = write16,
+    },
+
+    input: Fifo = Fifo.init(),
+    output: Fifo = Fifo.init(),
+
+    fn read16(busdev: *BusDevice, address: u24) BusDevice.Error!u16 {
+        const uart = @fieldParentPtr(Self, "bus_device", busdev);
+        return switch ((address & 0x7FF) >> 1) {
+            0 => if (uart.input.readItem()) |byte|
+                @as(u16, byte)
+            else
+                0xFFFF,
+            1 => blk: {
+                var status: u16 = 0;
+
+                if (uart.input.readableLength() == 0)
+                    status |= (1 << 0); // Receive Fifo Empty
+
+                if (uart.output.writableLength() == uart.output.buf.len)
+                    status |= (1 << 1); // Send Fifo Empty
+
+                if (uart.input.readableLength() == uart.input.buf.len)
+                    status |= (1 << 2); // Receive Fifo Full
+
+                if (uart.output.writableLength() == 0)
+                    status |= (1 << 3); // Send Fifo Full
+
+                // no frame errors for our serial ports in emulation
+
+                break :blk status;
+            },
+            else => return error.BusError,
+        };
+    }
+
+    fn write16(busdev: *BusDevice, address: u24, value: u16) BusDevice.Error!void {
+        const uart = @fieldParentPtr(Self, "bus_device", busdev);
+        switch ((address & 0x7FF) >> 1) {
+            0 => uart.output.writeItem(@truncate(u8, value)) catch return error.BusError, // TODO: write sent characters here
+            else => return error.BusError,
+        }
+    }
+};
+
+const SDIO = struct {
+    const Self = @This();
+
+    bus_device: BusDevice = BusDevice{
+        .read8Fn = BusDevice.read8With16,
+        .write8Fn = BusDevice.write8With16,
+
+        .read16Fn = read16,
+        .write16Fn = write16,
+    },
+
+    bus: *Bus,
+
+    backing_file: ?std.fs.File = null,
+
+    fn read16(busdev: *BusDevice, address: u24) !u16 {
+        const sdio = @fieldParentPtr(Self, "bus_device", busdev);
+        return switch ((address & 0x7FF) >> 1) {
+            else => return error.BusError,
+        };
+    }
+
+    fn write16(busdev: *BusDevice, address: u24, value: u16) !void {
+        const sdio = @fieldParentPtr(Self, "bus_device", busdev);
+        switch ((address & 0x7FF) >> 1) {
             else => return error.BusError,
         }
     }

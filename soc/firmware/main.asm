@@ -21,18 +21,35 @@ bios_entrypoint:
 
 	st 0x100E, 0x8101 ; map RAM to 0x7000…0x7FFF for stack
 
+	st 0x1008, 0x7F21 ; map UART0 to 0x4000
+
 	; init a stack
 	spset 0x8000
 	bpset 0x8000
+
+	st 0x4000, 'H'
+	st 0x4000, 'e'
+	st 0x4000, 'l'
+	st 0x4000, 'l'
+	st 0x4000, 'o'
+	st 0x4000, '\r'
+	st 0x4000, '\n'
 	
 	push 0x80
 vga_loop:
 	push 0x8000 ; push pixel offset
 vga_fill:
 	
+	dup ; duplicate address
+	bswap [i0:peek]
+	xor
 	get 0-1 ; get current color
+	add
+
 	get 0-2 ; get current pointer
+;.dw 0x8001 ; enable tracing
 	st8 ; store white to current pixel
+;.dw 0x8000 ; disable tracing
 
 	add 1 [f:yes] ; increment address by one
 	[ex:nonzero] jmp vga_fill ; if it overflowed into 0x0000, stop looping
