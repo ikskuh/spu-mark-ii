@@ -19,7 +19,7 @@ bios_entrypoint:
 	st 0x2000, 0x0000 ; map framebuffer to 0x800000
 	st 0x2002, 0x0080
 
-	st 0x100E, 0x8081 ; map RAM to 0x7000…0x7FFF for stack
+	st 0x100E, 0x8101 ; map RAM to 0x7000…0x7FFF for stack
 
 	; init a stack
 	spset 0x8000
@@ -27,16 +27,15 @@ bios_entrypoint:
 	
 	push 0x80
 vga_loop:
-	push 0x0000 ; push pixel offset
+	push 0x8000 ; push pixel offset
 vga_fill:
 	
-	get 0-1
-	get 0-2
-	add 0x8000 ; duplicate fb address to stack
+	get 0-1 ; get current color
+	get 0-2 ; get current pointer
 	st8 ; store white to current pixel
 
 	add 1 [f:yes] ; increment address by one
-	[ex:gequal] jmp vga_fill ; if it overflowed into 0x8000, stop looping
+	[ex:nonzero] jmp vga_fill ; if it overflowed into 0x0000, stop looping
 	pop ; remove address
 	add 1
 	jmp vga_loop

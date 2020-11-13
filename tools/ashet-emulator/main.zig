@@ -88,7 +88,10 @@ const BusDevice = struct {
     };
     pub const unmapped: *Self = &unmapped_stor;
 
-    pub const Error = error{BusError};
+    pub const Error = error{
+        BusError,
+        UnalignedAccess,
+    };
 
     read8Fn: fn (*Self, u24) Error!u8,
     read16Fn: fn (*Self, u24) Error!u16,
@@ -105,10 +108,14 @@ const BusDevice = struct {
     }
 
     pub fn read16(self: *Self, address: u24) !u16 {
+        if (!isWordAlignedAddress(address))
+            return error.UnalignedAccess;
         return self.read16Fn(self, address);
     }
 
     pub fn write16(self: *Self, address: u24, value: u16) !void {
+        if (!isWordAlignedAddress(address))
+            return error.UnalignedAccess;
         return self.write16Fn(self, address, value);
     }
 
@@ -144,7 +151,7 @@ const Ashet = struct {
     const Self = @This();
 
     // System configuration
-    cpu_clock: u64 = 1_000_000, // run with 1 million instructions per second
+    cpu_clock: u64 = 1_000_000, // instructions per second
 
     // Memory buffers
     rom_buffer: [8388608]u8 = undefined, // 8 MB Flash
@@ -220,15 +227,44 @@ const Ashet = struct {
         const current_cycle = self.time / ns_per_cycle;
         const end_cycle = (self.time + ns) / ns_per_cycle;
 
-        try self.cpu.runBatch(end_cycle - current_cycle);
+        self.cpu.runBatch(end_cycle - current_cycle) catch |err| {
+            self.bus.enable_debug_msg = false;
+            defer self.bus.enable_debug_msg = true;
 
-        std.debug.print("{X:0>4} {X:0>4} {X:0>4} {X:0>4} {X:0>6}\n", .{
-            self.cpu.ip,
-            self.cpu.sp,
-            self.cpu.bp,
-            @bitCast(u16, self.cpu.fr),
-            self.vga.framebuffer_address,
-        });
+            std.debug.print("CPU crashed at {X:0>4}:\n", .{
+                self.cpu.ip,
+            });
+
+            std.debug.print("   IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4}\n", .{
+                self.cpu.ip,
+                self.cpu.sp,
+                self.cpu.bp,
+                @bitCast(u16, self.cpu.fr),
+            });
+
+            var stack_ptr: u16 = self.cpu.sp -% 8;
+            while (stack_ptr != self.cpu.sp +% 10) : (stack_ptr +%= 2) {
+                const value = self.mmu.interface.readWord(stack_ptr) catch null;
+                const indicator = if (stack_ptr == self.cpu.sp)
+                    "-->"
+                else
+                    "   ";
+                if (value) |val| {
+                    std.debug.print("{}{X:0>4}: {X:0>4}\n", .{
+                        indicator,
+                        stack_ptr,
+                        value,
+                    });
+                } else {
+                    std.debug.print("{}{X:0>4}: ????\n", .{
+                        indicator,
+                        stack_ptr,
+                    });
+                }
+            }
+
+            return err;
+        };
 
         self.time += ns;
     }
@@ -238,6 +274,7 @@ const Bus = struct {
     const Self = @This();
 
     devices: [4096]*BusDevice = [1]*BusDevice{&BusDevice.unmapped_stor} ** 4096,
+    enable_debug_msg: bool = true,
 
     pub fn mapAddress(self: *Self, address: u24, device: *BusDevice) void {
         std.debug.assert(std.mem.isAligned(address, 0x1000));
@@ -266,28 +303,44 @@ const Bus = struct {
         return self.devices[address >> 12];
     }
 
-    fn logError(err: BusDevice.Error, address: u24) BusDevice.Error {
-        std.debug.print("{} when accessing {X:6>0}\n", .{
+    const BusAccess = enum { read, write };
+    const AccessSize = enum { word, byte };
+    fn logError(self: Self, err: BusDevice.Error, address: u24, access: BusAccess, size: AccessSize) BusDevice.Error {
+        if (!self.enable_debug_msg)
+            return err;
+        // workaround for https://github.com/ziglang/zig/issues/7097
+        const access_msg: []const u8 = switch (access) {
+            .read => switch (size) {
+                .byte => "reading byte from",
+                .word => "reading word from",
+            },
+            .write => switch (size) {
+                .byte => "writing byte to",
+                .word => "writing word to",
+            },
+        };
+        std.debug.print("{} when {} {X:0>6}\n", .{
             @errorName(err),
+            access_msg,
             address,
         });
         return err;
     }
 
     pub fn read8(self: *Self, address: u24) !u8 {
-        return self.deviceAt(address).read8(address) catch |err| logError(err, address);
+        return self.deviceAt(address).read8(address) catch |err| self.logError(err, address, .read, .byte);
     }
 
     pub fn write8(self: *Self, address: u24, value: u8) !void {
-        return self.deviceAt(address).write8(address, value) catch |err| logError(err, address);
+        return self.deviceAt(address).write8(address, value) catch |err| self.logError(err, address, .write, .byte);
     }
 
     pub fn read16(self: *Self, address: u24) !u16 {
-        return self.deviceAt(address).read16(address) catch |err| logError(err, address);
+        return self.deviceAt(address).read16(address) catch |err| self.logError(err, address, .read, .word);
     }
 
     pub fn write16(self: *Self, address: u24, value: u16) !void {
-        return self.deviceAt(address).write16(address, value) catch |err| logError(err, address);
+        return self.deviceAt(address).write16(address, value) catch |err| self.logError(err, address, .write, .word);
     }
 };
 
@@ -778,3 +831,7 @@ const hexfont_8x8 = [16][7]u8{
         0b10000,
     },
 };
+
+fn isWordAlignedAddress(address: u24) bool {
+    return (address & 1) == 0;
+}

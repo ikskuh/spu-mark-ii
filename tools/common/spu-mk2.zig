@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const MemoryInterface = struct {
     const Self = @This();
-    pub const Error = error{BusError};
+    pub const Error = error{ UnalignedAccess, BusError };
 
     readByteFn: fn (self: *Self, address: u16) Error!u8,
     writeByteFn: fn (self: *Self, address: u16, value: u8) Error!void,
