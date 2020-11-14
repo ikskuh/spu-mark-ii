@@ -57,7 +57,6 @@ pub fn build(b: *std.build.Builder) void {
     const flash_step = b.step("flash", "Creates a hex file and flashes it.");
     if (b.option([]const u8, "flash-drive", "If given, the file is deployed via mtools/fat32")) |file_name| {
         const copy_flash = b.addSystemCommand(&[_][]const u8{
-            "sudo",
             "mcopy",
             "-D",
             "o", // override the file without asking

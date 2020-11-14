@@ -28,6 +28,8 @@ const pinConfig = comptime blk: {
 };
 
 pub fn main() !void {
+    pinConfig.apply();
+
     LED1.setDirection(.out);
     LED2.setDirection(.out);
     LED3.setDirection(.out);
@@ -37,13 +39,12 @@ pub fn main() !void {
     LED1.clear();
     LED2.clear();
     LED3.clear();
-    LED4.set();
+    LED4.clear();
     SD_SELECT.setTo(.high);
 
-    pinConfig.apply();
-
-    // // Enable PLL & serial for debug output
+    // Enable PLL & serial for debug output
     PLL.init();
+
     Serial.init(115_200);
 
     SPI.init();
@@ -56,6 +57,8 @@ pub fn main() !void {
 
     EventLoop.init();
     try sync_serial.writeAll("Starting event loop...\r\n");
+
+    LED4.set();
 
     var core_loop = async coreMain();
     var blinky_frame = async doBlinkyLoop();
@@ -82,11 +85,28 @@ fn coreMain() !void {
     var serout = Serial.writer();
     while (true) {
         var cmd = try serin.readByte();
+        LED2.set();
         switch (cmd) {
-            's' => SD_SELECT.setTo(.low),
-            'u' => SD_SELECT.setTo(.high),
+            's' => {
+                SD_SELECT.setTo(.low);
+                try serout.writeAll("select chip\r\n");
+            },
+            'u' => {
+                SD_SELECT.setTo(.high);
+                try serout.writeAll("unselect chip\r\n");
+            },
+            't' => {
+                try serout.writeAll("write test burst...\r\n");
+                var i: u32 = 0;
+                while (i < 256) : (i += 1) {
+                    SPI.write(@truncate(u8, i));
+                }
+
+                try serout.writeAll("done!\r\n");
+            },
             else => try serout.print("Unknown command '{c}'\r\n", .{cmd}),
         }
+        LED2.clear();
     }
 }
 
@@ -96,26 +116,26 @@ pub fn panic(message: []const u8, maybe_stack_trace: ?*std.builtin.StackTrace) n
     LED1.set();
     LED2.set();
     LED3.set();
-    LED4.set();
+    LED4.clear();
 
-    // var serial = Serial.syncWriter();
-    // serial.print("reached panic: {}\r\n", .{message}) catch unreachable;
+    var serial = Serial.syncWriter();
+    serial.print("reached panic: {}\r\n", .{message}) catch unreachable;
 
-    // if (maybe_stack_trace) |stack_trace| {
-    //     var frame_index: usize = 0;
-    //     var frames_left: usize = std.math.min(stack_trace.index, stack_trace.instruction_addresses.len);
+    if (maybe_stack_trace) |stack_trace| {
+        var frame_index: usize = 0;
+        var frames_left: usize = std.math.min(stack_trace.index, stack_trace.instruction_addresses.len);
 
-    //     while (frames_left != 0) : ({
-    //         frames_left -= 1;
-    //         frame_index = (frame_index + 1) % stack_trace.instruction_addresses.len;
-    //     }) {
-    //         const return_address = stack_trace.instruction_addresses[frame_index];
-    //         serial.print("[{d}] 0x{X}\r\n", .{
-    //             frames_left,
-    //             return_address,
-    //         }) catch unreachable;
-    //     }
-    // }
+        while (frames_left != 0) : ({
+            frames_left -= 1;
+            frame_index = (frame_index + 1) % stack_trace.instruction_addresses.len;
+        }) {
+            const return_address = stack_trace.instruction_addresses[frame_index];
+            serial.print("[{d}] 0x{X}\r\n", .{
+                frames_left,
+                return_address,
+            }) catch unreachable;
+        }
+    }
 
     while (true) {
         lpc.__disable_irq();
@@ -167,7 +187,7 @@ fn GPIO(comptime portIndex: u32, comptime index: u32) type {
         }
 
         fn toggle() void {
-            if (value()) {
+            if (getValue()) {
                 clear();
             } else {
                 set();
@@ -318,19 +338,8 @@ const DynamicPinConfig = struct {
         const index = @intCast(u5, (pin % 16) << 1);
         const mask = (@as(u32, 3) << index);
         const value = @as(u32, @enumToInt(function)) << index;
-        switch (2 * port + offset) {
-            0 => setup(&lpc.pincon.PINSEL0, mask, value), // P0.0
-            1 => setup(&lpc.pincon.PINSEL1, mask, value), // P0.16
-            2 => setup(&lpc.pincon.PINSEL2, mask, value), // P1.0
-            3 => setup(&lpc.pincon.PINSEL3, mask, value), // P1.16
-            4 => setup(&lpc.pincon.PINSEL4, mask, value), // P2.0
-            5 => setup(&lpc.pincon.PINSEL5, mask, value), // P2.16
-            6 => setup(&lpc.pincon.PINSEL6, mask, value), // P3.0
-            7 => setup(&lpc.pincon.PINSEL7, mask, value), // P3.16
-            8 => setup(&lpc.pincon.PINSEL8, mask, value), // P4.0
-            9 => setup(&lpc.pincon.PINSEL9, mask, value), // P4.16
-            else => {},
-        }
+
+        setup(&@ptrCast([*]volatile u32, &lpc.pincon.PINSEL0)[2 * port + offset], mask, value); // P0.0
     }
 
     inline fn setMode(port: u32, pin: u32, mode: Mode) void {
@@ -338,33 +347,16 @@ const DynamicPinConfig = struct {
         const index = @intCast(u5, pin % 16);
         const mask = (@as(u32, 3) << (2 * index));
         const value = (@as(u32, @enumToInt(mode)) << (2 * index));
-        switch (2 * port + offset) {
-            0 => setup(&lpc.pincon.PINMODE0, mask, value), // P0.0
-            1 => setup(&lpc.pincon.PINMODE1, mask, value), // P0.16
-            2 => setup(&lpc.pincon.PINMODE2, mask, value), // P1.0
-            3 => setup(&lpc.pincon.PINMODE3, mask, value), // P1.16
-            4 => setup(&lpc.pincon.PINMODE4, mask, value), // P2.0
-            5 => setup(&lpc.pincon.PINMODE5, mask, value), // P2.16
-            6 => setup(&lpc.pincon.PINMODE6, mask, value), // P3.0
-            7 => setup(&lpc.pincon.PINMODE7, mask, value), // P3.16
-            8 => setup(&lpc.pincon.PINMODE8, mask, value), // P4.0
-            9 => setup(&lpc.pincon.PINMODE9, mask, value), // P4.16
-            else => {},
-        }
+
+        setup(&@ptrCast([*]volatile u32, &lpc.pincon.PINMODE0)[2 * port + offset], mask, value); // P0.0
     }
 
     inline fn setOpenDrain(port: u32, pin: u32, enabled: bool) void {
         const index = @intCast(u5, pin % 16);
         const mask = (@as(u32, 1) << index);
         const value = if (enabled) mask else 0;
-        switch (port) {
-            0 => setup(&lpc.pincon.PINMODE_OD0, mask, value), // P0.0
-            1 => setup(&lpc.pincon.PINMODE_OD1, mask, value), // P1.0
-            2 => setup(&lpc.pincon.PINMODE_OD2, mask, value), // P2.0
-            3 => setup(&lpc.pincon.PINMODE_OD3, mask, value), // P3.0
-            4 => setup(&lpc.pincon.PINMODE_OD4, mask, value), // P4.0
-            else => {},
-        }
+
+        setup(&@ptrCast([*]volatile u32, &lpc.pincon.PINMODE_OD0)[port], mask, value); // P0.0
     }
 
     inline fn configure(port: u32, pin: u32, func: Function, mode: Mode, open_drain: bool) void {
@@ -399,7 +391,7 @@ const Serial = struct {
     }
 
     fn init(comptime baudrate: u32) void {
-        lpc.sc.PCONP.uart2 = .on;
+        lpc.sc.setPeripherialPower(.uart2, .on);
         lpc.sc.PCLKSEL0 &= ~@as(u32, 0xC0);
         lpc.sc.PCLKSEL0 |= @as(u32, 0x00); // UART0 PCLK = SysClock / 4
 
@@ -581,7 +573,9 @@ const EventLoop = struct {
                         std.mem.swap(SuspendedTask, &tasks[i], &tasks[task_count - 1]);
                     }
                     task_count -= 1;
+                    LED3.set();
                     resume frame;
+                    LED3.clear();
                     break;
                 }
             }
@@ -605,13 +599,13 @@ const SPI = struct {
     const BSY = (1 << 4);
 
     fn init() void {
-        lpc.sc.PCONP.ssp0 = .on;
+        lpc.sc.setPeripherialPower(.ssp0, .on);
 
         // SSP0 prescaler = 1 (CCLK)
-        lpc.sc.PCLKSEL1 &= ~@as(u32, 3 << 10);
-        lpc.sc.PCLKSEL1 |= @as(u32, 1 << 10);
+        // lpc.sc.PCLKSEL1 &= ~@as(u32, 3 << 10);
+        // lpc.sc.PCLKSEL1 |= @as(u32, 1 << 10);
 
-        lpc.ssp0.CR0 = 0x0008; // kein SPI-CLK Teiler, CPHA=0, CPOL=0, SPI, 9 bit
+        lpc.ssp0.CR0 = 0x0007; // kein SPI-CLK Teiler, CPHA=0, CPOL=0, SPI, 8 bit
         lpc.ssp0.CR1 = 0x02; // SSP0 an Bus aktiv
 
         setPrescaler(2);

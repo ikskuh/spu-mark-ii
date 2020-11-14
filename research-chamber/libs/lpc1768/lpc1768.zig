@@ -381,44 +381,45 @@ pub inline fn SysTick_Config(ticks: u24) !void {
 // }
 
 pub const LPC_SC_TypeDef = extern struct {
-    const PeripherialPowerConfiguration = packed struct {
-        const State = packed enum(u1) { off = 0, on = 1 };
+    const Self = @This();
 
-        reserved_0: u1, //.
-        tim0: State, // Timer/Counter 0 power/clock control bit.
-        tim1: State, // Timer/Counter 1 power/clock control bit.
-        uart0: State, // UART0 power/clock control bit.
-        uart1: State, // UART1 power/clock control bit.
-        reserved_1: u1, //. NA
-        pwm1: State, // PWM1 power/clock control bit.
-        i2c0: State, // The 8 PCSPI The SPI interface power/clock control bit.
-        spi: State, // The SPI interface power/clock control bit.
-        rtc: State, // The RTC power/clock control bit. 1
-        ssp1: State, // The SSP 1 interface power/clock control bit.
-        reserved_2: u1,
-        adc: State, // A/D converter (ADC) power/clock control bit.
-        can1: State, // CAN Controller 1 power/clock control bit.
-        can2: State, // CAN Controller 2 power/clock control bit.
-        gpio: State, // Power/clock control bit for IOCON, GPIO, and GPIO interrupts.
-        rit: State, // Repetitive Interrupt Timer power/clock control bit.
-        mcpwm: State, // Motor Control PWM
-        qei: State, // Quadrature Encoder Interface power/clock control bit.
-        i2c1: State, // The I 2 C1 interface power/clock control bit.
-        reserved_3: u1,
-        ssp0: State, // The SSP0 interface power/clock control bit.
-        tim2: State, // Timer 2 power/clock control bit.
-        tim3: State, // Timer 3 power/clock control bit.
-        uart2: State, // UART 2 power/clock control bit.
-        uart3: State, // UART 3 power/clock control bit.
-        i2c2: State, // I2C interface 2 power/clock control bit.
-        i2s: State, // I2S interface power/clock control bit.
-        reserved_4: u1,
-        gpdma: State, // GPDMA function power/clock control bit.
-        enet: State, // Ethernet block power/clock control bit.
-        usb: State, // USB interface power/clock control bit.
+    pub const Peripherial = enum(u5) {
+        tim0 = 1,
+        tim1 = 2,
+        uart0 = 3,
+        uart1 = 4,
+        pwm1 = 6,
+        i2c0 = 7,
+        spi = 8,
+        rtc = 9,
+        ssp1 = 10,
+        adc = 12,
+        can1 = 13,
+        can2 = 14,
+        gpio = 15,
+        rit = 16,
+        mcpwm = 17,
+        qei = 18,
+        i2c1 = 19,
+        ssp0 = 21,
+        tim2 = 22,
+        tim3 = 23,
+        uart2 = 24,
+        uart3 = 25,
+        i2c2 = 26,
+        i2s = 27,
+        gpdma = 29,
+        enet = 30,
+        usb = 31,
     };
-    comptime {
-        std.debug.assert(@bitSizeOf(PeripherialPowerConfiguration) == 32);
+
+    pub const Power = packed enum(u1) { off = 0, on = 1 };
+
+    pub fn setPeripherialPower(self: *volatile Self, peripherial: Peripherial, power: Power) void {
+        switch (power) {
+            .on => self.PCONP |= (@as(u32, 1) << @enumToInt(peripherial)),
+            .off => self.PCONP &= ~(@as(u32, 1) << @enumToInt(peripherial)),
+        }
     }
 
     FLASHCFG: u32,
@@ -434,7 +435,7 @@ pub const LPC_SC_TypeDef = extern struct {
     PLL1FEED: u32,
     RESERVED2: [4]u32,
     PCON: u32,
-    PCONP: PeripherialPowerConfiguration,
+    PCONP: u32,
     RESERVED3: [15]u32,
     CCLKCFG: u32,
     USBCLKCFG: u32,
@@ -459,7 +460,6 @@ pub const LPC_SC_TypeDef = extern struct {
 
 pub const LPC_PINCON_TypeDef = extern struct {
     PINSEL: [10]u32,
-    PINSEL10: u32,
     RESERVED0: [5]u32,
     PINMODE: [10]u32,
     PINMODE_OD: [5]u32,
