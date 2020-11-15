@@ -53,3 +53,8 @@ The following devices have memory access (with priority top-to-bottom):
 - Audio Controller
 - CPU
 - DMA Controller
+
+## Components
+
+### VGA
+- Do not only add framebuffer address, but also framebuffer stride (scrolling!)

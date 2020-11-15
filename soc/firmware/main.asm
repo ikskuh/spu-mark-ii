@@ -54,8 +54,21 @@ vga_fill:
 	add 1 [f:yes] ; increment address by one
 	[ex:nonzero] jmp vga_fill ; if it overflowed into 0x0000, stop looping
 	pop ; remove address
-	add 1
-	jmp vga_loop
+	pop ; remove color
+;	add 1
+;	jmp vga_loop
+
+spinloop:
+	ld 0x2004
+	sub 0x100
+	st 0x2004
+
+	push 0x0000
+.wait:
+	add [f:yes] 1
+	[ex:nonzero] jmp .wait
+
+  jmp spinloop
 
 .org 0x0500
 fin:

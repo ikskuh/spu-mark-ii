@@ -95,7 +95,7 @@ pub fn main() !u8 {
         };
 
         if (std.mem.eql(u8, ext, "bin")) {
-            _ = try std.fs.cwd().readFile("./soc/firmware/firmware.bin", &ashet.rom_buffer);
+            _ = try std.fs.cwd().readFile(file, &ashet.rom_buffer);
         } else if (std.mem.eql(u8, ext, "hex")) {
             try stderr.writeAll("ihex loading is not implemented yet!\n");
             success = false;
@@ -547,6 +547,7 @@ const VGA = struct {
 
     border_color: VGA.RGB = VGA.RGB.init(0x30, 0x34, 0x6d),
     framebuffer_address: u32 = 0x000000,
+    framebuffer_stride: u32 = 0x000100, // default stride is a fully linear framebuffer
 
     /// Writes out the VGA image to a framebuffer
     pub fn render(self: Self, frame_buffer: *[480][640]VGA.RGB) !void {
@@ -557,31 +558,27 @@ const VGA = struct {
         }
 
         {
-            var offset = @truncate(u24, self.framebuffer_address & 0xFFFFFE);
+            var row_offset = @truncate(u24, self.framebuffer_address);
 
             const dx = (640 - 256 * 2) / 2;
             const dy = (480 - 128 * 2) / 2;
 
             var y: usize = 0;
             while (y < 128) : (y += 1) {
+                var offset = row_offset;
                 var x: usize = 0;
-                while (x < 256) : (x += 2) {
-                    const pixels = try self.bus.read16(offset);
-                    const low = self.palette[@truncate(u8, pixels >> 0)];
-                    const high = self.palette[@truncate(u8, pixels >> 8)];
+                while (x < 256) : (x += 1) {
+                    const pixel_index = try self.bus.read8(offset);
+                    const low = self.palette[pixel_index];
 
                     frame_buffer[dy + 2 * y + 0][dx + 2 * x + 0] = low;
                     frame_buffer[dy + 2 * y + 1][dx + 2 * x + 0] = low;
                     frame_buffer[dy + 2 * y + 0][dx + 2 * x + 1] = low;
                     frame_buffer[dy + 2 * y + 1][dx + 2 * x + 1] = low;
 
-                    frame_buffer[dy + 2 * y + 0][dx + 2 * x + 2] = high;
-                    frame_buffer[dy + 2 * y + 1][dx + 2 * x + 2] = high;
-                    frame_buffer[dy + 2 * y + 0][dx + 2 * x + 3] = high;
-                    frame_buffer[dy + 2 * y + 1][dx + 2 * x + 3] = high;
-
-                    offset +%= 2; // might overflow
+                    offset +%= 1; // might overflow
                 }
+                row_offset +%= @truncate(u24, self.framebuffer_stride);
             }
         }
 
@@ -636,7 +633,9 @@ const VGA = struct {
         return switch ((address & 0x7FF) >> 1) {
             0 => @truncate(u16, vga.framebuffer_address),
             1 => @truncate(u16, vga.framebuffer_address >> 16),
-            2 => @bitCast(u16, vga.border_color),
+            2 => @truncate(u16, vga.framebuffer_stride),
+            3 => @truncate(u16, vga.framebuffer_stride >> 16),
+            4 => @bitCast(u16, vga.border_color),
             else => return error.BusError,
         };
     }
@@ -646,7 +645,9 @@ const VGA = struct {
         switch ((address & 0x7FF) >> 1) {
             0 => vga.framebuffer_address = (vga.framebuffer_address & 0xFFFF0000) | value,
             1 => vga.framebuffer_address = (vga.framebuffer_address & 0x0000FFFF) | (@as(u32, value) << 16),
-            2 => vga.border_color = @bitCast(VGA.RGB, value),
+            2 => vga.framebuffer_stride = (vga.framebuffer_stride & 0xFFFF0000) | value,
+            3 => vga.framebuffer_stride = (vga.framebuffer_stride & 0x0000FFFF) | (@as(u32, value) << 16),
+            4 => vga.border_color = @bitCast(VGA.RGB, value),
             else => return error.BusError,
         }
     }

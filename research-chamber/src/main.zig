@@ -86,7 +86,7 @@ fn coreMain() !void {
     while (true) {
         var cmd = try serin.readByte();
         LED2.set();
-        switch (cmd) {
+        switch (std.ascii.toLower(cmd)) {
             's' => {
                 SD_SELECT.setTo(.low);
                 try serout.writeAll("select chip\r\n");
@@ -104,9 +104,549 @@ fn coreMain() !void {
 
                 try serout.writeAll("done!\r\n");
             },
+            'i' => {
+                try serout.writeAll("initialize sd card...\r\n");
+
+                if (SDCard.get()) |maybe_card| {
+                    try serout.print("found card: {}\r\n", .{maybe_card});
+
+                    if (maybe_card) |card| {
+                        try serout.print("  status: {}\r\n", .{
+                            try card.getStatus(),
+                        });
+                    }
+                } else |err| {
+                    try serout.print("could not detect card: {}\r\n", .{err});
+                }
+            },
             else => try serout.print("Unknown command '{c}'\r\n", .{cmd}),
         }
         LED2.clear();
+    }
+}
+
+const SDCard = struct {
+    const Self = @This();
+    const Type = enum {
+        mmc,
+        sd1,
+        sd2,
+        sdhc,
+    };
+
+    type: Type,
+
+    fn range(comptime size: usize) [size]void {
+        return [_]void{{}} ** size;
+    }
+
+    fn get() !?Self {
+        assertCard();
+        for (range(10)) |_|
+            _ = readRawByte();
+        deassertCard();
+
+        for (range(10)) |_| {
+            cmdGoIdleState() catch |err| switch (err) {
+                error.NotInitialized => break,
+                else => continue,
+            };
+        } else return null; // no card present
+
+        var card = Self{
+            .type = undefined,
+        };
+
+        if (sendInterfaceCondition(.standard_3v3, 0x55)) |supported_voltages| {
+            if (supported_voltages != .standard_3v3) {
+                return error.VoltageMismatch;
+            }
+            card.type = .sd2;
+        } else |err| {
+            if (err != error.IllegalCommand)
+                return err;
+            card.type = .sd1;
+        }
+
+        const ocr = try readOcr();
+        if ((ocr & ((1 << 20) | (1 << 21))) == 0) {
+            return error.VoltageMismatch;
+        }
+
+        if (card.type == .sd2) {
+            for (range(10)) |_| {
+                const r1 = try sdSendOpCond(true);
+                r1.throw() catch continue;
+                break;
+            } else return error.Timeout;
+
+            const ocr2 = try readOcr();
+            if ((ocr2 & 0x4000_0000) != 0) {
+                card.type = .sdhc;
+            }
+        } else {
+            if (sdSendOpCond(false)) |_| {
+                // Success
+                card.type = .sd1;
+            } else |_| {
+                try sendOpCond(false);
+                card.type = .mmc;
+            }
+        }
+
+        try setBlockLength(512);
+
+        return card;
+    }
+
+    pub fn getStatus(self: Self) !R2Response {
+        return try sendStatus();
+    }
+
+    const Command = enum(u6) {
+        CMD0 = 0, //   R1  GO_IDLE_STATE
+        CMD1 = 1, //   R1  SEND_OP_COND
+        CMD5 = 5, //   R1  ??
+        CMD6 = 6, //   R1  SWITCH_FUNC
+        CMD8 = 8, //   R7  SEND_IF_COND
+        CMD9 = 9, //   R1  SEND_CSD
+        CMD10 = 10, // R1  SEND_CID
+        CMD12 = 12, // R1b STOP_TRANSMISSION
+        CMD13 = 13, // R2  SEND_STATUS
+        CMD16 = 16, // R1  SET_BLOCKLEN
+        CMD17 = 17, // R1  READ_SINGLE_BLOCK
+        CMD18 = 18, // R1  READ_MULTIPLE_BLOCK
+        CMD24 = 24, // R1  WRITE_BLOCK
+        CMD25 = 25, // R1  WRITE_MULTIPLE_BLOCK
+        CMD27 = 27, // R1  PROGRAM_CSD
+        CMD28 = 28, // R1b SET_WRITE_PROT
+        CMD29 = 29, // R1b CLR_WRITE_PRO
+        CMD30 = 30, // R1  SEND_WRITE_PROT
+        CMD32 = 32, // R1  ERASE_WR_BL_START_ADDR
+        CMD33 = 33, // R1  ERASE_WR_BLK_END_ADDR
+        CMD34 = 34, // ??
+        CMD35 = 35, // ??
+        CMD36 = 36, // ??
+        CMD37 = 37, // ??
+        CMD38 = 38, // R1b ERASE
+        CMD42 = 42, // R1  LOCK_UNLOCK
+        CMD50 = 50, // ??
+        CMD52 = 52, // ??
+        CMD53 = 53, // ??
+        CMD55 = 55, // R1  APP_CMD
+        CMD56 = 56, // R1  GEN_CMD
+        CMD57 = 57, // ??
+        CMD58 = 58, // R3  READ_OCR
+        CMD59 = 59, // R3  CRC_ON_OFF
+    };
+
+    const AppCommand = enum(u6) {
+        ACMD13 = 13, // R2 SD_STATUS
+        ACMD22 = 22, // R1 SEND_NUM_WR_BLOCKS
+        ACMD23 = 23, // R1 SET_WR_BLK_ERASE_COUNT
+        ACMD41 = 41, // R1 SD_SEND_OP_COND
+        ACMD42 = 42, // R1 SET_CLR_CARD_DETECT
+        ACMD51 = 51, // R1 SEND_SCR
+    };
+
+    fn cmdGoIdleState() !void {
+        return (try writeR1Command(.CMD0, 0)).throw();
+    }
+
+    fn sendOpCond(high_capacity_support: bool) !void {
+        const erg = try writeR1Command(.CMD1, if (high_capacity_support)
+            0x4000_0000
+        else
+            0x0000_0000);
+        return erg.throw();
+    }
+    fn switchFunc() !void {
+        @panic("switchFunc not implemented yet!");
+        // try writeR1Command(.CMD6, 0);
+    }
+    fn sendCsd() !void {
+        try writeR1Command(.CMD9, 0);
+    }
+    fn sendCid() !void {
+        try writeR1Command(.CMD10, 0);
+    }
+    fn setBlockLength(block_length: u32) !void {
+        try (try writeR1Command(.CMD16, block_length)).throw();
+    }
+    fn programCsd() !void {
+        try writeR1Command(.CMD27, 0);
+    }
+    fn sendWriteProt(address: u32) !void {
+        try writeR1Command(.CMD30, address);
+    }
+    fn eraseWrBlStartAddr(address: u32) !void {
+        try writeR1Command(.CMD32, address);
+    }
+    fn eraseWrBlkEndAddr(address: u32) !void {
+        try writeR1Command(.CMD33, address);
+    }
+    fn lockUnlock() !void {
+        try writeR1Command(.CMD42, 0);
+    }
+    fn appCmd() !void {
+        try writeR1Command(.CMD55, 0);
+    }
+    fn genCmd(write: bool) !void {
+        try writeR1Command(.CMD56, if (write)
+            0
+        else
+            1);
+    }
+
+    // R1b commands:
+
+    fn stopTransmission() !void {
+        try writeR1bCommand(.CMD12, 0);
+    }
+    fn setWriteProt(address: u32) !void {
+        try writeR1bCommand(.CMD28, address);
+    }
+    fn clrWritePro(address: u32) !void {
+        try writeR1bCommand(.CMD29, address);
+    }
+    fn erase() !void {
+        try writeR1bCommand(.CMD38, 0);
+    }
+
+    // R2 commands:
+
+    fn sendStatus() !R2Response {
+        return try writeR2Command(.CMD13, 0);
+    }
+
+    // R3 commands:
+
+    fn readOcr() !u32 {
+        const ocr = try writeR3Command(.CMD58, 0);
+        ocr.r1.throw() catch |err| switch (err) {
+            error.NotInitialized => {},
+            else => return err,
+        };
+        return ocr.value;
+    }
+    fn crcOnOff(enabled: bool) !void {
+        const ocr = try writeR3Command(.CMD59, if (enabled)
+            1
+        else
+            0);
+        try ocr.r1.throw();
+    }
+
+    // R7 commands:
+
+    const VoltageRange = enum(u4) {
+        standard_3v3 = 0b0001,
+        low_voltage_range = 0b0010,
+        reserved0 = 0b0100,
+        reserved1 = 0b1000,
+        _,
+    };
+    fn sendInterfaceCondition(voltage_support: VoltageRange, pattern: u8) !VoltageRange {
+        const arg = (@as(u32, @enumToInt(voltage_support)) << 8) | (@as(u32, pattern));
+
+        const response = try writeR7Command(.CMD8, arg);
+        response.r1.throw() catch |err| switch (err) {
+            error.NotInitialized => {},
+            else => return err,
+        };
+        if ((response.value & 0xFF) != pattern)
+            return error.PatternMismatch;
+
+        return @intToEnum(VoltageRange, @truncate(u4, response.value >> 8));
+    }
+
+    // app commands:
+
+    fn sdSendOpCond(high_capacity_support: bool) !ResponseBits {
+        assertCard();
+        defer deassertCard();
+
+        writeRawCommand(Command.CMD55, 0);
+        _ = try readResponseR1();
+
+        deassertCard();
+        _ = readRawByte();
+        assertCard();
+
+        writeRawCommand(AppCommand.ACMD41, @as(u32, if (high_capacity_support)
+            0x4000_0000
+        else
+            0x0000_0000));
+        return try readResponseR1();
+    }
+
+    // raw interface:
+
+    fn writeR1Command(cmd: Command, arg: u32) !ResponseBits {
+        assertCard();
+        defer deassertCard();
+        writeRawCommand(cmd, arg);
+        return readResponseR1();
+    }
+
+    fn writeR1bCommand(cmd: Command, arg: u32) !ResponseBits {
+        assertCard();
+        defer deassertCard();
+        writeRawCommand(cmd, arg);
+        return try readResponseR1b();
+    }
+
+    fn writeR2Command(cmd: Command, arg: u32) !R2Response {
+        assertCard();
+        defer deassertCard();
+        writeRawCommand(cmd, arg);
+        return try readResponseR2();
+    }
+
+    fn writeR3Command(cmd: Command, arg: u32) !R3Response {
+        assertCard();
+        defer deassertCard();
+        writeRawCommand(cmd, arg);
+        return readResponseR3();
+    }
+
+    fn writeR7Command(cmd: Command, arg: u32) !R7Response {
+        assertCard();
+        defer deassertCard();
+        writeRawCommand(cmd, arg);
+        return readResponseR7();
+    }
+
+    inline fn assertCard() void {
+        SD_SELECT.setTo(.low);
+        // Give card some time
+        _ = readRawByte();
+    }
+    inline fn deassertCard() void {
+        // Give card some time
+        _ = readRawByte();
+        SD_SELECT.setTo(.high);
+    }
+
+    // //SD card accepts byte address while SDHC accepts block address in multiples of 512
+    // //so, if it's SD card we need to convert block address into corresponding byte address by
+    // //multipying it with 512. which is equivalent to shifting it left 9 times
+    // //following 'if' loop does that
+    // const arg = if (self.sdhc)
+    //     arg_ro
+    // else switch (cmd) {
+    //     .READ_SINGLE_BLOCK,
+    //     .READ_MULTIPLE_BLOCKS,
+    //     .WRITE_SINGLE_BLOCK,
+    //     .WRITE_MULTIPLE_BLOCKS,
+    //     .ERASE_BLOCK_START_ADDR,
+    //     .ERASE_BLOCK_END_ADDR,
+    //     => arg_ro << 9,
+    //     else => arg_ro,
+    // };
+
+    fn writeRawCommand(cmd: anytype, arg: u32) void {
+        var msg: [6]u8 = undefined;
+        msg[0] = @enumToInt(cmd) | @as(u8, 0b01000000);
+        std.mem.writeIntBig(u32, msg[1..5], arg);
+        msg[5] = (@as(u8, CRC7.compute(msg[0..5])) << 1) | 1;
+
+        writeRaw(&msg);
+    }
+
+    const ResponseBits = packed struct {
+        idle: bool,
+        erase_reset: bool,
+        illegal_command: bool,
+        com_crc_error: bool,
+        erase_sequence_error: bool,
+        address_error: bool,
+        parameter_error: bool,
+        must_be_zero: u1,
+
+        fn throw(self: @This()) !void {
+            if (self.illegal_command)
+                return error.IllegalCommand;
+            if (self.address_error)
+                return error.AddressError;
+            if (self.com_crc_error)
+                return error.CrcError;
+            if (self.erase_sequence_error)
+                return error.EraseSequenceError;
+            if (self.parameter_error)
+                return error.ParameterError;
+            if (self.idle)
+                return error.NotInitialized;
+        }
+    };
+
+    fn readResponseR1() !ResponseBits {
+        for (range(0x10)) |_| {
+            const byte = readRawByte();
+            if (byte == 0xFF)
+                continue;
+            return @bitCast(ResponseBits, byte);
+        } else return error.Timeout;
+    }
+
+    fn readResponseR1b() !ResponseBits {
+        for (range(0xFF)) |_| {
+            const byte = readRawByte();
+            if (byte == 0x00)
+                continue;
+            if (byte == 0xFF)
+                continue;
+            return @bitCast(ResponseBits, byte);
+        } else return error.Timeout;
+    }
+
+    const R2Response = packed struct {
+        card_is_locked: bool,
+        wp_erase_skip_or_lock_unlock_cmd_failed: bool,
+        @"error": bool,
+        cc_error: bool,
+        card_ecc_failed: bool,
+        wp_violation: bool,
+        erase_param: bool,
+        out_of_range_csd_overwrite: bool,
+        in_idle_state: bool,
+        erase_reset: bool,
+        illegal_command: bool,
+        com_crc_error: bool,
+        erase_sequence_error: bool,
+        address_error: bool,
+        parameter_error: bool,
+        zero: u1 = 0,
+    };
+    fn readResponseR2() !R2Response {
+        var resp: [2]u8 = undefined;
+        resp[0] = readRawByte();
+        resp[1] = readRawByte();
+        return @bitCast(R2Response, resp);
+    }
+
+    const R3Response = struct {
+        r1: ResponseBits,
+        value: u32,
+    };
+    fn readResponseR3() !R3Response {
+        var result: R3Response = undefined;
+        result.r1 = try readResponseR1();
+        var buf: [4]u8 = undefined;
+        readRaw(&buf);
+        result.value = std.mem.readIntBig(u32, &buf);
+        return result;
+    }
+
+    const R7Response = struct {
+        r1: ResponseBits,
+        value: u32,
+    };
+    fn readResponseR7() !R7Response {
+        var result: R7Response = undefined;
+        result.r1 = try readResponseR1();
+
+        var resp: [4]u8 = undefined;
+        readRaw(&resp);
+        result.value = std.mem.readIntBig(u32, &resp);
+
+        return result;
+    }
+
+    fn writeRaw(buffer: []const u8) void {
+        for (buffer) |b|
+            writeRawByte(b);
+    }
+
+    fn writeRawByte(val: u8) void {
+        try Serial.syncWriter().print("→ 0x{X:0>2}\r\n", .{val});
+        _ = SPI.xmit(val);
+    }
+
+    fn readRawByte() u8 {
+        const res = @intCast(u8, SPI.xmit(0xFF));
+        try Serial.syncWriter().print("← 0x{X:0>2}\r\n", .{res});
+        return res;
+    }
+
+    fn readRaw(buf: []u8) void {
+        for (buf) |*b|
+            b.* = readRawByte();
+    }
+};
+
+// Implemented after https://github.com/hazelnusse/crc7/blob/master/crc7.cc
+const CRC7 = struct {
+    const table = blk: {
+        @setEvalBranchQuota(10_000);
+        var items: [256]u8 = undefined;
+
+        const poly: u8 = 0x89; // the value of our CRC-7 polynomial
+
+        // generate a table value for all 256 possible byte values
+        for (items) |*item, i| {
+            item.* = if ((i & 0x80) != 0)
+                i ^ poly
+            else
+                i;
+
+            var j: usize = 1;
+            while (j < 8) : (j += 1) {
+                item.* <<= 1;
+                if ((item.* & 0x80) != 0)
+                    item.* ^= poly;
+            }
+        }
+
+        break :blk items;
+    };
+
+    // adds a message byte to the current CRC-7 to get a the new CRC-7
+    fn add(crc: u8, message_byte: u8) u8 {
+        return table[(crc << 1) ^ message_byte];
+    }
+
+    // returns the CRC-7 for a message of "length" bytes
+    fn compute(message: []const u8) u7 {
+        var crc: u8 = 0;
+        for (message) |byte| {
+            crc = add(crc, byte);
+        }
+        return @intCast(u7, crc);
+    }
+};
+
+// Three examples from the SD spec
+test "CRC7" {
+    {
+        var crc = compute(&[_]u8{
+            0b01000000,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+        });
+        std.debug.assert(crc == 0b1001010);
+    }
+    {
+        var crc = compute(&[_]u8{
+            0b01010001,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+        });
+        std.debug.assert(crc == 0b0101010);
+    }
+    {
+        var crc = compute(&[_]u8{
+            0b00010001,
+            0b00000000,
+            0b00000000,
+            0b00001001,
+            0b00000000,
+        });
+        std.debug.assert(crc == 0b0110011);
     }
 }
 
@@ -121,26 +661,30 @@ pub fn panic(message: []const u8, maybe_stack_trace: ?*std.builtin.StackTrace) n
     var serial = Serial.syncWriter();
     serial.print("reached panic: {}\r\n", .{message}) catch unreachable;
 
-    if (maybe_stack_trace) |stack_trace| {
-        var frame_index: usize = 0;
-        var frames_left: usize = std.math.min(stack_trace.index, stack_trace.instruction_addresses.len);
-
-        while (frames_left != 0) : ({
-            frames_left -= 1;
-            frame_index = (frame_index + 1) % stack_trace.instruction_addresses.len;
-        }) {
-            const return_address = stack_trace.instruction_addresses[frame_index];
-            serial.print("[{d}] 0x{X}\r\n", .{
-                frames_left,
-                return_address,
-            }) catch unreachable;
-        }
-    }
+    if (maybe_stack_trace) |stack_trace|
+        printStackTrace(stack_trace);
 
     while (true) {
         lpc.__disable_irq();
         lpc.__disable_fault_irq();
         lpc.__WFE();
+    }
+}
+
+fn printStackTrace(stack_trace: *std.builtin.StackTrace) void {
+    var serial = Serial.syncWriter();
+    var frame_index: usize = 0;
+    var frames_left: usize = std.math.min(stack_trace.index, stack_trace.instruction_addresses.len);
+
+    while (frames_left != 0) : ({
+        frames_left -= 1;
+        frame_index = (frame_index + 1) % stack_trace.instruction_addresses.len;
+    }) {
+        const return_address = stack_trace.instruction_addresses[frame_index];
+        serial.print("[{d}] 0x{X}\r\n", .{
+            frames_left,
+            return_address,
+        }) catch unreachable;
     }
 }
 
@@ -624,7 +1168,7 @@ const SPI = struct {
             .sync => while ((lpc.ssp0.SR & BSY) != 0) {}, // while not transmit fifo empty
             .fast => {},
         }
-        return lpc.ssp0.DR;
+        return @intCast(u16, lpc.ssp0.DR);
     }
 
     fn write(value: u16) void {
