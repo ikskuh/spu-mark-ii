@@ -114,6 +114,28 @@ fn coreMain() !void {
                         try serout.print("  status: {}\r\n", .{
                             try card.getStatus(),
                         });
+
+                        const T = struct {
+                            var boot_block: [512]u8 = undefined;
+                        };
+
+                        try card.readBlock(0, &T.boot_block);
+
+                        try serout.writeAll("  boot block:\r\n");
+
+                        var offset: usize = 0;
+                        while (offset < T.boot_block.len) : (offset += 32) {
+                            const line = T.boot_block[offset..][0..32];
+                            try serout.print("  {X} |", .{line});
+                            for (line) |c| {
+                                if (c >= 0x20 and c < 0x7F) {
+                                    try serout.print("{c}", .{c});
+                                } else {
+                                    try serout.writeAll(".");
+                                }
+                            }
+                            try serout.writeAll("|\r\n");
+                        }
                     }
                 } else |err| {
                     try serout.print("could not detect card: {}\r\n", .{err});
@@ -162,15 +184,15 @@ const SDCard = struct {
                 return error.VoltageMismatch;
             }
             card.type = .sd2;
+
+            const ocr = try readOcr();
+            if ((ocr & ((1 << 20) | (1 << 21))) == 0) {
+                return error.VoltageMismatch;
+            }
         } else |err| {
             if (err != error.IllegalCommand)
                 return err;
             card.type = .sd1;
-        }
-
-        const ocr = try readOcr();
-        if ((ocr & ((1 << 20) | (1 << 21))) == 0) {
-            return error.VoltageMismatch;
         }
 
         if (card.type == .sd2) {
@@ -194,13 +216,37 @@ const SDCard = struct {
             }
         }
 
-        try setBlockLength(512);
+        // try setBlockLength(512);
 
         return card;
     }
 
     pub fn getStatus(self: Self) !R2Response {
         return try sendStatus();
+    }
+
+    pub fn readBlock(self: Self, block_index: u32, buffer: *[512]u8) !void {
+        defer deassertCard();
+
+        const index = if (self.type == .sdhc) block_index else 512 * block_index;
+        const r1 = try writeR1Command(.CMD17, index, false);
+        try r1.throw();
+
+        for (range(0xFF)) |_| {
+            const start_token = readRawByte();
+            if (start_token == 0xFE)
+                break;
+        } else return error.Timeout;
+
+        for (buffer) |*b| {
+            b.* = readRawByte();
+        }
+
+        var crc16_buf: [2]u8 = undefined;
+        crc16_buf[0] = readRawByte();
+        crc16_buf[1] = readRawByte();
+
+        // TODO: Verify CRC16
     }
 
     const Command = enum(u6) {
@@ -250,52 +296,53 @@ const SDCard = struct {
     };
 
     fn cmdGoIdleState() !void {
-        return (try writeR1Command(.CMD0, 0)).throw();
+        return (try writeR1Command(.CMD0, 0, true)).throw();
     }
 
     fn sendOpCond(high_capacity_support: bool) !void {
-        const erg = try writeR1Command(.CMD1, if (high_capacity_support)
-            0x4000_0000
-        else
-            0x0000_0000);
+        const erg = try writeR1Command(
+            .CMD1,
+            if (high_capacity_support)
+                0x4000_0000
+            else
+                0x0000_0000,
+            true,
+        );
         return erg.throw();
     }
     fn switchFunc() !void {
         @panic("switchFunc not implemented yet!");
-        // try writeR1Command(.CMD6, 0);
+        // try writeR1Command(.CMD6, 0,true);
     }
     fn sendCsd() !void {
-        try writeR1Command(.CMD9, 0);
+        try writeR1Command(.CMD9, 0, true);
     }
     fn sendCid() !void {
-        try writeR1Command(.CMD10, 0);
+        try writeR1Command(.CMD10, 0, true);
     }
     fn setBlockLength(block_length: u32) !void {
-        try (try writeR1Command(.CMD16, block_length)).throw();
+        try (try writeR1Command(.CMD16, block_length, true)).throw();
     }
     fn programCsd() !void {
-        try writeR1Command(.CMD27, 0);
+        try writeR1Command(.CMD27, 0, true);
     }
     fn sendWriteProt(address: u32) !void {
-        try writeR1Command(.CMD30, address);
+        try writeR1Command(.CMD30, address, true);
     }
     fn eraseWrBlStartAddr(address: u32) !void {
-        try writeR1Command(.CMD32, address);
+        try writeR1Command(.CMD32, address, true);
     }
     fn eraseWrBlkEndAddr(address: u32) !void {
-        try writeR1Command(.CMD33, address);
+        try writeR1Command(.CMD33, address, true);
     }
     fn lockUnlock() !void {
-        try writeR1Command(.CMD42, 0);
+        try writeR1Command(.CMD42, 0, true);
     }
     fn appCmd() !void {
-        try writeR1Command(.CMD55, 0);
+        try writeR1Command(.CMD55, 0, true);
     }
     fn genCmd(write: bool) !void {
-        try writeR1Command(.CMD56, if (write)
-            0
-        else
-            1);
+        try writeR1Command(.CMD56, if (write) 0 else 1, true);
     }
 
     // R1b commands:
@@ -382,9 +429,10 @@ const SDCard = struct {
 
     // raw interface:
 
-    fn writeR1Command(cmd: Command, arg: u32) !ResponseBits {
+    fn writeR1Command(cmd: Command, arg: u32, deassert: bool) !ResponseBits {
         assertCard();
-        defer deassertCard();
+        defer if (deassert)
+            deassertCard();
         writeRawCommand(cmd, arg);
         return readResponseR1();
     }
@@ -446,6 +494,9 @@ const SDCard = struct {
     // };
 
     fn writeRawCommand(cmd: anytype, arg: u32) void {
+        Serial.syncWriter().writeAll(@tagName(cmd)) catch {};
+        Serial.syncWriter().writeAll("\r\n") catch {};
+
         var msg: [6]u8 = undefined;
         msg[0] = @enumToInt(cmd) | @as(u8, 0b01000000);
         std.mem.writeIntBig(u32, msg[1..5], arg);
@@ -520,7 +571,11 @@ const SDCard = struct {
     };
     fn readResponseR2() !R2Response {
         var resp: [2]u8 = undefined;
-        resp[0] = readRawByte();
+        for (range(20)) |_| {
+            resp[0] = readRawByte();
+            if (resp[0] != 0xFF)
+                break;
+        } else return error.Timeout;
         resp[1] = readRawByte();
         return @bitCast(R2Response, resp);
     }

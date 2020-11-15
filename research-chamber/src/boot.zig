@@ -4,7 +4,7 @@ const lpc1768 = @import("lpc1768");
 const ISRHandler = fn () callconv(.Interrupt) void;
 
 const start_of_ram = 0x10000000;
-const stack_size = 0x1000;
+const stack_size = 0x2000;
 const initial_sp = start_of_ram + stack_size;
 
 var mutable_vector_table: @TypeOf(fixed_vector_table) = undefined;

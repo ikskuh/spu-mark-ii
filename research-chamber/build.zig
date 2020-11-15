@@ -15,7 +15,7 @@ pub fn build(b: *std.build.Builder) void {
         .abi = .eabi,
     });
     exe.strip = true;
-    exe.setBuildMode(.ReleaseSafe);
+    exe.setBuildMode(.ReleaseSmall);
     exe.install();
     exe.setLinkerScriptPath("./src/linker.ld");
 

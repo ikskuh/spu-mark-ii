@@ -80,7 +80,7 @@ SECTIONS
     stack :
     {
         ASSERT((. == 0x10000000), "Error: Stack must be located at the start of the RAM!")
-        . += 4k; 
+        . += 0x2000; 
     } >ram
     
     . = ALIGN(16);
