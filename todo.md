@@ -1,14 +1,14 @@
 ## ISA Changes
 - Refine interrupt handling
-- Add instruction `cpuid`
-- Add instruction `cpuctrl` (reset, halt, soft-interrupt, ...)
+- Add instruction `cpuctrl` (reset, halt, soft-interrupt, cpuid, ...)
+- Swap input0, input1 for STORE{8,16} instructions. Improves overall assembler quality
 
 ## SOC Changes
 - Design and calculate GPU
   x Add basic VGA module (only "background color")
   x 640x480 VGA resolution
   x 256×128 pixel output
-  - 64-Color RGB (RGB222)
+  - 65536-Color RGB (RGB565)
   - Use 4 bit dual port frame buffer RAM 
 - Finalize blitter design (see vchip.md)
 - Finalize sprite design (see vga.md)
@@ -18,13 +18,9 @@
 - ADD: Read CPU registers via CMD
 - ADD: Write CPU registers via CMD
 
-## Firmware changes
-- add monitor features
-  - hex dump
-  - read/write adresses
-
 ## Tooling Changes
 - Rewrite assembler with support for new features:
+  - rewrite expression parser to recursive-decent
   - allow expression evaluation
     - Implement function evaluation
   - improve error reporting
@@ -34,7 +30,6 @@
   - inspect/write registers
   - restart
 - Add feature: Load ihex with offset / banking (16 MB memory space vs. 64k)
-
 
 ## Documentation Change
 - Write about common patterns in AN000

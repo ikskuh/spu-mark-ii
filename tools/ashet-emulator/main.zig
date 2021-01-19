@@ -578,7 +578,7 @@ const VGA = struct {
 
                     offset +%= 1; // might overflow
                 }
-                row_offset +%= @truncate(u24, self.framebuffer_stride);
+                row_offset +%= @truncate(u24, self.framebuffer_stride); // might overflow
             }
         }
 

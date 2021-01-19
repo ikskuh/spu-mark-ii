@@ -6,7 +6,7 @@
 PAGE_PROLOGUE=template/page.htm.prologue
 PAGE_EPILOGUE=template/page.htm.epilogue
 DOC_TEMPLATE=template/doc.htm
-DOCS=docs/isa docs/an000 docs/an001 docs/an002 docs/an003 docs/mmu docs/vchip docs/vga
+DOCS=docs/isa docs/an000 docs/an001 docs/an002 docs/an003 docs/mmu docs/vchip docs/vga docs/ashet
 PAGES=index downloads documentation livedemo imprint privacy $(DOCS)
 FILES=style.css base16-summerfruit-dark.css \
 	emulator.wasm livedemo.js \
@@ -53,6 +53,9 @@ output/emulator.wasm: ../zig-cache/lib/emulator.wasm
 output/docs/isa.htm: ../documentation/specs/spu-mark-ii.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
 
+output/docs/ashet.htm: ../documentation/specs/ashet.md $(DOC_TEMPLATE)
+	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
+
 output/docs/mmu.htm: ../documentation/specs/mmu.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) --metadata-file=template/metadata/$(notdir $(@:.htm=.yaml)) --from gfm --to html --toc "$<" > $@
 
@@ -73,6 +76,7 @@ output/docs/an002.htm: ../documentation/app-notes/AN002\ -\ Standard\ Calling\ C
 	
 output/docs/an003.htm: ../documentation/app-notes/AN003\ -\ Writing\ efficient\ code.md $(DOC_TEMPLATE)
 	pandoc --standalone --template=$(DOC_TEMPLATE) "--metadata-file=template/metadata/$(notdir $(@:.htm=.yaml))" --from gfm --to html --toc "$<" > $@
+	
 	
 output/downloads/ashet-toolchain-windows-x86_64.zip: $(addprefix output/,$(addsuffix .htm,$(DOCS))) $(SOURCES)
 	rm -f "$@"
