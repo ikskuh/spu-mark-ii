@@ -29,6 +29,8 @@ pub const BasicMemory = struct {
 
     fn readByte(interface: *spu.MemoryInterface, address: u16) spu.MemoryInterface.Error!u8 {
         const self = @fieldParentPtr(Self, "interface", interface);
+        _ = self;
+        _ = address;
         return switch (address) {
             else => return error.BusError,
         };
@@ -36,6 +38,9 @@ pub const BasicMemory = struct {
 
     fn writeByte(interface: *spu.MemoryInterface, address: u16, value: u8) spu.MemoryInterface.Error!void {
         const self = @fieldParentPtr(Self, "interface", interface);
+        _ = self;
+        _ = address;
+        _ = value;
         switch (address) {
             else => return error.BusError,
         }
@@ -43,6 +48,8 @@ pub const BasicMemory = struct {
 
     fn readWord(interface: *spu.MemoryInterface, address: u16) spu.MemoryInterface.Error!u16 {
         const self = @fieldParentPtr(Self, "interface", interface);
+        _ = self;
+        _ = address;
         return switch (address) {
             else => return error.BusError,
         };
@@ -50,6 +57,9 @@ pub const BasicMemory = struct {
 
     fn writeWord(interface: *spu.MemoryInterface, address: u16, value: u16) spu.MemoryInterface.Error!void {
         const self = @fieldParentPtr(Self, "interface", interface);
+        _ = self;
+        _ = address;
+        _ = value;
         switch (address) {
             else => return error.BusError,
         }

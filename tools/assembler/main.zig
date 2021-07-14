@@ -7,7 +7,7 @@ usingnamespace @import("spu-mk2");
 const FileFormat = enum { ihex, binary };
 
 pub fn main() !u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         format: ?FileFormat = .binary,
         output: []const u8 = "a.out",
@@ -17,7 +17,7 @@ pub fn main() !u8 {
             .f = "format",
             .o = "output",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len == 0) {
@@ -61,7 +61,7 @@ pub fn main() !u8 {
         try stdout.writeAll("Errors appeared while assembling:\n");
 
         for (assembler.errors.items) |err| {
-            try stdout.print("{}: {}:{}:{}: {}\n", .{
+            try stdout.print("{s}: {s}:{}:{}: {s}\n", .{
                 @tagName(err.type),
                 "f", //err.location.?.file,
                 err.location.?.line,
@@ -104,8 +104,8 @@ pub fn main() !u8 {
 
                 // data records
                 try outstream.print(
-                    ":{X}\n",
-                    .{buffer[0 .. length + 5]},
+                    ":{}\n",
+                    .{std.fmt.fmtSliceHexUpper(buffer[0 .. length + 5])},
                 );
             }
         }
@@ -240,7 +240,7 @@ pub const Assembler = struct {
                 }
             }
 
-            section.patches.shrink(0);
+            section.patches.shrinkRetainingCapacity(0);
         }
     }
 
@@ -340,7 +340,8 @@ pub const Assembler = struct {
 
     fn parseInstruction(assembler: *Assembler, parser: *Parser) !void {
         var modifiers = Modifiers{};
-        var instruction_name: []const u8 = "";
+
+        var instruction_token: ?Token = null;
 
         // parse modifiers and
         while (true) {
@@ -350,10 +351,10 @@ pub const Assembler = struct {
             });
             switch (tok.type) {
                 .identifier => {
-                    instruction_name = tok.text;
+                    instruction_token = tok;
                     break;
                 },
-                .opening_brackets => try modifiers.parse(parser),
+                .opening_brackets => try modifiers.parse(assembler, parser),
                 else => unreachable, // parse expression
             }
         }
@@ -374,7 +375,7 @@ pub const Assembler = struct {
                 },
                 .opening_brackets => {
                     _ = parser.expect(.opening_brackets) catch unreachable;
-                    try modifiers.parse(parser);
+                    try modifiers.parse(assembler, parser);
                 },
                 else => {
                     if (operand_count >= operands.len or end_of_operands) {
@@ -386,7 +387,7 @@ pub const Assembler = struct {
                     switch (expr_result.terminator.type) {
                         .line_break => break,
                         .opening_brackets => {
-                            try modifiers.parse(parser);
+                            try modifiers.parse(assembler, parser);
                             end_of_operands = true;
                         },
                         .comma => {},
@@ -397,11 +398,8 @@ pub const Assembler = struct {
         }
 
         // search for instruction template
-        var instruction = getInstructionForMnemonic(instruction_name, operand_count) orelse {
-            if (std.builtin.mode == .Debug) {
-                std.debug.warn("unknown mnemonic: {}\n", .{instruction_name});
-            }
-            return error.UnknownMnemonic;
+        var instruction = getInstructionForMnemonic(instruction_token.?.text, operand_count) orelse {
+            return try assembler.emitError(.@"error", instruction_token.?, "Unknown mnemonic: {s}", .{instruction_token.?.text});
         };
 
         // apply modifiers
@@ -437,7 +435,7 @@ pub const Assembler = struct {
         }
 
         if (std.builtin.mode == .Debug) {
-            std.debug.warn("unknown directive: {}\n", .{token.text});
+            std.debug.warn("unknown directive: {s}\n", .{token.text});
         }
 
         return error.UnknownDirective;
@@ -451,7 +449,7 @@ pub const Assembler = struct {
 
             const offset = try assembler.evaluate(offset_expr.expression, true);
             if (offset != .number) {
-                return try assembler.emitError(.@"error", offset_expr.expression.sequence[0], "Type mismatch: Expected number, found {}", .{@tagName(offset)});
+                return try assembler.emitError(.@"error", offset_expr.expression.sequence[0], "Type mismatch: Expected number, found {s}", .{@tagName(offset)});
             }
 
             const sect = if (assembler.currentSection().bytes.items.len == 0)
@@ -653,13 +651,7 @@ pub const Assembler = struct {
         const buffer = try assembler.allocator.alloc(u8, token.text.len - 2);
         errdefer assembler.allocator.free(buffer);
 
-        const State = enum {
-            normal,
-            escape,
-        };
-
         var length: usize = 0;
-        var state: State = .normal;
 
         var offset: usize = 1;
         while (offset < token.text.len - 1) {
@@ -682,20 +674,20 @@ pub const Assembler = struct {
 
         for (expression.sequence) |item| {
             switch (item.type) {
-                .identifier => if (assembler.symbols.getEntry(item.text)) |sym|
-                    try stack.append(Value{ .number = sym.value })
+                .identifier => if (assembler.symbols.get(item.text)) |sym|
+                    try stack.append(Value{ .number = sym })
                 else {
                     if (emitErrorOnMissing) {
-                        try assembler.emitError(.@"error", item, "Missing identifier: {}", .{item.text});
+                        try assembler.emitError(.@"error", item, "Missing identifier: {s}", .{item.text});
                     }
                     return error.MissingIdentifiers;
                 },
 
-                .dot_identifier => if (assembler.local_symbols.getEntry(item.text)) |sym|
-                    try stack.append(Value{ .number = sym.value })
+                .dot_identifier => if (assembler.local_symbols.get(item.text)) |sym|
+                    try stack.append(Value{ .number = sym })
                 else {
                     if (emitErrorOnMissing) {
-                        try assembler.emitError(.@"error", item, "Missing identifier: {}", .{item.text});
+                        try assembler.emitError(.@"error", item, "Missing identifier: {s}", .{item.text});
                     }
                     return error.MissingIdentifiers;
                 },
@@ -883,7 +875,7 @@ pub const Assembler = struct {
         string: []const u8, // does not need to be freed, will be string-pooled
         number: u16,
     };
-    const ValueType = @TagType(Value);
+    const ValueType = std.meta.Tag(Value);
 };
 
 pub const TokenType = enum {
@@ -1495,6 +1487,8 @@ const Expression = struct {
     }
 
     pub fn format(value: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+        _ = fmt;
+        _ = options;
         for (value.sequence) |item, i| {
             if (i > 0)
                 try stream.writeAll(" ");
@@ -1514,7 +1508,7 @@ const Modifiers = struct {
     command: ?Command = null,
 
     /// will start at identifier, not `[`!
-    fn parse(mods: *Self, parser: *Parser) !void {
+    fn parse(mods: *Self, assembler: *Assembler, parser: *Parser) !void {
         const mod_type = try parser.expect(.label); // type + ':'
         const mod_value = try parser.expect(.identifier); // value
         _ = try parser.expect(.closing_brackets);
@@ -1574,7 +1568,7 @@ const Modifiers = struct {
                 }
             }
         }
-        return error.InvalidModifier;
+        try assembler.emitError(.@"error", mod_type, "Unknown modifier: {s}{s}", .{ mod_type.text, mod_value.text });
     }
 
     const condition_items = .{
@@ -1605,21 +1599,16 @@ const Modifiers = struct {
     const output_items = .{
         .{ "discard", .discard },
         .{ "push", .push },
-        .{ "jmp", .jump },
-        .{ "rjmp", .jump_relative },
     };
 
     const command_items = .{
         .{ "copy", .copy },
-        .{ "ipget", .ipget },
         .{ "get", .get },
         .{ "set", .set },
         .{ "store8", .store8 },
         .{ "store16", .store16 },
         .{ "load8", .load8 },
         .{ "load16", .load16 },
-        .{ "undefined0", .undefined0 },
-        .{ "undefined1", .undefined1 },
         .{ "frget", .frget },
         .{ "frset", .frset },
         .{ "bpget", .bpget },
@@ -1642,5 +1631,8 @@ const Modifiers = struct {
         .{ "asr", .asr },
         .{ "lsl", .lsl },
         .{ "lsr", .lsr },
+        .{ "setip", .setip },
+        .{ "addip", .addip },
+        .{ "intr", .intr },
     };
 };

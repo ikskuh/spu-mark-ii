@@ -28,7 +28,7 @@ pub fn dumpState(emu: *spu.SpuMk2) !void {
         const addr = if (offset < 0) emu.sp -% @intCast(u8, -2 * offset) else emu.sp +% @intCast(u8, 2 * offset);
         const msg_2: []const u8 = if (addr == emu.bp) " (BASE)" else "";
         const value = emu.readWord(addr) catch @as(u16, 0xAAAA);
-        try stdout.print("  {X:0>4}: [SP{:0>2}]={X:0>4}{}{}\r\n", .{
+        try stdout.print("  {X:0>4}: [SP{:0>2}]={X:0>4}{s}{s}\r\n", .{
             addr,
             offset,
             value,
@@ -39,6 +39,7 @@ pub fn dumpState(emu: *spu.SpuMk2) !void {
 }
 
 pub fn dumpTrace(emu: *spu.SpuMk2, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {
+    _ = emu;
     const stdout = std.io.getStdOut().writer();
     try stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
         ip,
@@ -67,7 +68,7 @@ fn outputErrorMsg(emu: *spu.SpuMk2, err: anyerror) !u8 {
 
     // const time = timer.read();
 
-    try std.io.getStdOut().writer().print("\nerror: {}\n", .{
+    try std.io.getStdOut().writer().print("\nerror: {s}\n", .{
         @errorName(err),
     });
 
@@ -81,7 +82,7 @@ fn outputErrorMsg(emu: *spu.SpuMk2, err: anyerror) !u8 {
 }
 
 pub fn main() !u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         @"entry-point": u16 = 0x0000,
         @"video-scaling": u32 = 3,
@@ -90,7 +91,7 @@ pub fn main() !u8 {
             .h = "help",
             .e = "entry-point",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len == 0) {
@@ -173,8 +174,6 @@ pub fn main() !u8 {
     }
 
     // defer std.debug.warn("Executed {} instructions!\n", .{emu.count});
-
-    var timer = try std.time.Timer.start();
 
     while (true) {
         emu.runBatch(10_000) catch |err| return outputErrorMsg(&emu, err);

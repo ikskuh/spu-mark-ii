@@ -117,13 +117,13 @@ pub const SpuMk2 = struct {
 
         const execute = switch (instruction.condition) {
             .always => true,
-            .when_zero => self.fr.zero,
-            .not_zero => !self.fr.zero,
-            .greater_zero => !self.fr.zero and !self.fr.negative,
-            .less_than_zero => !self.fr.zero and self.fr.negative,
-            .greater_or_equal_zero => self.fr.zero or !self.fr.negative,
-            .less_or_equal_zero => self.fr.zero or self.fr.negative,
-            .overflow => self.fr.carry,
+            .when_zero => self.fr.bits.zero,
+            .not_zero => !self.fr.bits.zero,
+            .greater_zero => !self.fr.bits.zero and !self.fr.bits.negative,
+            .less_than_zero => !self.fr.bits.zero and self.fr.bits.negative,
+            .greater_or_equal_zero => self.fr.bits.zero or !self.fr.bits.negative,
+            .less_or_equal_zero => self.fr.bits.zero or self.fr.bits.negative,
+            .overflow => self.fr.bits.carry,
         };
 
         if (execute) {
@@ -142,7 +142,6 @@ pub const SpuMk2 = struct {
 
             const output = switch (instruction.command) {
                 .copy => input0,
-                .ipget => self.ip +% 2 *% input0,
                 .get => try self.readWord(self.bp +% 2 *% input0),
                 .set => blk: {
                     try self.writeWord(self.bp +% 2 *% input0, input1);
@@ -159,11 +158,11 @@ pub const SpuMk2 = struct {
                 },
                 .load8 => try self.readByte(input0),
                 .load16 => try self.readWord(input0),
-                .frget => @bitCast(u16, self.fr) & ~input1,
+                .frget => self.fr.int & ~input1,
                 .frset => blk: {
-                    const value = (@bitCast(u16, self.fr) & input1) | (input0 & ~input1);
-                    self.fr = @bitCast(FlagRegister, value);
-                    break :blk value;
+                    const previous = self.fr.int;
+                    self.fr.int = (self.fr.int & input1) | (input0 & ~input1);
+                    break :blk previous;
                 },
                 .bpget => self.bp,
                 .bpset => blk: {
@@ -177,17 +176,17 @@ pub const SpuMk2 = struct {
                 },
                 .add => blk: {
                     var result: u16 = undefined;
-                    self.fr.carry = @addWithOverflow(u16, input0, input1, &result);
+                    self.fr.bits.carry = @addWithOverflow(u16, input0, input1, &result);
                     break :blk result;
                 },
                 .sub => blk: {
                     var result: u16 = undefined;
-                    self.fr.carry = @subWithOverflow(u16, input0, input1, &result);
+                    self.fr.bits.carry = @subWithOverflow(u16, input0, input1, &result);
                     break :blk result;
                 },
                 .mul => blk: {
                     var result: u16 = undefined;
-                    self.fr.carry = @mulWithOverflow(u16, input0, input1, &result);
+                    self.fr.bits.carry = @mulWithOverflow(u16, input0, input1, &result);
                     break :blk result;
                 },
                 .div => input0 / input1,
@@ -206,18 +205,31 @@ pub const SpuMk2 = struct {
                 .asr => (input0 & 0x8000) | (input0 >> 1),
                 .lsl => input0 << 1,
                 .lsr => input0 >> 1,
-                .undefined0, .undefined1 => return error.BadInstruction,
+                .cpuid => 0,
+                .halt => @panic("not implemented yet!"),
+                .setip => blk: {
+                    const out = self.ip;
+                    self.ip = input0;
+                    self.fr.int |= input1;
+                    break :blk out;
+                },
+                .addip => blk: {
+                    const out = self.ip;
+                    self.ip += input0;
+                    self.fr.int |= input1;
+                    break :blk out;
+                },
+                .intr => @panic("not implemented yet!"),
+                _ => return error.BadInstruction,
             };
 
             switch (instruction.output) {
                 .discard => {},
                 .push => try self.push(output),
-                .jump => self.ip = output,
-                .jump_relative => self.ip +%= 2 * output,
             }
             if (instruction.modify_flags) {
-                self.fr.negative = (output & 0x8000) != 0;
-                self.fr.zero = (output == 0x0000);
+                self.fr.bits.negative = (output & 0x8000) != 0;
+                self.fr.bits.zero = (output == 0x0000);
             }
 
             if (self.tracing) |intf| {
@@ -257,46 +269,47 @@ pub const InputBehaviour = enum(u2) {
     pop = 3,
 };
 
-pub const OutputBehaviour = enum(u2) {
+pub const OutputBehaviour = enum(u1) {
     discard = 0,
     push = 1,
-    jump = 2,
-    jump_relative = 3,
 };
 
-pub const Command = enum(u5) {
-    copy = 0,
-    ipget = 1,
-    get = 2,
-    set = 3,
-    store8 = 4,
-    store16 = 5,
-    load8 = 6,
-    load16 = 7,
-    undefined0 = 8,
-    undefined1 = 9,
-    frget = 10,
-    frset = 11,
-    bpget = 12,
-    bpset = 13,
-    spget = 14,
-    spset = 15,
-    add = 16,
-    sub = 17,
-    mul = 18,
-    div = 19,
-    mod = 20,
-    @"and" = 21,
-    @"or" = 22,
-    xor = 23,
-    not = 24,
-    signext = 25,
-    rol = 26,
-    ror = 27,
-    bswap = 28,
-    asr = 29,
-    lsl = 30,
-    lsr = 31,
+pub const Command = enum(u6) {
+    copy = 0b000000,
+    get = 0b000010,
+    set = 0b000011,
+    store8 = 0b000100,
+    store16 = 0b000101,
+    load8 = 0b000110,
+    load16 = 0b000111,
+    cpuid = 0b001000,
+    halt = 0b001001,
+    frget = 0b001010,
+    frset = 0b001011,
+    bpget = 0b001100,
+    bpset = 0b001101,
+    spget = 0b001110,
+    spset = 0b001111,
+    add = 0b010000,
+    sub = 0b010001,
+    mul = 0b010010,
+    div = 0b010011,
+    mod = 0b010100,
+    @"and" = 0b010101,
+    @"or" = 0b010110,
+    xor = 0b010111,
+    not = 0b011000,
+    signext = 0b011001,
+    rol = 0b011010,
+    ror = 0b011011,
+    bswap = 0b011100,
+    asr = 0b011101,
+    lsl = 0b011110,
+    lsr = 0b011111,
+    setip = 0b100000,
+    addip = 0b100001,
+    intr = 0b100010,
+    _,
 };
 
 pub const Instruction = packed struct {
@@ -309,6 +322,8 @@ pub const Instruction = packed struct {
     reserved: u1 = 0,
 
     pub fn format(instr: Instruction, comptime fmt: []const u8, options: std.fmt.FormatOptions, out: anytype) !void {
+        _ = options;
+        _ = fmt;
         try out.writeAll(switch (instr.condition) {
             .always => "    ",
             .when_zero => "== 0",
@@ -334,46 +349,16 @@ pub const Instruction = packed struct {
             .pop => "pop ",
         });
         try out.writeAll(" ");
-        try out.writeAll(switch (instr.command) {
-            .copy => "copy     ",
-            .ipget => "ipget    ",
-            .get => "get      ",
-            .set => "set      ",
-            .store8 => "store8   ",
-            .store16 => "store16  ",
-            .load8 => "load8    ",
-            .load16 => "load16   ",
-            .undefined0 => "undefined",
-            .undefined1 => "undefined",
-            .frget => "frget    ",
-            .frset => "frset    ",
-            .bpget => "bpget    ",
-            .bpset => "bpset    ",
-            .spget => "spget    ",
-            .spset => "spset    ",
-            .add => "add      ",
-            .sub => "sub      ",
-            .mul => "mul      ",
-            .div => "div      ",
-            .mod => "mod      ",
-            .@"and" => "and      ",
-            .@"or" => "or       ",
-            .xor => "xor      ",
-            .not => "not      ",
-            .signext => "signext  ",
-            .rol => "rol      ",
-            .ror => "ror      ",
-            .bswap => "bswap    ",
-            .asr => "asr      ",
-            .lsl => "lsl      ",
-            .lsr => "lsr      ",
-        });
+
+        const tag = @tagName(instr.command);
+        var tagstr = [_]u8{' '} ** 9;
+        std.mem.copy(u8, &tagstr, tag);
+
+        try out.writeAll(&tagstr);
         try out.writeAll(" ");
         try out.writeAll(switch (instr.output) {
             .discard => "discard",
             .push => "push   ",
-            .jump => "jmp    ",
-            .jump_relative => "rjmp   ",
         });
         try out.writeAll(" ");
         try out.writeAll(if (instr.modify_flags)
@@ -383,14 +368,17 @@ pub const Instruction = packed struct {
     }
 };
 
-pub const FlagRegister = packed struct {
-    zero: bool,
-    negative: bool,
-    carry: bool,
-    carry_enabled: bool,
-    interrupt0_enabled: bool,
-    interrupt1_enabled: bool,
-    interrupt2_enabled: bool,
-    interrupt3_enabled: bool,
-    reserved: u8 = 0,
+pub const FlagRegister = extern union {
+    int: u16,
+    bits: packed struct {
+        zero: bool,
+        negative: bool,
+        carry: bool,
+        carry_enabled: bool,
+        interrupt0_enabled: bool,
+        interrupt1_enabled: bool,
+        interrupt2_enabled: bool,
+        interrupt3_enabled: bool,
+        reserved: u8 = 0,
+    },
 };

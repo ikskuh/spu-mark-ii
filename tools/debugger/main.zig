@@ -39,7 +39,7 @@ pub const RS = 0x1E;
 pub const US = 0x1F;
 
 pub fn main() anyerror!u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
         @"port-name": ?[]const u8 = if (std.builtin.os.tag == .linux) "/dev/ttyUSB0" else null,
 
@@ -47,7 +47,7 @@ pub fn main() anyerror!u8 {
         pub const shorthands = .{
             .P = "port-name",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     if (cli_args.positionals.len != 0) {
@@ -62,7 +62,7 @@ pub fn main() anyerror!u8 {
 
     var serial = std.fs.cwd().openFile(cli_args.options.@"port-name".?, .{ .read = true, .write = true }) catch |err| switch (err) {
         error.FileNotFound => {
-            try std.io.getStdOut().writer().print("The serial port {} does not exist.\n", .{cli_args.options.@"port-name"});
+            try std.io.getStdOut().writer().print("The serial port {s} does not exist.\n", .{cli_args.options.@"port-name"});
             return 1;
         },
         else => return err,
@@ -230,6 +230,7 @@ pub fn main() anyerror!u8 {
                     output: *const @TypeOf(serout),
 
                     fn verify(p: *const Self, offset: u32, data: []const u8) Error!void {
+                        _ = p;
                         if (offset + data.len >= 0x10000)
                             return error.InvalidHexFile;
                     }
@@ -264,12 +265,12 @@ pub fn main() anyerror!u8 {
                         try stdout.writeAll("hex loading done.\n");
                     }
                 } else |err| switch (err) {
-                    error.InvalidHexFile => try stdout.print("invalid hex file: {}\n", .{filepath}),
+                    error.InvalidHexFile => try stdout.print("invalid hex file: {s}\n", .{filepath}),
                     else => return err,
                 }
             } else |err| switch (err) {
                 error.FileNotFound => {
-                    try stdout.print("file {} not found.\n", .{filepath});
+                    try stdout.print("file {s} not found.\n", .{filepath});
                 },
                 else => return err,
             }
@@ -329,7 +330,7 @@ pub fn main() anyerror!u8 {
         } else if (cmd.len == 0) {
             // nop
         } else {
-            try stdout.print("unknown command '{}'\n", .{cmd});
+            try stdout.print("unknown command '{s}'\n", .{cmd});
         }
     }
     try stdout.writeAll("end of debugging session. have a nice day!\n");

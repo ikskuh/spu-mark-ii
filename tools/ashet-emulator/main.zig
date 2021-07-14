@@ -21,6 +21,7 @@ const global_allocator = &gpa.allocator;
 var debug_tracer = spu.TracingInterface{
     .traceInstructionFn = struct {
         fn traceInstruction(intf: *spu.TracingInterface, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) void {
+            _ = intf;
             std.debug.warn("IP={X:0>4} I0={X:0>4} I1={X:0>4} OUT={X:0>4} OP=[{}]\n", .{
                 ip,
                 input0,
@@ -34,9 +35,9 @@ var debug_tracer = spu.TracingInterface{
 
 pub fn main() !u8 {
     const stderr = std.io.getStdErr().writer();
-    const stdout = std.io.getStdOut().writer();
+    // const stdout = std.io.getStdOut().writer();
 
-    const cli = try args.parseForCurrentProcess(CliArgs, global_allocator);
+    const cli = args.parseForCurrentProcess(CliArgs, global_allocator, .print) catch return 1;
     defer cli.deinit();
 
     if (cli.options.help) {
@@ -87,9 +88,9 @@ pub fn main() !u8 {
 
     var success = true; //  we require at least one boot image file
 
-    for (cli.positionals) |file, i| {
+    for (cli.positionals) |file| {
         const ext = fileExtension(file) orelse {
-            try stderr.print("{} is missing a file extension, cannot autodetect the file type!\n", .{file});
+            try stderr.print("{s} is missing a file extension, cannot autodetect the file type!\n", .{file});
             success = false;
             continue;
         };
@@ -100,7 +101,7 @@ pub fn main() !u8 {
             try stderr.writeAll("ihex loading is not implemented yet!\n");
             success = false;
         } else {
-            try stderr.print("{} is not a supported BIOS format!\n", .{ext});
+            try stderr.print("{s} is not a supported BIOS format!\n", .{ext});
             success = false;
         }
     }
@@ -157,14 +158,26 @@ const BusDevice = struct {
 
     const UnmappedImpl = struct {
         fn read8(p: *Self, address: u24) !u8 {
+            _ = p;
+            _ = address;
             return error.BusError;
         }
         fn read16(p: *Self, address: u24) !u16 {
+            _ = p;
+            _ = address;
             return error.BusError;
         }
 
-        fn write8(p: *Self, address: u24, value: u8) !void {}
-        fn write16(p: *Self, address: u24, value: u16) !void {}
+        fn write8(p: *Self, address: u24, value: u8) !void {
+            _ = p;
+            _ = address;
+            _ = value;
+        }
+        fn write16(p: *Self, address: u24, value: u16) !void {
+            _ = p;
+            _ = address;
+            _ = value;
+        }
     };
 
     var unmapped_stor = Self{
@@ -355,13 +368,13 @@ const Ashet = struct {
                     else
                         "   ";
                     if (value) |val| {
-                        std.debug.print("{}{X:0>4}: {X:0>4}\n", .{
+                        std.debug.print("{s}{X:0>4}: {X:0>4}\n", .{
                             indicator,
                             stack_ptr,
-                            value,
+                            val,
                         });
                     } else {
-                        std.debug.print("{}{X:0>4}: ????\n", .{
+                        std.debug.print("{s}{X:0>4}: ????\n", .{
                             indicator,
                             stack_ptr,
                         });
@@ -433,7 +446,7 @@ const Bus = struct {
                 .word => "writing word to",
             },
         };
-        std.debug.print("{} when {} {X:0>6}\n", .{
+        std.debug.print("{s} when {s} {X:0>6}\n", .{
             @errorName(err),
             access_msg,
             address,
@@ -551,8 +564,8 @@ const VGA = struct {
 
     /// Writes out the VGA image to a framebuffer
     pub fn render(self: Self, frame_buffer: *[480][640]VGA.RGB) !void {
-        for (frame_buffer) |*row, y| {
-            for (row) |*pix, x| {
+        for (frame_buffer) |*row| {
+            for (row) |*pix| {
                 pix.* = self.border_color;
             }
         }
@@ -863,14 +876,19 @@ const SDIO = struct {
     backing_file: ?std.fs.File = null,
 
     fn read16(busdev: *BusDevice, address: u24) !u16 {
-        const sdio = @fieldParentPtr(Self, "bus_device", busdev);
+        _ = busdev;
+        _ = address;
+        // const sdio = @fieldParentPtr(Self, "bus_device", busdev);
         return switch ((address & 0x7FF) >> 1) {
             else => return error.BusError,
         };
     }
 
     fn write16(busdev: *BusDevice, address: u24, value: u16) !void {
-        const sdio = @fieldParentPtr(Self, "bus_device", busdev);
+        _ = busdev;
+        _ = address;
+        _ = value;
+        // const sdio = @fieldParentPtr(Self, "bus_device", busdev);
         switch ((address & 0x7FF) >> 1) {
             else => return error.BusError,
         }

@@ -7,7 +7,7 @@ extern fn configure_serial(fd: c_int) u8;
 extern fn flush_serial(fd: c_int) void;
 
 pub fn main() anyerror!u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
         output: ?[]const u8 = null,
         help: bool = false,
@@ -19,11 +19,10 @@ pub fn main() anyerror!u8 {
             .h = "help",
             .s = "size",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     const stdout = std.io.getStdOut().writer();
-    const stdin = std.io.getStdOut().reader();
 
     if (cli_args.options.help or cli_args.positionals.len == 0 or cli_args.options.output == null) {
         try stdout.writeAll(

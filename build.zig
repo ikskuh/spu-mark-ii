@@ -1,27 +1,7 @@
 const std = @import("std");
+const zpm = @import(".zpm/pkgs.zig");
 
-const packages = struct {
-    const args = std.build.Pkg{
-        .name = "args",
-        .path = "./tools/modules/zig-args/args.zig",
-    };
-    const ihex = std.build.Pkg{
-        .name = "ihex",
-        .path = "./tools/modules/zig-ihex/ihex.zig",
-    };
-    const serial = std.build.Pkg{
-        .name = "serial",
-        .path = "./tools/modules/zig-serial/serial.zig",
-    };
-    const spumk2 = std.build.Pkg{
-        .name = "spu-mk2",
-        .path = "./tools/common/spu-mk2.zig",
-    };
-    const sdl2 = std.build.Pkg{
-        .name = "sdl2",
-        .path = "./tools/modules/SDL.zig/src/lib.zig",
-    };
-};
+const packages = zpm.pkgs;
 
 const examples = [_][]const u8{
     "apps/hello-world/main",
@@ -42,7 +22,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     debugger.addPackage(packages.args);
     debugger.addPackage(packages.ihex);
     debugger.addPackage(packages.serial);
-    debugger.addPackage(packages.spumk2);
+    debugger.addPackage(packages.@"spu-mk2");
     debugger.setTarget(target);
     debugger.setBuildMode(mode);
     if (outputDir) |od| debugger.setOutputDir(od);
@@ -50,7 +30,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     const emulator = b.addExecutable("emulator", "tools/emulator/pc-main.zig");
     emulator.addPackage(packages.args);
     emulator.addPackage(packages.ihex);
-    emulator.addPackage(packages.spumk2);
+    emulator.addPackage(packages.@"spu-mk2");
     emulator.linkSystemLibrary("SDL2");
     emulator.setTarget(target);
     emulator.setBuildMode(mode);
@@ -61,7 +41,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     ashet_emulator.addPackage(packages.sdl2);
     ashet_emulator.addPackage(packages.ihex);
     ashet_emulator.addPackage(packages.args);
-    ashet_emulator.addPackage(packages.spumk2);
+    ashet_emulator.addPackage(packages.@"spu-mk2");
     ashet_emulator.linkSystemLibrary("SDL2");
     ashet_emulator.setTarget(target);
     ashet_emulator.setBuildMode(mode);
@@ -70,7 +50,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     const disassembler = b.addExecutable("disassembler", "tools/disassembler/main.zig");
     disassembler.addPackage(packages.args);
     disassembler.addPackage(packages.ihex);
-    disassembler.addPackage(packages.spumk2);
+    disassembler.addPackage(packages.@"spu-mk2");
     disassembler.setTarget(target);
     disassembler.setBuildMode(mode);
     if (outputDir) |od| disassembler.setOutputDir(od);
@@ -78,7 +58,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     const assembler = b.addExecutable("assembler", "tools/assembler/main.zig");
     assembler.addPackage(packages.args);
     assembler.addPackage(packages.ihex);
-    assembler.addPackage(packages.spumk2);
+    assembler.addPackage(packages.@"spu-mk2");
     assembler.setTarget(target);
     assembler.setBuildMode(mode);
     if (outputDir) |od| assembler.setOutputDir(od);
@@ -187,7 +167,7 @@ pub fn build(b: *std.build.Builder) !void {
     {
         const wasm_emulator = b.addStaticLibrary("emulator", "tools/emulator/web-main.zig");
         wasm_emulator.addPackage(packages.ihex);
-        wasm_emulator.addPackage(packages.spumk2);
+        wasm_emulator.addPackage(packages.@"spu-mk2");
         wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
         wasm_emulator.setBuildMode(.ReleaseSafe);
         wasm_emulator.step.dependOn(&gen_firmware_blob.step);
