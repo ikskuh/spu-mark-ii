@@ -26,7 +26,7 @@
         "assembler": {
             "patterns": [{
                     "name": "variable.name.asm",
-                    "match": "^(\\w+):"
+                    "match": "^(\\w[\\w\\.]+):"
                 },
                 {
                     "name": "storage.asm",
@@ -37,8 +37,15 @@
                     "match": "\\[\\w+\\:\\w+\\]"
                 },
                 {
-                    "name": "keyword.control.asm",
-                    "match": "^\\s*\\w+"
+                    "match": "^\\s*(\\[\\w+\\:\\w+\\]\\s*)*(\\w+)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.asm"
+                        },
+                        "2": {
+                            "name": "keyword.control.asm"
+                        }
+                    }
                 },
                 {
                     "name": "string.quoted.single.asm",

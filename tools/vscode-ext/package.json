@@ -9,17 +9,49 @@
     "categories": [
         "Programming Languages"
     ],
+    "activationEvents": [
+        "onCommand:spumk2.helloWorld",
+        "onLanguage:spumk2.asm"
+    ],
+    "main": "src/extension.js",
     "contributes": {
         "languages": [{
-            "id": "asm",
-            "aliases": ["SPU Mark II Assembler", "asm"],
-            "extensions": [".asm"],
+            "id": "spumk2.asm",
+            "aliases": [
+                "SPU Mark II Assembler",
+                "asm"
+            ],
+            "extensions": [
+                ".asm",
+                ".inc"
+            ],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
-            "language": "asm",
+            "language": "spumk2.asm",
             "scopeName": "source.asm",
             "path": "./syntaxes/asm.tmLanguage.json"
+        }],
+        "commands": [{
+            "command": "spumk2.helloWorld",
+            "title": "Hello World"
         }]
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "node ./test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.3",
+        "@types/mocha": "^8.2.2",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.58.0",
+        "esbuild": "^0.12.15",
+        "eslint": "^7.27.0",
+        "glob": "^7.1.7",
+        "mocha": "^8.4.0",
+        "typescript": "^4.3.2",
+        "vscode-test": "^1.5.2"
     }
 }
