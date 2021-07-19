@@ -1,7 +1,7 @@
 const std = @import("std");
 const lpc1768 = @import("lpc1768");
 
-const ISRHandler = fn () callconv(.Interrupt) void;
+const ISRHandler = fn () callconv(.C) void;
 
 const start_of_ram = 0x10000000;
 const stack_size = 0x2000;
@@ -15,7 +15,7 @@ extern var __text__end: c_void;
 extern var __data__start: c_void;
 extern var __data__end: c_void;
 
-export fn _start() callconv(.Interrupt) noreturn {
+export fn _start() callconv(.C) noreturn {
     mutable_vector_table = fixed_vector_table;
 
     lpc1768.SCB.VTOR = @ptrToInt(&mutable_vector_table);
@@ -43,27 +43,27 @@ export fn _start() callconv(.Interrupt) noreturn {
     }
 }
 
-export fn _nmi() callconv(.Interrupt) void {
+export fn _nmi() callconv(.C) void {
     @panic("nmi");
 }
 
-export fn _hardFault() callconv(.Interrupt) void {
+export fn _hardFault() callconv(.C) void {
     @panic("hard fault");
 }
 
-export fn _mpuFault() callconv(.Interrupt) void {
+export fn _mpuFault() callconv(.C) void {
     @panic("mpu fault");
 }
 
-export fn _busFault() callconv(.Interrupt) void {
+export fn _busFault() callconv(.C) void {
     @panic("bus fault");
 }
 
-export fn _usageFault() callconv(.Interrupt) void {
+export fn _usageFault() callconv(.C) void {
     @panic("usage fault");
 }
 
-export fn _unhandledInterrupt() callconv(.Interrupt) void {
+export fn _unhandledInterrupt() callconv(.C) void {
     @panic("Unhandled interrupt!");
 }
 

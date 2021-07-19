@@ -22,7 +22,7 @@ Planned features:
 | `0x1***` |    2 | R/W    | Palette Entry *       |
 | `0x1FFE` |    2 | R/W    | Palette Entry 255     |
 
-#### Framebuffer Address
+### Framebuffer Address
 Start address of the linear framebuffer. The frame buffer
 is stored row-major, so the first 128 byte are the the first
 row of pixels.
@@ -31,7 +31,7 @@ The address is in 24 bit address format, the upper 8 bit are
 ignored by the VGA module. Also, the address is in physical
 layout, so the memory must not be mapped to be visible.
 
-#### Status Register
+### Status Register
 
 0,1: Mode
 2:   VSync Active
@@ -43,7 +43,7 @@ Mode:
 	2=128×128
 	3=256×128
 
-#### Control Register
+### Control Register
 Mirror register of the status register that allows writing
 several control commands into the VGA.
 
@@ -52,6 +52,11 @@ several control commands into the VGA.
 2: N/A
 
 
+## Sprite Unit
+
+The sprite unit is a built into two parts:
+- 
+- A 4096 byte memory section that stores both sprite pixels and sprite definitions
 
 > This document isn't written yet. Please consider this not even a working draft.
 

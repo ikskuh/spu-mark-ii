@@ -6,7 +6,7 @@ const common = @import("shared.zig");
 
 extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
 
-pub fn dumpState(emu: *spu.SpuMk2) !void {
+pub fn dumpState(emu: *spu.SpuMk2(common.BasicMemory)) !void {
     const stdout = std.io.getStdOut().writer();
     try stdout.print(
         "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4}\r\n",
@@ -38,7 +38,7 @@ pub fn dumpState(emu: *spu.SpuMk2) !void {
     }
 }
 
-pub fn dumpTrace(emu: *spu.SpuMk2, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {
+pub fn dumpTrace(emu: *spu.SpuMk2(common.BasicMemory), ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {
     _ = emu;
     const stdout = std.io.getStdOut().writer();
     try stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
@@ -58,7 +58,7 @@ var texture: *c.SDL_Texture = undefined;
 
 var framebuffer: [128][256]u8 = undefined;
 
-fn outputErrorMsg(emu: *spu.SpuMk2, err: anyerror) !u8 {
+fn outputErrorMsg(emu: *spu.SpuMk2(common.BasicMemory), err: anyerror) !u8 {
     const stdin = std.io.getStdIn();
 
     // reset terminal before outputting error messages
@@ -107,9 +107,8 @@ pub fn main() !u8 {
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
 
-    var memory = common.BasicMemory{};
-
-    var emu = spu.SpuMk2.init(&memory.interface);
+    var emu = spu.SpuMk2(common.BasicMemory).init(.{});
+    const memory = &emu.memory;
 
     const hexParseMode = ihex.ParseMode{ .pedantic = true };
     for (cli_args.positionals) |path| {
@@ -117,7 +116,7 @@ pub fn main() !u8 {
         defer file.close();
 
         // Emulator will always start at address 0x0000 or CLI given entry point.
-        _ = try ihex.parseData(file.reader(), hexParseMode, &memory, common.BasicMemory.LoaderError, common.BasicMemory.loadHexRecord);
+        _ = try ihex.parseData(file.reader(), hexParseMode, memory, common.BasicMemory.LoaderError, common.BasicMemory.loadHexRecord);
     }
 
     emu.ip = cli_args.options.@"entry-point";

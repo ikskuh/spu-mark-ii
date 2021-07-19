@@ -115,7 +115,7 @@ pub fn build(b: *std.build.Builder) !void {
         const step = nativeToolchain.assembler.run();
         step.addArgs(&[_][]const u8{
             "-o",
-            src_file ++ ".hex",
+            "./zig-out/firmware/" ++ std.fs.path.basename(std.fs.path.dirname(src_file).?) ++ ".hex",
             src_file ++ ".asm",
         });
         b.getInstallStep().dependOn(&step.step);
@@ -124,44 +124,44 @@ pub fn build(b: *std.build.Builder) !void {
     const assemble_step = nativeToolchain.assembler.run();
     assemble_step.addArgs(&[_][]const u8{
         "-o",
-        "./soc/firmware/firmware.hex",
-        "./soc/firmware/main.asm",
+        "./zig-out/firmware/firmware.hex",
+        "./apps/firmware/main.asm",
     });
 
     const gen_firmware_blob = nativeToolchain.hex2bin.run();
     gen_firmware_blob.step.dependOn(&assemble_step.step);
     gen_firmware_blob.addArgs(&[_][]const u8{
         "-o",
-        "./soc/firmware/firmware.bin",
-        "./soc/firmware/firmware.hex",
+        "./zig-out/firmware/firmware.bin",
+        "./zig-out/firmware/firmware.hex",
     });
 
     const firmware_step = b.step("firmware", "Builds the BIOS for Ashet");
     firmware_step.dependOn(&gen_firmware_blob.step);
 
-    const refresh_cmd = make_vhd.run();
-    refresh_cmd.step.dependOn(&gen_firmware_blob.step);
-    refresh_cmd.addArgs(&[_][]const u8{
-        "--output",
-        "./soc/hw/src/builtin-rom.vhd",
-        "./soc/firmware/firmware.bin",
-    });
+    // const refresh_cmd = make_vhd.run();
+    // refresh_cmd.step.dependOn(&gen_firmware_blob.step);
+    // refresh_cmd.addArgs(&[_][]const u8{
+    //     "--output",
+    //     "./soc/vhdl/src/builtin-rom.vhd",
+    //     "./zig-out/firmware/firmware.bin",
+    // });
 
-    const gen_mem_file = hex2mem.run();
-    gen_mem_file.step.dependOn(&assemble_step.step);
-    gen_mem_file.addArgs(&[_][]const u8{
-        "--output",
-        "./soc/hw/firmware.mem",
-        "./soc/firmware/firmware.hex",
-    });
+    // const gen_mem_file = hex2mem.run();
+    // gen_mem_file.step.dependOn(&assemble_step.step);
+    // gen_mem_file.addArgs(&[_][]const u8{
+    //     "--output",
+    //     "./soc/vhdl/firmware.mem",
+    //     "./zig-out/firmware/firmware.hex",
+    // });
 
-    b.getInstallStep().dependOn(&gen_mem_file.step);
-    b.getInstallStep().dependOn(&refresh_cmd.step);
+    // b.getInstallStep().dependOn(&gen_mem_file.step);
+    // b.getInstallStep().dependOn(&refresh_cmd.step);
 
     const emulate_cmd = nativeToolchain.emulator.run();
     emulate_cmd.step.dependOn(&assemble_step.step);
     emulate_cmd.addArgs(&[_][]const u8{
-        "./soc/firmware/firmware.hex",
+        "./zig-out/firmware/firmware.hex",
     });
 
     {

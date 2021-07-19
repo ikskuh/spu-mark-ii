@@ -117,14 +117,17 @@ Initial Value: `0x0000`
 #### Interrupt Register (*IR*)
 16 bit register storing internal interrupt information.
 
-| Bit Range | Name    | Description                             |
-| --------- | ------- | --------------------------------------- |
-| `[0]`     | **RST** | Reset was triggered                     |
-| `[1]`     | **NMI** | Non-maskable interrupt triggered        |
-| `[2]`     | **BUS** | Bus error triggered                     |
-| `[3]`     |         | Reserved, must be *0*                   |
-| `[7:4]`   | …       | Interrupt **I[3:0]** triggered bitfield |
-| `[15:8]`  | -       | Reserved (must be 0)                    |
+| Bit Range | Name         | Description                             |
+| --------- | ------------ | --------------------------------------- |
+| `[0]`     | **RST**      | Reset was triggered                     |
+| `[1]`     | **NMI**      | Non-maskable interrupt triggered        |
+| `[2]`     | **BUS**      | Bus error triggered                     |
+| `[3]`     | -            | Reserved, must be *0*                   |
+| `[4]`     | **ARITH**    | `ARITH` was triggered                   |
+| `[5]`     | **SOFTWARE** | `SOFTWARE` was triggered                |
+| `[6]`     | **RESERVED** | `RESERVED` was triggered                |
+| `[7]`     | **IRQ**      | `IRQ` was triggered                     |
+| `[15:8]`  | -            | Reserved (must be 0)                    |
 
 Initial Value: `0x0001` (Reset interrupt triggered)
 
@@ -139,9 +142,9 @@ Instructions use 16 bit opcodes organized in different bit fields defining the b
 | `[2:0]`   | Execution Conditional                 |
 | `[4:3]`   | Input 0 Behaviour                     |
 | `[6:5]`   | Input 1 Behaviour                     |
-| `[7]`     | Flag Modification Behaviour           |
-| `[9:8]`   | Output Behaviour                      |
-| `[14:10]` | Command                               |
+| `[7:7]`   | Flag Modification Behaviour           |
+| `[8:8]`   | Output Behaviour                      |
+| `[14:9]`  | Command                               |
 | `[15:15]` | Reserved for future use (must be `0`) |
 
 #### Conditional Execution
@@ -195,16 +198,14 @@ The flags are modified according to this table:
 | **CE** | unchanged          |
 | **I**  | unchanged          |
 
-#### Result Output
+#### Output Behaviour
 
 Each command may output a value which can be processed in various ways. The output could be pushed to the stack, the command could be made into a jump or the output could be ignored.
 
-| Value       | Enumeration   | Description                                                  |
-|-------------|---------------|--------------------------------------------------------------|
-| `00`₂ (0₁₀) | Discard       | The command output will be ignored.                          |
-| `01`₂ (1₁₀) | Push          | The command output will be pushed to the stack.              |
-| `10`₂ (2₁₀) | Jump          | The instruction pointer will be set to the command output.   |
-| `11`₂ (3₁₀) | Jump Relative | The command output will be added to the instruction pointer. |
+| Value      | Enumeration   | Description                                                  |
+|------------|---------------|--------------------------------------------------------------|
+| `0`₂ (0₁₀) | Discard       | The command output will be ignored.                          |
+| `1`₂ (1₁₀) | Push          | The command output will be pushed to the stack.              |
 
 For *Jump Relative*, the instruction pointer will point to the next instruction plus `output` words. `output` is considered a two-complements signed number. This differs from the *Jump* behavior which takes an address, not a word offset.
 
@@ -216,40 +217,74 @@ Some hints on notation:
 - `MEM16[x]` is the 16 bit word at address `x`
 - `MEM8[x]` is the 8 bit word at address `x`
 
-| Value           | Name    | Pseudo-Code                                                         |
-|-----------------|---------|---------------------------------------------------------------------|
-| `00000`₂  (0₁₀) | COPY    | `output = input0`                                                   |
-| `00001`₂  (1₁₀) | IPGET   | `output = IP + 2 * input0`                                          |
-| `00010`₂  (2₁₀) | GET     | `output = MEM16[BP + 2 * input0]`                                   |
-| `00011`₂  (3₁₀) | SET     | `output = input1; MEM16[BP + 2 * input0] = input1`                  |
-| `00100`₂  (4₁₀) | STORE8  | `output = input1 & 0xFF; MEM8[input0] = input1`                     |
-| `00101`₂  (5₁₀) | STORE16 | `output = input1; MEM16[input0] = input1`                           |
-| `00110`₂  (6₁₀) | LOAD8   | `output = MEM8[input0]`                                             |
-| `00111`₂  (7₁₀) | LOAD16  | `output = MEM16[input0]`                                            |
-| `01000`₂  (8₁₀) | CPUID   | *See below*                                                         |
-| `01001`₂  (9₁₀) | CPUCTRL | *See below*                                                         |
-| `01010`₂ (10₁₀) | FRGET   | `output = (FR & ~input1)`                                           |
-| `01011`₂ (11₁₀) | FRSET   | `output = FR₀; FR₁ = (input0 & ~input1) \| (FR & input1)`           |
-| `01100`₂ (12₁₀) | BPGET   | `output = BP`                                                       |
-| `01101`₂ (13₁₀) | BPSET   | `output = BP₀; BP₁ = input0`                                        |
-| `01110`₂ (14₁₀) | SPGET   | `output = SP`                                                       |
-| `01111`₂ (15₁₀) | SPSET   | `output = SP₀; SP₁ = input0`                                        |
-| `10000`₂ (16₁₀) | ADD     | `output = input0 + input1 + (C & CE)`                               |
-| `10001`₂ (17₁₀) | SUB     | `output = input0 - input1 - (C & CE)`                               |
-| `10010`₂ (18₁₀) | MUL     | `output = input0 * input1`                                          |
-| `10011`₂ (19₁₀) | DIV     | `output = input0 / input1`                                          |
-| `10100`₂ (20₁₀) | MOD     | `output = input0 % input1`                                          |
-| `10101`₂ (21₁₀) | AND     | `output = input0 & input1`                                          |
-| `10110`₂ (22₁₀) | OR      | `output = input0 \| input1`                                         |
-| `10111`₂ (23₁₀) | XOR     | `output = input0 ^ input1`                                          |
-| `11000`₂ (24₁₀) | NOT     | `output = ~input0`                                                  |
-| `11001`₂ (25₁₀) | SIGNEXT | `output = if(input[7] = 1) (0xFF00 \| input0) else (input0 & 0xFF)` |
-| `11010`₂ (26₁₀) | ROL     | `output = concat(input0[14:0], input0[15])`                         |
-| `11011`₂ (27₁₀) | ROR     | `output = concat(input0[0], input0[15:1])`                          |
-| `11100`₂ (28₁₀) | BSWAP   | `output = concat(input0[7:0], input0[15:8])`                        |
-| `11101`₂ (29₁₀) | ASR     | `output = concat(input0[15], input0[15:1])`                         |
-| `11110`₂ (30₁₀) | LSL     | `output = concat(input0[14:0], '0')`                                |
-| `11111`₂ (31₁₀) | LSR     | `output = concat('0', input0[15:1])`                                |
+Executing instructions not defined in the list below are considered undefined behaviour and may 
+
+|  Value           | Name       | Pseudo-Code                                                         |
+|------------------|------------|---------------------------------------------------------------------|
+| `000000`₂  (0₁₀) | COPY       | `output = input0`                                                   |
+| `000001`₂  (1₁₀) | *reserved* |                                                                     |
+| `000010`₂  (2₁₀) | GET        | `output = MEM16[BP + 2 * input0]`                                   |
+| `000011`₂  (3₁₀) | SET        | `output = input1; MEM16[BP + 2 * input0] = input1`                  |
+| `000100`₂  (4₁₀) | STORE8     | `output = input0 & 0xFF; MEM8[input1] = input0`                     |
+| `000101`₂  (5₁₀) | STORE16    | `output = input0; MEM16[input1] = input0`                           |
+| `000110`₂  (6₁₀) | LOAD8      | `output = MEM8[input0]`                                             |
+| `000111`₂  (7₁₀) | LOAD16     | `output = MEM16[input0]`                                            |
+| `001000`₂  (8₁₀) | CPUID      | *See below*                                                         |
+| `001001`₂  (9₁₀) | HALT       | *See below*                                                         |
+| `001010`₂ (10₁₀) | FRGET      | `output = (FR & ~input1)`                                           |
+| `001011`₂ (11₁₀) | FRSET      | `output = FR₀; FR₁ = (input0 & ~input1) \| (FR₀ & input1)`          |
+| `001100`₂ (12₁₀) | BPGET      | `output = BP`                                                       |
+| `001101`₂ (13₁₀) | BPSET      | `output = BP₀; BP₁ = input0`                                        |
+| `001110`₂ (14₁₀) | SPGET      | `output = SP`                                                       |
+| `001111`₂ (15₁₀) | SPSET      | `output = SP₀; SP₁ = input0`                                        |
+| `010000`₂ (16₁₀) | ADD        | `output = input0 + input1 + (C & CE)`                               |
+| `010001`₂ (17₁₀) | SUB        | `output = input0 - input1 - (C & CE)`                               |
+| `010010`₂ (18₁₀) | MUL        | `output = input0 * input1`                                          |
+| `010011`₂ (19₁₀) | DIV        | `output = input0 / input1`                                          |
+| `010100`₂ (20₁₀) | MOD        | `output = input0 % input1`                                          |
+| `010101`₂ (21₁₀) | AND        | `output = input0 & input1`                                          |
+| `010110`₂ (22₁₀) | OR         | `output = input0 \| input1`                                         |
+| `010111`₂ (23₁₀) | XOR        | `output = input0 ^ input1`                                          |
+| `011000`₂ (24₁₀) | NOT        | `output = ~input0`                                                  |
+| `011001`₂ (25₁₀) | SIGNEXT    | `output = if(input[7] = 1) (0xFF00 \| input0) else (input0 & 0xFF)` |
+| `011010`₂ (26₁₀) | ROL        | `output = concat(input0[14:0], input0[15])`                         |
+| `011011`₂ (27₁₀) | ROR        | `output = concat(input0[0], input0[15:1])`                          |
+| `011100`₂ (28₁₀) | BSWAP      | `output = concat(input0[7:0], input0[15:8])`                        |
+| `011101`₂ (29₁₀) | ASR        | `output = concat(input0[15], input0[15:1])`                         |
+| `011110`₂ (30₁₀) | LSL        | `output = concat(input0[14:0], '0')`                                |
+| `011111`₂ (31₁₀) | LSR        | `output = concat('0', input0[15:1])`                                |
+| `100000`₂ (32₁₀) | SETIP      | `output = IP₀; IP₁ = input0; FR₁ = FR₀ \| input1`                   |
+| `100001`₂ (33₁₀) | ADDIP      | `output = IP₀; IP₁ = IP₀ + input0; FR₁ = FR₀ \| input1`             |
+| `100010`₂ (34₁₀) | INTR       | `output = input0; IR = IR \| input0`                                |
+| `100011`₂ (35₁₀) | *reserved* |                                                                     |
+| `100100`₂ (36₁₀) | *reserved* |                                                                     |
+| `100101`₂ (37₁₀) | *reserved* |                                                                     |
+| `100110`₂ (38₁₀) | *reserved* |                                                                     |
+| `100111`₂ (39₁₀) | *reserved* |                                                                     |
+| `101000`₂ (40₁₀) | *reserved* |                                                                     |
+| `101001`₂ (41₁₀) | *reserved* |                                                                     |
+| `101010`₂ (42₁₀) | *reserved* |                                                                     |
+| `101011`₂ (43₁₀) | *reserved* |                                                                     |
+| `101100`₂ (44₁₀) | *reserved* |                                                                     |
+| `101101`₂ (45₁₀) | *reserved* |                                                                     |
+| `101110`₂ (46₁₀) | *reserved* |                                                                     |
+| `101111`₂ (47₁₀) | *reserved* |                                                                     |
+| `110000`₂ (48₁₀) | *reserved* |                                                                     |
+| `110001`₂ (49₁₀) | *reserved* |                                                                     |
+| `110010`₂ (50₁₀) | *reserved* |                                                                     |
+| `110011`₂ (51₁₀) | *reserved* |                                                                     |
+| `110100`₂ (52₁₀) | *reserved* |                                                                     |
+| `110101`₂ (53₁₀) | *reserved* |                                                                     |
+| `110110`₂ (54₁₀) | *reserved* |                                                                     |
+| `110111`₂ (55₁₀) | *reserved* |                                                                     |
+| `111000`₂ (56₁₀) | *reserved* |                                                                     |
+| `111001`₂ (57₁₀) | *reserved* |                                                                     |
+| `111010`₂ (58₁₀) | *reserved* |                                                                     |
+| `111011`₂ (59₁₀) | *reserved* |                                                                     |
+| `111100`₂ (60₁₀) | *reserved* |                                                                     |
+| `111101`₂ (61₁₀) | *reserved* |                                                                     |
+| `111110`₂ (62₁₀) | *reserved* |                                                                     |
+| `111111`₂ (63₁₀) | *reserved* |                                                                     |
 
 `MUL`, `DIV` and `MOD` use signed values as input and output. It is not possible to get the upper 16 bit of the multiplication result.
 
@@ -266,22 +301,9 @@ In all other cases when one of the carry modifying command is invoked, carry is 
 ##### `CPUID`
 This instruction is meant to return the current set of CPU features or possible future extensions. For now, this instruction requires both `input0` and `input1` to be zero, the output will be `zero` as well.
 
-Executing instructions not defined in the list below are considered undefined behaviour and may 
+##### `HALT`
 
-##### `CPUCTRL`
-This instruction is a meta-instruction that allows controlling the CPU behaviour. `input0` selects the instruction that should be executed, `input1` defines an optional argument.
-
-###### HARD_RESET (`input0 = 0`)
-This will trigger a hard-reset and will restart execution from the beginning. Hardware attached to the CPU may react to the soft-reset and reset itself as well.
-
-###### SOFT_RESET (`input0 = 1`)
-This will trigger a soft-reset and will restart execution from the beginning. Hardware attached to the CPU is not able to react to the soft-reset and will keep its state over the reset.
-
-###### HALT (`input0 = 2`)
-This will halt the CPU until the next interrupt occurs. No instructions will be executed when the CPU is halted.
-
-###### INTERRUPT (`input0 = 3`)
-This will set the interrupt triggered flag in the CPU and can be used to enable soft-interrupts. It's possible to activate all interrupts with this.
+Stops execution of instructions until an interrupt happens *and* interrupts are enabled.
 
 ### Memory Access
 
@@ -303,6 +325,7 @@ while IR != 0:
 	intr_bit := indexOfHighestSetBit(IR)
 	IR &= ~(1<<intr_bit)         # clear "interrupt triggered"
 	if intr_bit < 4 or (FR & (1<<intr_bit)) != 0: # if interrupt is not masked
+		push(1<<intr_bit)
 		push(IP)
 		IP := fetch(2 * intr_bit)   # fetch ISR handler
 		if intr_bit >= 4:           # if interrupt is maskable
@@ -360,10 +383,6 @@ if isExecuted(instruction, FR):
 			push(output)
 		when 'discard':
 			# ignore
-		when 'jmp':
-			IP := output
-		when 'rjmp':		
-			IP += 2 * output
 
 	if instruction.modifyFlags:
 		FR.Z = (output == 0x0000)
@@ -444,6 +463,30 @@ Before execution of each instruction the cpu checks if any interrupt is triggere
 - output TYPE signal (tells if memory access is for code or data)
 
 ## Changelog
+
+### v1.11
+- Removes `CPUCTRL` instruction
+- Removes output behaviour `jump` and `rjmp`
+- Changes instruction encoding, *Command* now has 6 bits, *Output Behaviour* has now 1 bit.
+- Introduces new `HALT` command (replaces CPUCTRL)
+- Swaps input semantics for `STORE8` and `STORE16` (reusing the address is more common than reusing the value)
+- Introduces new `SETPC` and `ADDPC` command (replaces the previous *Output Behaviour* `jump` and `rjmp`)
+- Introduces new command `INTR`
+
+TODO: Document HALT behaviour/state as well as interrupt resumption
+
+TODO: Reintroduce a way to trigger software interrupts
+
+TODO: Change interrupt behaviour
+- Interrupts now push FR, IP, then jump to the ISR
+	=> `iret` = "setpc [i0:pop] [i1:pop]
+- Interrupts will disable all interrupts when entering the ISR
+	=> no nested/recursive interrupts
+	=> `iret` will restore the interrupt enable state
+
+TODO: Improve description of the state machine + transitions
+
+TODO: Make shifts take `input1` the number of bits to shift.
 
 ### v1.10
 - Introduces `CPUID` and `CPUCTRL`

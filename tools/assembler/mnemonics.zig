@@ -14,8 +14,8 @@ pub const mnemonics = [_]Mnemonic{
     Mnemonic{ .name = "replace", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .pop, .command = .copy, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "ld8", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .load8, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "ld", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .load16, .output = .push, .modify_flags = false } },
-    Mnemonic{ .name = "st8", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .pop, .command = .store8, .output = .discard, .modify_flags = false } },
-    Mnemonic{ .name = "st", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .pop, .command = .store16, .output = .discard, .modify_flags = false } },
+    Mnemonic{ .name = "st8", .argc = 1, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .store8, .output = .discard, .modify_flags = false } },
+    Mnemonic{ .name = "st", .argc = 1, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .store16, .output = .discard, .modify_flags = false } },
     Mnemonic{ .name = "st8", .argc = 2, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .immediate, .command = .store8, .output = .discard, .modify_flags = false } },
     Mnemonic{ .name = "st", .argc = 2, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .immediate, .command = .store16, .output = .discard, .modify_flags = false } },
     Mnemonic{ .name = "ld8", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .load8, .output = .push, .modify_flags = false } },
@@ -32,6 +32,10 @@ pub const mnemonics = [_]Mnemonic{
     Mnemonic{ .name = "spset", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .spset, .output = .discard, .modify_flags = false } },
     Mnemonic{ .name = "bpset", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .bpset, .output = .discard, .modify_flags = false } },
     Mnemonic{ .name = "spset", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .spset, .output = .discard, .modify_flags = false } },
+    Mnemonic{ .name = "frget", .argc = 0, .instruction = .{ .condition = .always, .input0 = .zero, .input1 = .zero, .command = .frget, .output = .push, .modify_flags = false } },
+    Mnemonic{ .name = "frset", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .frset, .output = .discard, .modify_flags = false } },
+    Mnemonic{ .name = "frset", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .frset, .output = .discard, .modify_flags = false } },
+    Mnemonic{ .name = "frset", .argc = 2, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .immediate, .command = .frset, .output = .discard, .modify_flags = false } },
     Mnemonic{ .name = "add", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .add, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "sub", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .sub, .output = .push, .modify_flags = false } },
     Mnemonic{ .name = "mul", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .mul, .output = .push, .modify_flags = false } },
@@ -64,4 +68,17 @@ pub const mnemonics = [_]Mnemonic{
     Mnemonic{ .name = "cmp", .argc = 1, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .sub, .output = .discard, .modify_flags = true } },
     Mnemonic{ .name = "cmpp", .argc = 1, .instruction = .{ .condition = .always, .input0 = .peek, .input1 = .immediate, .command = .sub, .output = .discard, .modify_flags = true } },
     Mnemonic{ .name = "sgnext", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .signext, .output = .push, .modify_flags = false } },
+
+    Mnemonic{ .name = "jmp", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .setip, .output = .discard, .modify_flags = false } },
+    Mnemonic{ .name = "jmp", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .setip, .output = .discard, .modify_flags = false } },
+
+    Mnemonic{ .name = "call", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .setip, .output = .push, .modify_flags = false } },
+    Mnemonic{ .name = "call", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .setip, .output = .push, .modify_flags = false } },
+
+    // Alias for jmp
+    Mnemonic{ .name = "ret", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .zero, .command = .setip, .output = .discard, .modify_flags = false } },
+
+    Mnemonic{ .name = "iret", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .setip, .output = .discard, .modify_flags = false } },
+
+    Mnemonic{ .name = "intr", .argc = 2, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .immediate, .command = .intr, .output = .discard, .modify_flags = false } },
 };

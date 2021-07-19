@@ -10,8 +10,8 @@
 
 	; call puts(app_msg)
 	push app_msg
-	ipget 2
-	ld ROM_PUTS [out:jmp]
+	ld ROM_PUTS
+	call
 	pop
 
 	; wait until we receive a character from serial
