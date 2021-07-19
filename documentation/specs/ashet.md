@@ -15,12 +15,12 @@
 
 - VGA video
 - 2 serial ports
+- 1 infrared serial interface for wireless data transfers
 - 2 PS/2 ports for keyboard and mouse
-- 2 SD card slots for mass storage
-- IrDA interface for wireless data transfers
+- 2 IDE slots for mass storage
 - 2 joystick ports, compatible to c64/amiga/cpc/…
 - 10 MBit Ethernet
-  - Possible based on ENC28J60 or ENC624J600
+  - Possibly based on ENC28J60 or ENC624J600
 - IEEE 1284 II parallel port
 - PCM audio interface
 - Real time clock

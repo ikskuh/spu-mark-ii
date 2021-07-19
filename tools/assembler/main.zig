@@ -1080,6 +1080,7 @@ pub const Parser = struct {
             'A'...'Z' => true,
             '0'...'9' => true,
             '_' => true,
+            '.' => true,
             else => false,
         };
     }

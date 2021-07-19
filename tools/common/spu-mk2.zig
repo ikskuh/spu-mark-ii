@@ -50,6 +50,14 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
             };
         }
 
+        pub fn reset(self: *Self) void {
+            self.ip = 0x0000;
+            self.fr = std.mem.zeroes(FlagRegister);
+            self.bp = undefined;
+            self.sp = undefined;
+            self.ir = 0x0001; // reset on start
+        }
+
         pub fn triggerInterrupt(self: *Self, intr: Interrupt) void {
             self.ir |= @as(u16, 1) << @enumToInt(intr);
         }
@@ -114,6 +122,8 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
                             if (i != 0) {
                                 try self.push(if (i < 4) 0 else mask);
                                 try self.push(self.ip);
+                            } else {
+                                self.fr = std.mem.zeroes(FlagRegister);
                             }
                             self.ip = ip;
                             std.debug.print("Interrupt {} was triggered, jump to 0x{X:0>4}, FR={b:0>8}, IR={b:0>8}\n", .{
