@@ -129,7 +129,7 @@ Initial Value: `0x0000`
 | `[3]`     | -            | Reserved, must be *0*                   |
 | `[4]`     | **ARITH**    | `ARITH` was triggered                   |
 | `[5]`     | **SOFTWARE** | `SOFTWARE` was triggered                |
-| `[6]`     | **RESERVED** | `RESERVED` was triggered                |
+| `[6]`     | **RESERVED** | `RESERVED` was triggerd                 |
 | `[7]`     | **IRQ**      | `IRQ` was triggered                     |
 | `[15:8]`  | -            | Reserved (must be 0)                    |
 
