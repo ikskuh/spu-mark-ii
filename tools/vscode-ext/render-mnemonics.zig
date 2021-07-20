@@ -9,7 +9,7 @@ pub fn main() !void {
 
     std.sort.sort(mnemonics.Mnemonic, &items, {}, lt);
 
-    try stdout.writeAll("modules.export = [\n");
+    try stdout.writeAll("module.exports = [\n");
     for (items) |m| {
         try stdout.print("  {{ name: '{s}', desc: \"{}\", argc: {}, input0: '{s}', input1: '{s}', output: '{s}', command: '{s}', flags: {}, condition: '{s}' }},\n", .{
             m.name,
