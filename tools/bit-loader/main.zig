@@ -3,7 +3,7 @@ const pcx = @import("pcx.zig");
 const argsParser = @import("args");
 
 pub fn main() !u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         output: ?[]const u8 = null,
 
@@ -11,7 +11,7 @@ pub fn main() !u8 {
             .h = "help",
             .o = "output",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len != 1) {

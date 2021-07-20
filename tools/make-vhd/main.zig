@@ -2,7 +2,7 @@ const std = @import("std");
 const argsParser = @import("args");
 
 pub fn main() anyerror!u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         // This declares long options for double hyphen
         output: ?[]const u8 = null,
         help: bool = false,
@@ -12,7 +12,7 @@ pub fn main() anyerror!u8 {
             .o = "output",
             .h = "help",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     if (cli_args.options.help or cli_args.positionals.len != 1 or cli_args.options.output == null) {

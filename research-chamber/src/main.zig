@@ -28,47 +28,51 @@ const pinConfig = comptime blk: {
 };
 
 pub fn main() !void {
-    pinConfig.apply();
+    //pinConfig.apply();
 
     LED1.setDirection(.out);
     LED2.setDirection(.out);
     LED3.setDirection(.out);
     LED4.setDirection(.out);
-    SD_SELECT.setDirection(.out);
+    // SD_SELECT.setDirection(.out);
 
     LED1.clear();
     LED2.clear();
-    LED3.clear();
-    LED4.clear();
-    SD_SELECT.setTo(.high);
-
-    // Enable PLL & serial for debug output
-    PLL.init();
-
-    Serial.init(115_200);
-
-    SPI.init();
-
-    var sync_serial = Serial.syncWriter();
-    try sync_serial.writeAll("Serial port initialized.\r\n");
-
-    SysTick.init(1_000);
-    try sync_serial.writeAll("SysTick initialized.\r\n");
-
-    EventLoop.init();
-    try sync_serial.writeAll("Starting event loop...\r\n");
-
+    LED3.set();
     LED4.set();
+    // SD_SELECT.setTo(.high);
 
-    var core_loop = async coreMain();
-    var blinky_frame = async doBlinkyLoop();
+    while (true) {
+        asm volatile ("wfi");
+    }
 
-    EventLoop.run();
+    // // Enable PLL & serial for debug output
+    // PLL.init();
 
-    try nosuspend await core_loop;
-    nosuspend await blinky_frame;
+    // Serial.init(115_200);
 
-    try sync_serial.writeAll("Event loop finished!\r\n");
+    // SPI.init();
+
+    // var sync_serial = Serial.syncWriter();
+    // try sync_serial.writeAll("Serial port initialized.\r\n");
+
+    // SysTick.init(1_000);
+    // try sync_serial.writeAll("SysTick initialized.\r\n");
+
+    // EventLoop.init();
+    // try sync_serial.writeAll("Starting event loop...\r\n");
+
+    // LED4.set();
+
+    // var core_loop = async coreMain();
+    // var blinky_frame = async doBlinkyLoop();
+
+    // EventLoop.run();
+
+    // try nosuspend await core_loop;
+    // nosuspend await blinky_frame;
+
+    // try sync_serial.writeAll("Event loop finished!\r\n");
 }
 
 fn doBlinkyLoop() void {
@@ -126,7 +130,7 @@ fn coreMain() !void {
                         var offset: usize = 0;
                         while (offset < T.boot_block.len) : (offset += 32) {
                             const line = T.boot_block[offset..][0..32];
-                            try serout.print("  {X} |", .{line});
+                            try serout.print("  {} |", .{std.fmt.fmtSliceHexUpper(line)});
                             for (line) |c| {
                                 if (c >= 0x20 and c < 0x7F) {
                                     try serout.print("{c}", .{c});
@@ -464,13 +468,13 @@ const SDCard = struct {
         writeRawCommand(cmd, arg);
         return readResponseR7();
     }
-
-    inline fn assertCard() void {
+    fn assertCard() void {
         SD_SELECT.setTo(.low);
         // Give card some time
         _ = readRawByte();
     }
-    inline fn deassertCard() void {
+
+    fn deassertCard() void {
         // Give card some time
         _ = readRawByte();
         SD_SELECT.setTo(.high);
@@ -714,7 +718,7 @@ pub fn panic(message: []const u8, maybe_stack_trace: ?*std.builtin.StackTrace) n
     LED4.clear();
 
     var serial = Serial.syncWriter();
-    serial.print("reached panic: {}\r\n", .{message}) catch unreachable;
+    serial.print("reached panic: {s}\r\n", .{message}) catch unreachable;
 
     if (maybe_stack_trace) |stack_trace|
         printStackTrace(stack_trace);
@@ -808,8 +812,7 @@ const PLL = struct {
     fn overclock_flash(timing: u8) void {
         lpc.sc.FLASHCFG = (@as(u32, timing - 1) << 12) | (lpc.sc.FLASHCFG & 0xFFFF0FFF);
     }
-
-    inline fn feed_pll() void {
+    fn feed_pll() callconv(.Inline) void {
         lpc.sc.PLL0FEED = 0xAA; // mit anschliessendem FEED
         lpc.sc.PLL0FEED = 0x55;
     }
@@ -927,12 +930,10 @@ const DynamicPinConfig = struct {
         Floating = 2,
         PullDown = 3,
     };
-
-    inline fn setup(val: *volatile u32, mask: u32, value: u32) void {
+    fn setup(val: *volatile u32, mask: u32, value: u32) callconv(.Inline) void {
         val.* = (val.* & ~mask) | (value & mask);
     }
-
-    inline fn selectFunction(port: u32, pin: u32, function: Function) void {
+    fn selectFunction(port: u32, pin: u32, function: Function) callconv(.Inline) void {
         const offset = (pin / 16);
         const index = @intCast(u5, (pin % 16) << 1);
         const mask = (@as(u32, 3) << index);
@@ -940,8 +941,7 @@ const DynamicPinConfig = struct {
 
         setup(&@ptrCast([*]volatile u32, &lpc.pincon.PINSEL0)[2 * port + offset], mask, value); // P0.0
     }
-
-    inline fn setMode(port: u32, pin: u32, mode: Mode) void {
+    fn setMode(port: u32, pin: u32, mode: Mode) callconv(.Inline) void {
         const offset = (pin / 16);
         const index = @intCast(u5, pin % 16);
         const mask = (@as(u32, 3) << (2 * index));
@@ -949,16 +949,14 @@ const DynamicPinConfig = struct {
 
         setup(&@ptrCast([*]volatile u32, &lpc.pincon.PINMODE0)[2 * port + offset], mask, value); // P0.0
     }
-
-    inline fn setOpenDrain(port: u32, pin: u32, enabled: bool) void {
+    fn setOpenDrain(port: u32, pin: u32, enabled: bool) callconv(.Inline) void {
         const index = @intCast(u5, pin % 16);
         const mask = (@as(u32, 1) << index);
         const value = if (enabled) mask else 0;
 
         setup(&@ptrCast([*]volatile u32, &lpc.pincon.PINMODE_OD0)[port], mask, value); // P0.0
     }
-
-    inline fn configure(port: u32, pin: u32, func: Function, mode: Mode, open_drain: bool) void {
+    fn configure(port: u32, pin: u32, func: Function, mode: Mode, open_drain: bool) callconv(.Inline) void {
         selectFunction(port, pin, func);
         setMode(port, pin, mode);
         setOpenDrain(port, pin, open_drain);
@@ -1066,7 +1064,7 @@ const SysTick = struct {
         return @atomicLoad(u32, &SysTick.counter, .SeqCst);
     }
 
-    fn SysTickHandler() callconv(.Interrupt) void {
+    fn SysTickHandler() callconv(.C) void {
         _ = @atomicRmw(u32, &counter, .Add, 1, .SeqCst);
     }
 };
@@ -1380,12 +1378,10 @@ const Display = struct {
         EventLoop.waitForMillis(1);
         IO_DISP_RST.set();
     }
-
-    pub inline fn on() void {
+    pub fn on() callconv(.Inline) void {
         exec(GCTRL_DISP_CTRL, GDISP_ON);
     }
-
-    pub inline fn off() void {
+    pub fn off() callconv(.Inline) void {
         exec(GCTRL_DISP_CTRL, GDISP_OFF);
     }
 
@@ -1402,8 +1398,7 @@ const Display = struct {
             SPI.write(self.lower);
         }
     };
-
-    inline fn decodeColor(color: Color) ColorCmd {
+    fn decodeColor(color: Color) callconv(.Inline) ColorCmd {
         const bits = @bitCast(u16, color);
         return ColorCmd{
             .upper = 0x100 | @as(u9, @truncate(u8, bits >> 8)),
@@ -1511,22 +1506,13 @@ const Display = struct {
     pub fn put(color: Color) void {
         decodeColor(color).writeToDisplay();
     }
-
-    /// Low level display API:
-    /// Writes a display command.
-    inline fn write_cmd(value: u8) void {
+    fn write_cmd(value: u8) callconv(.Inline) void {
         SPI.write(value);
     }
-
-    /// Low level display API:
-    /// Writes a display data byte.
-    inline fn write_data(value: u8) void {
+    fn write_data(value: u8) callconv(.Inline) void {
         SPI.write(0x100 | @as(u16, value));
     }
-
-    /// Low level display API:
-    /// Executes a single command with a 16 bit parameter. Used to set registers.
-    inline fn exec(cmd: u8, value: u16) void {
+    fn exec(cmd: u8, value: u16) callconv(.Inline) void {
         write_cmd(cmd);
         write_data(@truncate(u8, value >> 8));
         write_data(@truncate(u8, value & 0xFF));

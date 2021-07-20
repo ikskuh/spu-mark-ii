@@ -1,0 +1,11 @@
+[ihex]
+file = ../tools/modules/zig-ihex/ihex.zig
+
+[serial]
+file = ../tools/modules/zig-serial/serial.zig
+
+[spu-mk2]
+file = ../tools/common/spu-mk2.zig
+
+[sdl2]
+file = ../tools/modules/SDL.zig/src/lib.zig

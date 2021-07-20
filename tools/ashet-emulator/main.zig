@@ -21,6 +21,7 @@ const global_allocator = &gpa.allocator;
 var debug_tracer = spu.TracingInterface{
     .traceInstructionFn = struct {
         fn traceInstruction(intf: *spu.TracingInterface, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) void {
+            _ = intf;
             std.debug.warn("IP={X:0>4} I0={X:0>4} I1={X:0>4} OUT={X:0>4} OP=[{}]\n", .{
                 ip,
                 input0,
@@ -34,9 +35,9 @@ var debug_tracer = spu.TracingInterface{
 
 pub fn main() !u8 {
     const stderr = std.io.getStdErr().writer();
-    const stdout = std.io.getStdOut().writer();
+    // const stdout = std.io.getStdOut().writer();
 
-    const cli = try args.parseForCurrentProcess(CliArgs, global_allocator);
+    const cli = args.parseForCurrentProcess(CliArgs, global_allocator, .print) catch return 1;
     defer cli.deinit();
 
     if (cli.options.help) {
@@ -87,9 +88,9 @@ pub fn main() !u8 {
 
     var success = true; //  we require at least one boot image file
 
-    for (cli.positionals) |file, i| {
+    for (cli.positionals) |file| {
         const ext = fileExtension(file) orelse {
-            try stderr.print("{} is missing a file extension, cannot autodetect the file type!\n", .{file});
+            try stderr.print("{s} is missing a file extension, cannot autodetect the file type!\n", .{file});
             success = false;
             continue;
         };
@@ -100,7 +101,7 @@ pub fn main() !u8 {
             try stderr.writeAll("ihex loading is not implemented yet!\n");
             success = false;
         } else {
-            try stderr.print("{} is not a supported BIOS format!\n", .{ext});
+            try stderr.print("{s} is not a supported BIOS format!\n", .{ext});
             success = false;
         }
     }
@@ -113,6 +114,18 @@ pub fn main() !u8 {
         while (sdl.pollEvent()) |event| {
             switch (event) {
                 .quit => break :main_loop,
+                .key_down => |kd| {
+                    switch (kd.keysym.sym) {
+                        sdl.c.SDLK_F1 => ashet.cpu.triggerInterrupt(.reset),
+                        sdl.c.SDLK_F2 => ashet.cpu.triggerInterrupt(.nmi),
+                        sdl.c.SDLK_F3 => ashet.cpu.triggerInterrupt(.bus),
+                        sdl.c.SDLK_F4 => ashet.cpu.triggerInterrupt(.arith),
+                        sdl.c.SDLK_F5 => ashet.cpu.triggerInterrupt(.software),
+                        sdl.c.SDLK_F6 => ashet.cpu.triggerInterrupt(.reserved),
+                        sdl.c.SDLK_F7 => ashet.cpu.triggerInterrupt(.irq),
+                        else => {},
+                    }
+                },
                 else => {},
             }
         }
@@ -157,14 +170,26 @@ const BusDevice = struct {
 
     const UnmappedImpl = struct {
         fn read8(p: *Self, address: u24) !u8 {
+            _ = p;
+            _ = address;
             return error.BusError;
         }
         fn read16(p: *Self, address: u24) !u16 {
+            _ = p;
+            _ = address;
             return error.BusError;
         }
 
-        fn write8(p: *Self, address: u24, value: u8) !void {}
-        fn write16(p: *Self, address: u24, value: u16) !void {}
+        fn write8(p: *Self, address: u24, value: u8) !void {
+            _ = p;
+            _ = address;
+            _ = value;
+        }
+        fn write16(p: *Self, address: u24, value: u16) !void {
+            _ = p;
+            _ = address;
+            _ = value;
+        }
     };
 
     var unmapped_stor = Self{
@@ -247,7 +272,7 @@ const Ashet = struct {
     // Memory interface
     bus: Bus,
     mmu: MMU,
-    cpu: spu.SpuMk2,
+    cpu: spu.SpuMk2(*MMU),
 
     // Memory mapped parts
     ram: Memory,
@@ -267,15 +292,15 @@ const Ashet = struct {
     // After a call to init, `self` must not be moved anymore!
     pub fn init(self: *Self) void {
         self.* = Self{
-            .cpu = spu.SpuMk2.init(&self.mmu.interface),
+            .cpu = spu.SpuMk2(*MMU).init(&self.mmu),
 
             .bus = Bus{},
             .mmu = MMU{
                 .bus = &self.bus,
             },
 
-            .rom = Memory{ .data = &self.rom_buffer, .read_only = true },
-            .ram = Memory{ .data = &self.ram_buffer, .read_only = false },
+            .rom = Memory.init(&self.rom_buffer, true),
+            .ram = Memory.init(&self.ram_buffer, false),
             .vga = VGA{
                 .bus = &self.bus,
                 .framebuffer_address = 0x000000,
@@ -349,19 +374,19 @@ const Ashet = struct {
 
                 var stack_ptr: u16 = self.cpu.sp -% 8;
                 while (stack_ptr != self.cpu.sp +% 10) : (stack_ptr +%= 2) {
-                    const value = self.mmu.interface.readWord(stack_ptr) catch null;
+                    const value = self.mmu.memReadWord(stack_ptr) catch null;
                     const indicator = if (stack_ptr == self.cpu.sp)
                         "-->"
                     else
                         "   ";
                     if (value) |val| {
-                        std.debug.print("{}{X:0>4}: {X:0>4}\n", .{
+                        std.debug.print("{s}{X:0>4}: {X:0>4}\n", .{
                             indicator,
                             stack_ptr,
-                            value,
+                            val,
                         });
                     } else {
-                        std.debug.print("{}{X:0>4}: ????\n", .{
+                        std.debug.print("{s}{X:0>4}: ????\n", .{
                             indicator,
                             stack_ptr,
                         });
@@ -433,7 +458,7 @@ const Bus = struct {
                 .word => "writing word to",
             },
         };
-        std.debug.print("{} when {} {X:0>6}\n", .{
+        std.debug.print("{s} when {s} {X:0>6}\n", .{
             @errorName(err),
             access_msg,
             address,
@@ -463,19 +488,27 @@ const Memory = struct {
 
     data: []u8,
     read_only: bool,
+    addr_mask: usize,
 
     bus_device: BusDevice = BusDevice{
-        .read16Fn = BusDevice.read16With8,
-        .write16Fn = BusDevice.write16With8,
+        .read16Fn = read16,
+        .write16Fn = write16,
 
         .read8Fn = read8,
         .write8Fn = write8,
     },
 
+    pub fn init(data: []u8, read_only: bool) Self {
+        return Self{
+            .data = data,
+            .read_only = read_only,
+            .addr_mask = (std.math.ceilPowerOfTwo(usize, data.len) catch unreachable) - 1,
+        };
+    }
+
     fn read8(busdev: *BusDevice, address: u24) !u8 {
         const mem = @fieldParentPtr(Self, "bus_device", busdev);
-        const limit = std.math.ceilPowerOfTwo(usize, mem.data.len) catch unreachable;
-        const offset = address & (limit - 1);
+        const offset = address & mem.addr_mask;
 
         return if (offset < mem.data.len)
             mem.data[offset]
@@ -488,11 +521,33 @@ const Memory = struct {
         if (mem.read_only)
             return error.BusError;
 
-        const limit = std.math.ceilPowerOfTwo(usize, mem.data.len) catch unreachable;
-        const offset = address & (limit - 1);
+        const offset = address & mem.addr_mask;
 
         if (offset < mem.data.len) {
             mem.data[offset] = value;
+        } else {
+            return error.BusError;
+        }
+    }
+
+    fn read16(busdev: *BusDevice, address: u24) !u16 {
+        const mem = @fieldParentPtr(Self, "bus_device", busdev);
+        const offset = address & mem.addr_mask;
+        return if (offset < mem.data.len - 1)
+            std.mem.readIntLittle(u16, mem.data[offset..][0..2])
+        else
+            return error.BusError;
+    }
+
+    fn write16(busdev: *BusDevice, address: u24, value: u16) !void {
+        const mem = @fieldParentPtr(Self, "bus_device", busdev);
+        if (mem.read_only)
+            return error.BusError;
+
+        const offset = address & mem.addr_mask;
+
+        if (offset < mem.data.len - 1) {
+            std.mem.writeIntLittle(u16, mem.data[offset..][0..2], value);
         } else {
             return error.BusError;
         }
@@ -551,8 +606,8 @@ const VGA = struct {
 
     /// Writes out the VGA image to a framebuffer
     pub fn render(self: Self, frame_buffer: *[480][640]VGA.RGB) !void {
-        for (frame_buffer) |*row, y| {
-            for (row) |*pix, x| {
+        for (frame_buffer) |*row| {
+            for (row) |*pix| {
                 pix.* = self.border_color;
             }
         }
@@ -705,14 +760,6 @@ const MMU = struct {
         .write16Fn = registerWrite16,
     },
 
-    /// The memory interface for the CPU
-    interface: spu.MemoryInterface = spu.MemoryInterface{
-        .readByteFn = memReadByte,
-        .writeByteFn = memWriteByte,
-        .readWordFn = memReadWord,
-        .writeWordFn = memWriteWord,
-    },
-
     /// The bus that is managed by the MMU
     bus: *Bus,
 
@@ -740,30 +787,31 @@ const MMU = struct {
         return physical_address.address;
     }
 
-    fn memReadByte(interface: *spu.MemoryInterface, address: u16) spu.MemoryInterface.Error!u8 {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    pub const read8 = memReadByte;
+    pub const write8 = memWriteByte;
+    pub const read16 = memReadWord;
+    pub const write16 = memWriteWord;
+
+    fn memReadByte(self: *Self, address: u16) !u8 {
         return self.bus.read8(
             try self.accessAddress(address, .read),
         );
     }
 
-    fn memWriteByte(interface: *spu.MemoryInterface, address: u16, value: u8) spu.MemoryInterface.Error!void {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    fn memWriteByte(self: *Self, address: u16, value: u8) !void {
         return self.bus.write8(
             try self.accessAddress(address, .write),
             value,
         );
     }
 
-    fn memReadWord(interface: *spu.MemoryInterface, address: u16) spu.MemoryInterface.Error!u16 {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    fn memReadWord(self: *Self, address: u16) !u16 {
         return self.bus.read16(
             try self.accessAddress(address, .read),
         );
     }
 
-    fn memWriteWord(interface: *spu.MemoryInterface, address: u16, value: u16) spu.MemoryInterface.Error!void {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    fn memWriteWord(self: *Self, address: u16, value: u16) !void {
         return self.bus.write16(
             try self.accessAddress(address, .write),
             value,
@@ -863,14 +911,19 @@ const SDIO = struct {
     backing_file: ?std.fs.File = null,
 
     fn read16(busdev: *BusDevice, address: u24) !u16 {
-        const sdio = @fieldParentPtr(Self, "bus_device", busdev);
+        _ = busdev;
+        _ = address;
+        // const sdio = @fieldParentPtr(Self, "bus_device", busdev);
         return switch ((address & 0x7FF) >> 1) {
             else => return error.BusError,
         };
     }
 
     fn write16(busdev: *BusDevice, address: u24, value: u16) !void {
-        const sdio = @fieldParentPtr(Self, "bus_device", busdev);
+        _ = busdev;
+        _ = address;
+        _ = value;
+        // const sdio = @fieldParentPtr(Self, "bus_device", busdev);
         switch ((address & 0x7FF) >> 1) {
             else => return error.BusError,
         }

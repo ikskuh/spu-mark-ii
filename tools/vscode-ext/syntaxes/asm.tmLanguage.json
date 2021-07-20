@@ -1,0 +1,78 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "SPU Mark II Assembler",
+    "patterns": [{
+            "include": "#assembler"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#numbers"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [{
+
+                "name": "comment.line",
+                "match": ";.*"
+            }]
+
+        },
+        "assembler": {
+            "patterns": [{
+                    "name": "variable.name.asm",
+                    "match": "^(\\w[\\w\\.]+):"
+                },
+                {
+                    "name": "storage.asm",
+                    "match": "^\\.(\\w+)\\b"
+                },
+                {
+                    "name": "keyword.asm",
+                    "match": "\\[\\w+\\:\\w+\\]"
+                },
+                {
+                    "match": "^\\s*(\\[\\w+\\:\\w+\\]\\s*)*(\\w+)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.asm"
+                        },
+                        "2": {
+                            "name": "keyword.control.asm"
+                        }
+                    }
+                },
+                {
+                    "name": "string.quoted.single.asm",
+                    "match": "'(\\\\.|[^\\\\])'"
+                }
+            ]
+        },
+        "strings": {
+            "name": "string.quoted.double.asm",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [{
+                "name": "constant.character.escape.asm",
+                "match": "\\\\."
+            }]
+        },
+        "numbers": {
+            "patterns": [{
+                    "name": "constant.numeric.hex.asm",
+                    "match": "\\b0x[A-Za-z0-9]+"
+                },
+                {
+                    "name": "constant.numeric.dec.asm",
+                    "match": "\\b[0-9]+"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.asm"
+}

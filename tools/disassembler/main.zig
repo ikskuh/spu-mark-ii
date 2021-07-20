@@ -7,7 +7,7 @@ usingnamespace @import("spu-mk2");
 const FileFormat = enum { ihex, binary };
 const DisasmError = error{EndOfStream} || std.os.WriteError || std.io.FixedBufferStream([]const u8).ReadError;
 
-fn processRecord(out: *const std.io.OutStream(std.fs.File, std.os.WriteError, std.fs.File.write), base: u32, data: []const u8) DisasmError!void {
+fn processRecord(out: *const std.io.Writer(std.fs.File, std.os.WriteError, std.fs.File.write), base: u32, data: []const u8) DisasmError!void {
     const in = std.io.fixedBufferStream(data).reader();
 
     var offset = base;
@@ -56,7 +56,7 @@ fn processRecord(out: *const std.io.OutStream(std.fs.File, std.os.WriteError, st
 }
 
 pub fn main() !u8 {
-    const cli_args = try argsParser.parseForCurrentProcess(struct {
+    const cli_args = argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         format: ?FileFormat = null,
         offset: ?u16 = null,
@@ -65,7 +65,7 @@ pub fn main() !u8 {
             .h = "help",
             .f = "format",
         };
-    }, std.heap.page_allocator);
+    }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
 
     const out = std.io.getStdOut().writer();

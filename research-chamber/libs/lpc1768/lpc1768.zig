@@ -5,21 +5,18 @@ const std = @import("std");
 test "" {
     std.meta.refAllDecls(@This());
 }
-
 pub inline fn __enable_irq() void {
     asm volatile ("cpsie i");
 }
 pub inline fn __disable_irq() void {
     asm volatile ("cpsid i");
 }
-
 pub inline fn __enable_fault_irq() void {
     asm volatile ("cpsie f");
 }
 pub inline fn __disable_fault_irq() void {
     asm volatile ("cpsid f");
 }
-
 pub inline fn __NOP() void {
     asm volatile ("nop");
 }
@@ -262,7 +259,6 @@ pub extern fn __LDREXW(addr: [*c]u32) u32;
 pub extern fn __STREXB(value: u8, addr: [*c]u8) u32;
 pub extern fn __STREXH(value: u16, addr: [*c]u16) u32;
 pub extern fn __STREXW(value: u32, addr: [*c]u32) u32;
-
 pub inline fn NVIC_SetPriorityGrouping(PriorityGroup: u32) void {
     const PriorityGroupTmp = (PriorityGroup & 0x07); // only values 0..7 are used
 
@@ -310,7 +306,6 @@ pub inline fn NVIC_SetHandler(irq: IRQn, handler: *allowzero const c_void) void 
 const __MPU_PRESENT = 1;
 const __NVIC_PRIO_BITS = 5;
 const __Vendor_SysTickConfig = 0;
-
 pub inline fn NVIC_SetPriority(irq: IRQn, priority: u32) void {
     const irq_number = @enumToInt(irq);
     if (irq_number < 0) {
@@ -1132,7 +1127,6 @@ pub const GPIO1_BASE = GPIO_BASE + 0x00020;
 pub const GPIO2_BASE = GPIO_BASE + 0x00040;
 pub const GPIO3_BASE = GPIO_BASE + 0x00060;
 pub const GPIO4_BASE = GPIO_BASE + 0x00080;
-
 pub inline fn __LPC_MODULE(comptime _Type: type, comptime _Base: u32) *volatile _Type {
     return @intToPtr(*volatile _Type, _Base);
 }

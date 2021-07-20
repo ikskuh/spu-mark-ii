@@ -32,7 +32,7 @@ The flags define one bit right now:
 
 | Value    | Name            | Description                                       |
 |----------|-----------------|---------------------------------------------------|
-| `"0000"` | End of List     | If this operation is encountered, the chip will stop following the linked list and emit an IRQ signal. |
+| `"02000"` | End of List     | If this operation is encountered, the chip will stop following the linked list and emit an IRQ signal. |
 | `"0001"` | Copy Rect       | This node describes a *Copy Rect* operation.      |
 | `"0010"` | Vector Fill     | This node describes a *Vector Fill* operation     |
 | `"0011"` | *reserved*      |                                                   |
@@ -60,7 +60,7 @@ While copying, both an alpha operation as well as a masking operation can be per
 **Inputs:**
 - Alpha (byte)
 - Source (rectangle)
-- Destinaction (rectangle)
+- Destination (rectangle)
 - Mask (rectangle)
 - Alpha Function
 - Pixel Function

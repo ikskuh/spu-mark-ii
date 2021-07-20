@@ -4,3 +4,4 @@
 *.exe
 zig-cache
 build/
+zig-out/

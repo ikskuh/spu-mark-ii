@@ -1,0 +1,6 @@
+
+
+.equ SYS_UART_SETUP,      16
+.equ SYS_UART_STATUS,     20
+.equ SYS_UART_WRITE_CHAR, 24
+.equ SYS_UART_READ_CHAR,  28

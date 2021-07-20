@@ -1,3 +1,5 @@
+> DEPRECATED. IS NOW IN xq.tech!
+
 ## Overview
 - 16 bit virtual addresses
 - 24 bit physical addresses

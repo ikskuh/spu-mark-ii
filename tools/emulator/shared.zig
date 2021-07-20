@@ -4,13 +4,6 @@ const spu = @import("spu-mk2");
 pub const BasicMemory = struct {
     const Self = @This();
 
-    interface: spu.MemoryInterface = spu.MemoryInterface{
-        .readByteFn = readByte,
-        .writeByteFn = writeByte,
-        .readWordFn = readWord,
-        .writeWordFn = writeWord,
-    },
-
     rom: [32768]u8 = undefined, // lower half is ROM
     ram: [32768]u8 = undefined, // upper half is RAM
 
@@ -27,29 +20,35 @@ pub const BasicMemory = struct {
         }
     }
 
-    fn readByte(interface: *spu.MemoryInterface, address: u16) spu.MemoryInterface.Error!u8 {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    pub fn read8(self: *Self, address: u16) !u8 {
+        _ = self;
+        _ = address;
         return switch (address) {
             else => return error.BusError,
         };
     }
 
-    fn writeByte(interface: *spu.MemoryInterface, address: u16, value: u8) spu.MemoryInterface.Error!void {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    pub fn write8(self: *Self, address: u16, value: u8) !void {
+        _ = self;
+        _ = address;
+        _ = value;
         switch (address) {
             else => return error.BusError,
         }
     }
 
-    fn readWord(interface: *spu.MemoryInterface, address: u16) spu.MemoryInterface.Error!u16 {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    pub fn read16(self: *Self, address: u16) !u16 {
+        _ = self;
+        _ = address;
         return switch (address) {
             else => return error.BusError,
         };
     }
 
-    fn writeWord(interface: *spu.MemoryInterface, address: u16, value: u16) spu.MemoryInterface.Error!void {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    pub fn write16(self: *Self, address: u16, value: u16) !void {
+        _ = self;
+        _ = address;
+        _ = value;
         switch (address) {
             else => return error.BusError,
         }
