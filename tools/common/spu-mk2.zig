@@ -1,10 +1,20 @@
 const std = @import("std");
 
-pub const TracingInterface = struct {
+pub const DebugInterface = struct {
     const Self = @This();
 
-    traceInstructionFn: fn (self: *Self, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) void,
+    pub const TraceError = error{DebugBreak};
 
+    traceInstructionFn: fn (self: *Self, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) void,
+    traceAddressFn: fn (self: *Self, virt: u16) TraceError!void,
+
+    /// Traces a address to the debugger. If a breakpoint is set there,
+    /// it must return `error.DebugBreak`.
+    pub fn traceAddress(self: *Self, virt: u16) TraceError!void {
+        return self.traceAddressFn(self, virt);
+    }
+
+    /// Traces a successfully executed instructions.
     pub fn traceInstruction(self: *Self, ip: u16, instruction: Instruction, input0: u16, input1: u16, output: u16) void {
         self.traceInstructionFn(self, ip, instruction, input0, input1, output);
     }
@@ -26,8 +36,7 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
         const Self = @This();
 
         memory: MemoryInterface,
-        tracing: ?*TracingInterface,
-        trace_enabled: bool,
+        debug_interface: ?*DebugInterface,
 
         ip: u16,
         bp: u16,
@@ -39,8 +48,7 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
             return Self{
                 .memory = memory,
 
-                .tracing = null,
-                .trace_enabled = false,
+                .debug_interface = null,
 
                 .ip = 0x0000,
                 .fr = std.mem.zeroes(FlagRegister),
@@ -104,6 +112,10 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
         }
 
         pub fn executeSingle(self: *Self) !void {
+            if (self.debug_interface) |debug| {
+                try debug.traceAddress(self.ip);
+            }
+
             {
                 comptime var i = 7;
                 inline while (i >= 0) : (i -= 1) {
@@ -143,9 +155,9 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
 
             if (instruction.reserved == 1) {
                 switch (@bitCast(u16, instruction)) {
-                    0x8000 => self.trace_enabled = false,
-                    0x8001 => self.trace_enabled = true,
-                    //0x8002 => try @import("root").dumpState(self),
+                    // 0x8000 => self.trace_enabled = false,
+                    // 0x8001 => self.trace_enabled = true,
+                    // 0x8002 => try @import("root").dumpState(self),
                     else => return error.BadInstruction,
                 }
                 return;
@@ -271,9 +283,8 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
                     self.fr.bits.zero = (output == 0x0000);
                 }
 
-                if (self.tracing) |intf| {
-                    if (self.trace_enabled)
-                        intf.traceInstruction(start_ip, instruction, input0, input1, output);
+                if (self.debug_interface) |intf| {
+                    intf.traceInstruction(start_ip, instruction, input0, input1, output);
                 }
             } else {
                 if (instruction.input0 == .immediate) self.ip +%= 2;

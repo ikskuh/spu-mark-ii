@@ -71,7 +71,7 @@ bios.syscall.uart.status:
 ;
 bios.syscall.uart.writeChar:
   get 0-2
-	set 0x4000
+	st 0x4000
 	ret
 
 ; uart.readChar(uart: u16) u16 

@@ -223,7 +223,9 @@ Some hints on notation:
 - `MEM16[x]` is the 16 bit word at address `x`
 - `MEM8[x]` is the 8 bit word at address `x`
 
-Executing instructions not defined in the list below are considered undefined behaviour and may 
+Executing instructions not defined in the list below are considered undefined behaviour and may do any behaviour.
+
+If a register has a subscript `₀`, it means that this refers to the value *before* the instruction is executed. If there is a subscript `₁`, it means that this refers to the value *after* the instruction was executed. **Note:** `₀` still
 
 |  Value           | Name       | Pseudo-Code                                                         |
 |------------------|------------|---------------------------------------------------------------------|

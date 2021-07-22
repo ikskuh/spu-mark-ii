@@ -18,22 +18,9 @@ const CliArgs = struct {
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const global_allocator = &gpa.allocator;
 
-var debug_tracer = spu.TracingInterface{
-    .traceInstructionFn = struct {
-        fn traceInstruction(intf: *spu.TracingInterface, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) void {
-            _ = intf;
-            std.debug.warn("IP={X:0>4} I0={X:0>4} I1={X:0>4} OUT={X:0>4} OP=[{}]\n", .{
-                ip,
-                input0,
-                input1,
-                output,
-                instruction,
-            });
-        }
-    }.traceInstruction,
-};
-
 pub fn main() !u8 {
+    defer _ = gpa.deinit();
+
     const stderr = std.io.getStdErr().writer();
     // const stdout = std.io.getStdOut().writer();
 
@@ -80,11 +67,15 @@ pub fn main() !u8 {
         480,
     );
 
-    const ashet: *Ashet = try std.heap.page_allocator.create(Ashet);
-    defer std.heap.page_allocator.destroy(ashet);
+    const ashet: *Ashet = try global_allocator.create(Ashet);
+    defer global_allocator.destroy(ashet);
 
     Ashet.init(ashet);
     defer ashet.deinit();
+
+    var dbg = DebugInterface.init(global_allocator);
+    defer dbg.deinit();
+    ashet.cpu.debug_interface = &dbg.interface;
 
     var success = true; //  we require at least one boot image file
 
@@ -110,19 +101,52 @@ pub fn main() !u8 {
         return 1;
     }
 
+    if (std.builtin.mode == .Debug) {
+        ashet.vga.debug_view_active = true;
+    }
+
     main_loop: while (true) {
         while (sdl.pollEvent()) |event| {
             switch (event) {
                 .quit => break :main_loop,
                 .key_down => |kd| {
+                    const has_shift = (kd.keysym.mod & (sdl.c.KMOD_LSHIFT | sdl.c.KMOD_RSHIFT)) != 0;
                     switch (kd.keysym.sym) {
-                        sdl.c.SDLK_F1 => ashet.cpu.triggerInterrupt(.reset),
-                        sdl.c.SDLK_F2 => ashet.cpu.triggerInterrupt(.nmi),
-                        sdl.c.SDLK_F3 => ashet.cpu.triggerInterrupt(.bus),
-                        sdl.c.SDLK_F4 => ashet.cpu.triggerInterrupt(.arith),
-                        sdl.c.SDLK_F5 => ashet.cpu.triggerInterrupt(.software),
-                        sdl.c.SDLK_F6 => ashet.cpu.triggerInterrupt(.reserved),
-                        sdl.c.SDLK_F7 => ashet.cpu.triggerInterrupt(.irq),
+                        sdl.c.SDLK_F1 => if (has_shift) {
+                            ashet.cpu.triggerInterrupt(.reset);
+                        } else {
+                            ashet.cpu.triggerInterrupt(.arith);
+                        },
+                        sdl.c.SDLK_F2 => if (has_shift) {
+                            ashet.cpu.triggerInterrupt(.nmi);
+                        } else {
+                            ashet.cpu.triggerInterrupt(.software);
+                        },
+                        sdl.c.SDLK_F3 => if (has_shift) {
+                            ashet.cpu.triggerInterrupt(.bus);
+                        } else {
+                            ashet.cpu.triggerInterrupt(.reserved);
+                        },
+                        sdl.c.SDLK_F4 => if (has_shift) {} else {
+                            ashet.cpu.triggerInterrupt(.irq);
+                        },
+
+                        sdl.c.SDLK_F5 => {
+                            if (dbg.is_paused) {
+                                dbg.@"continue"();
+                            } else {
+                                dbg.@"break"();
+                            }
+                        },
+
+                        sdl.c.SDLK_F10 => {
+                            if (dbg.is_paused) {
+                                dbg.executeSingleStep();
+                            }
+                        },
+
+                        // This is a (physical) HW switch
+                        sdl.c.SDLK_F12 => ashet.vga.debug_view_active = !ashet.vga.debug_view_active,
                         else => {},
                     }
                 },
@@ -134,7 +158,12 @@ pub fn main() !u8 {
 
         // const timer = try std.time.Timer.start();
 
-        try ashet.runFor(16 * std.time.ns_per_ms);
+        if (!dbg.is_paused) {
+            ashet.runFor(16 * std.time.ns_per_ms) catch |err| switch (err) {
+                error.DebugBreak => std.log.info("debug break at 0x{X:0>4}", .{ashet.cpu.ip}), // we will handle this properly by ignoring it
+                else => |e| return e,
+            };
+        }
 
         // const time = @intToFloat(f64, timer.read()) / std.time.ns_per_ms;
 
@@ -153,6 +182,103 @@ pub fn main() !u8 {
 
     return 0;
 }
+
+const DebugInterface = struct {
+    const Self = @This();
+
+    interface: spu.DebugInterface = .{
+        .traceInstructionFn = traceInstruction,
+        .traceAddressFn = traceAddress,
+    },
+
+    breakpoints: std.ArrayList(u16),
+
+    is_paused: bool,
+    auto_break: bool,
+
+    pub fn init(allocator: *std.mem.Allocator) Self {
+        return Self{
+            .breakpoints = std.ArrayList(u16).init(allocator),
+            .is_paused = false,
+            .auto_break = false,
+        };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.breakpoints.deinit();
+        self.* = undefined;
+    }
+
+    pub fn enableBreakpoint(self: *Self, address: u16) !void {
+        std.debug.assert((address & 1) == 0);
+
+        if (std.mem.indexOfScalar(u16, self.breakpoints.items, address) == null) {
+            try self.breakpoints.append(address);
+        }
+    }
+
+    pub fn disableBreakpoint(self: *Self, address: u16) void {
+        std.debug.assert((address & 1) == 0);
+
+        if (std.mem.indexOfScalar(u16, self.breakpoints.items, address)) |index| {
+            self.breakpoints.swapRemove(index);
+        }
+    }
+
+    pub fn @"break"(self: *Self) void {
+        self.is_paused = true;
+    }
+
+    pub fn @"continue"(self: *Self) void {
+        self.is_paused = false;
+        self.auto_break = false;
+    }
+
+    pub fn executeSingleStep(self: *Self) void {
+        self.is_paused = false;
+        self.auto_break = true;
+    }
+
+    fn fmtInstruction(buf: []u8, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {
+        var stream = std.io.fixedBufferStream(buf);
+        const writer = stream.writer();
+
+        try writer.writeAll(@tagName(instruction.command));
+        try writer.print("(0x{X:0>4}, 0x{X:0>4})", .{ input0, input1 });
+        if (instruction.output != .discard) {
+            try writer.print(" => 0x{X:0>4}", .{output});
+        }
+    }
+
+    fn traceInstruction(interface: *spu.DebugInterface, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) void {
+        const self = @fieldParentPtr(Self, "interface", interface);
+        if (self.is_paused or self.auto_break) {
+            var buf = std.mem.zeroes([64]u8);
+
+            fmtInstruction(&buf, instruction, input0, input1, output) catch {};
+
+            std.log.info("trace: 0x{X:0>4}: {s}", .{ ip, &buf });
+        }
+    }
+
+    fn traceAddress(interface: *spu.DebugInterface, virt: u16) spu.DebugInterface.TraceError!void {
+        const self = @fieldParentPtr(Self, "interface", interface);
+        //
+        _ = self;
+        _ = virt;
+
+        if (self.is_paused)
+            return error.DebugBreak;
+
+        if (self.auto_break)
+            self.is_paused = true;
+
+        if (std.mem.indexOfScalar(u16, self.breakpoints.items, virt) != null) {
+            self.is_paused = true;
+            return error.DebugBreak;
+        }
+    }
+};
 
 fn usage(out: anytype) !void {
     try out.writeAll(
@@ -334,8 +460,6 @@ const Ashet = struct {
         // MMU is by-default in an identity mapping, so we need to map the MMU into the visible range.
         // In this case, we map the MMU into the last page of memory space
         self.mmu.page_config[0xF].physical_address = 0x7F0;
-
-        self.cpu.tracing = &debug_tracer;
     }
 
     pub fn deinit(self: *Self) void {
@@ -358,6 +482,9 @@ const Ashet = struct {
 
             // Now, run the CPU
             self.cpu.runBatch(cycles_per_step) catch |err| {
+                if (err == error.DebugBreak)
+                    return error.DebugBreak;
+
                 self.bus.enable_debug_msg = false;
                 defer self.bus.enable_debug_msg = true;
 
@@ -604,8 +731,10 @@ const VGA = struct {
     framebuffer_address: u32 = 0x000000,
     framebuffer_stride: u32 = 0x000100, // default stride is a fully linear framebuffer
 
+    debug_view_active: bool = false,
+
     /// Writes out the VGA image to a framebuffer
-    pub fn render(self: Self, frame_buffer: *[480][640]VGA.RGB) !void {
+    pub fn render(self: *Self, frame_buffer: *[480][640]VGA.RGB) !void {
         for (frame_buffer) |*row| {
             for (row) |*pix| {
                 pix.* = self.border_color;
@@ -666,19 +795,41 @@ const VGA = struct {
                 }
             }
         };
-        //  TODO: this should be dependent on a hardware switch or register value
-        if (true) {
-            const ashet = @fieldParentPtr(Ashet, "vga", &self);
+
+        if (self.debug_view_active) {
+            const ashet = @fieldParentPtr(Ashet, "vga", self);
 
             const color = RGB.init(0xFF, 0x00, 0x00);
+            const color_hl = RGB.init(0xFF, 0xFF, 0xFF);
 
-            H.printHexDigit(frame_buffer, 16, 16, u16, ashet.cpu.ip, color);
-            H.printHexDigit(frame_buffer, 16, 32, u16, ashet.cpu.sp, color);
-            H.printHexDigit(frame_buffer, 16, 48, u16, ashet.cpu.bp, color);
-            H.printHexDigit(frame_buffer, 16, 64, u16, @bitCast(u16, ashet.cpu.fr), color);
+            H.printHexDigit(frame_buffer, 8, 8, u16, ashet.cpu.ip, color);
+            H.printHexDigit(frame_buffer, 8, 24, u16, ashet.cpu.sp, color);
+            H.printHexDigit(frame_buffer, 8, 40, u16, ashet.cpu.bp, color);
+            H.printHexDigit(frame_buffer, 8, 56, u16, @bitCast(u16, ashet.cpu.fr), color);
 
             for (ashet.mmu.page_config) |cfg, i| {
                 H.printHexDigit(frame_buffer, 8, 112 + 16 * i, u16, @bitCast(u16, cfg), color);
+            }
+
+            {
+                var offset: u16 = ashet.cpu.sp;
+                var i: u16 = 0;
+                while (i < 16) : (i += 1) {
+                    const value = ashet.cpu.readWord(offset) catch 0xFFFF;
+                    offset +%= 2;
+
+                    H.printHexDigit(
+                        frame_buffer,
+                        584,
+                        112 + 16 * i,
+                        u16,
+                        value,
+                        if (ashet.cpu.bp == offset)
+                            color_hl
+                        else
+                            color,
+                    );
+                }
             }
         }
     }
