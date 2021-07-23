@@ -80,6 +80,14 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     };
 }
 
+pub fn addTest(b: *std.build.Builder, global_step: *std.build.Step, comptime tool_name: []const u8, src: []const u8) *std.build.LibExeObjStep {
+    const test_runner = b.addTest(src);
+    const test_step = b.step("test-" ++ tool_name, "Runs the test suite for " ++ tool_name);
+    test_step.dependOn(&test_runner.step);
+    global_step.dependOn(&test_runner.step);
+    return test_runner;
+}
+
 pub fn build(b: *std.build.Builder) !void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
@@ -92,11 +100,16 @@ pub fn build(b: *std.build.Builder) !void {
     nativeToolchain.hex2bin.install();
     nativeToolchain.ashet_emulator.install();
 
-    const test_step = b.step("test", "Tests the code");
-    test_step.dependOn(&b.addTest("tools/debugger/main.zig").step);
-    test_step.dependOn(&b.addTest("tools/emulator/pc-main.zig").step);
-    test_step.dependOn(&b.addTest("tools/make-vhd/main.zig").step);
-    test_step.dependOn(&b.addTest("tools/hex2bin/main.zig").step);
+    const test_step = b.step("test", "Runs the full test suite");
+    {
+        const asm_test = addTest(b, test_step, "assembler", "tools/assembler/main.zig");
+        asm_test.addPackage(zpm.pkgs.@"spu-mk2");
+
+        _ = addTest(b, test_step, "debugger", "tools/debugger/main.zig");
+        _ = addTest(b, test_step, "emulator", "tools/emulator/pc-main.zig");
+        _ = addTest(b, test_step, "make-vhd", "tools/make-vhd/main.zig");
+        _ = addTest(b, test_step, "hex2bin", "tools/hex2bin/main.zig");
+    }
 
     const make_vhd = b.addExecutable("make-vhd", "tools/make-vhd/main.zig");
     make_vhd.addPackage(packages.args);

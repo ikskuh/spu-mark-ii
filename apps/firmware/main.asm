@@ -70,7 +70,7 @@ bios.syscall.uart.status:
 ;     0…9 => max bits to send over the wire
 ;
 bios.syscall.uart.writeChar:
-  get 0-2
+  get -2
 	st 0x4000
 	ret
 
@@ -156,7 +156,7 @@ vga_fill:
 	dup ; duplicate address
 	bswap [i0:peek]
 	xor
-	get 0-1
+	get -1
 	add
 
 ;.dw 0x8001 ; enable tracing

@@ -120,7 +120,7 @@ pub fn main() !u8 {
 pub const Patch = struct {
     offset: u16,
     value: Expression,
-    locals: std.StringHashMap(u16),
+    locals: *std.StringHashMap(u16),
 };
 
 pub const Section = struct {
@@ -133,6 +133,9 @@ pub const Section = struct {
 
     fn deinit(self: *Self) void {
         self.bytes.deinit();
+        for (self.patches.items) |*patch| {
+            patch.value.deinit();
+        }
         self.patches.deinit();
         self.* = undefined;
     }
@@ -165,15 +168,19 @@ pub const Assembler = struct {
     // utilities
     allocator: *std.mem.Allocator,
 
+    // string interning
+    string_arena: std.heap.ArenaAllocator,
+    interned_strings: std.StringHashMapUnmanaged(void),
+
     // assembling result
     sections: std.TailQueue(Section),
     symbols: std.StringHashMap(u16),
-    local_symbols: std.StringHashMap(u16),
+    local_symbols: *std.StringHashMap(u16),
     errors: std.ArrayList(CompileError),
 
     // in-flight symbols
     fileName: []const u8,
-    directory: std.fs.Dir,
+    directory: ?std.fs.Dir,
 
     fn appendSection(assembler: *Assembler, offset: u16) !*Section {
         var node = try assembler.allocator.create(SectionNode);
@@ -202,11 +209,17 @@ pub const Assembler = struct {
             .allocator = allocator,
             .sections = std.TailQueue(Section){},
             .symbols = std.StringHashMap(u16).init(allocator),
-            .local_symbols = std.StringHashMap(u16).init(allocator),
+            .local_symbols = undefined,
             .errors = std.ArrayList(CompileError).init(allocator),
             .fileName = undefined,
             .directory = undefined,
+            .string_arena = std.heap.ArenaAllocator.init(allocator),
+            .interned_strings = .{},
         };
+        errdefer a.string_arena.deinit();
+
+        a.local_symbols = try a.string_arena.allocator.create(std.StringHashMap(u16));
+        a.local_symbols.* = std.StringHashMap(u16).init(&a.string_arena.allocator);
 
         _ = try a.appendSection(0x0000);
 
@@ -218,6 +231,9 @@ pub const Assembler = struct {
             sect.data.deinit();
             self.allocator.destroy(sect);
         }
+        self.interned_strings.deinit(self.allocator);
+        self.string_arena.deinit();
+        self.symbols.deinit();
         self.* = undefined;
     }
 
@@ -240,27 +256,30 @@ pub const Assembler = struct {
                 }
             }
 
+            for (section.patches.items) |*patch| {
+                patch.value.deinit();
+            }
             section.patches.shrinkRetainingCapacity(0);
         }
     }
 
-    fn emitError(self: *Self, kind: CompileError.Type, token: ?Token, comptime fmt: []const u8, args: anytype) !void {
+    fn emitError(self: *Self, kind: CompileError.Type, location: ?Location, comptime fmt: []const u8, args: anytype) !void {
         const msg = try std.fmt.allocPrint(self.allocator, fmt, args);
         errdefer self.allocator.free(msg);
 
-        var location = if (token) |t| t.location else null;
-        if (location) |*l| {
-            l.file = self.fileName;
+        var location_clone = location;
+        if (location_clone) |*l| {
+            l.file = try self.internString(self.fileName);
         }
 
         try self.errors.append(CompileError{
-            .location = location,
+            .location = location_clone,
             .type = kind,
             .message = msg,
         });
     }
 
-    const AssembleError = std.fs.File.OpenError || std.fs.File.ReadError || std.fs.File.SeekError || EvaluationError || error{
+    const AssembleError = std.fs.File.OpenError || std.fs.File.ReadError || std.fs.File.SeekError || EvaluationError || Parser.ParseError || error{
         UnexpectedEndOfFile,
         UnrecognizedCharacter,
         IncompleteStringLiteral,
@@ -277,7 +296,7 @@ pub const Assembler = struct {
         StreamTooLong,
         ParensImbalance,
     };
-    pub fn assemble(self: *Assembler, fileName: []const u8, directory: std.fs.Dir, stream: anytype) AssembleError!void {
+    pub fn assemble(self: *Assembler, fileName: []const u8, directory: ?std.fs.Dir, stream: anytype) AssembleError!void {
         var parser = try Parser.fromStream(self.allocator, stream);
         defer parser.deinit();
 
@@ -301,7 +320,7 @@ pub const Assembler = struct {
                 .label => {
                     const label = try parser.expect(.label);
 
-                    const name = try std.mem.dupe(self.allocator, u8, label.text[0 .. label.text.len - 1]);
+                    const name = try self.internString(label.text[0 .. label.text.len - 1]);
 
                     const offset = self.currentSection().getGlobalOffset();
 
@@ -310,7 +329,8 @@ pub const Assembler = struct {
                         try self.local_symbols.put(name, offset);
                     } else {
                         // global label
-                        self.local_symbols = std.StringHashMap(u16).init(self.allocator);
+                        self.local_symbols = try self.string_arena.allocator.create(std.StringHashMap(u16));
+                        self.local_symbols.* = std.StringHashMap(u16).init(&self.string_arena.allocator);
                         try self.symbols.put(name, offset);
                     }
                 },
@@ -326,7 +346,7 @@ pub const Assembler = struct {
         }
 
         self.fileName = undefined;
-        self.directory = undefined;
+        self.directory = null;
     }
 
     fn getInstructionForMnemonic(name: []const u8, argc: usize) ?Instruction {
@@ -399,7 +419,7 @@ pub const Assembler = struct {
 
         // search for instruction template
         var instruction = getInstructionForMnemonic(instruction_token.?.text, operand_count) orelse {
-            return try assembler.emitError(.@"error", instruction_token.?, "Unknown mnemonic: {s}", .{instruction_token.?.text});
+            return try assembler.emitError(.@"error", instruction_token.?.location, "Unknown mnemonic: {s}", .{instruction_token.?.text});
         };
 
         // apply modifiers
@@ -449,7 +469,7 @@ pub const Assembler = struct {
 
             const offset = try assembler.evaluate(offset_expr.expression, true);
             if (offset != .number) {
-                return try assembler.emitError(.@"error", offset_expr.expression.sequence[0], "Type mismatch: Expected number, found {s}", .{@tagName(offset)});
+                return try assembler.emitError(.@"error", offset_expr.expression.location, "Type mismatch: Expected number, found {s}", .{@tagName(offset)});
             }
 
             const sect = if (assembler.currentSection().bytes.items.len == 0)
@@ -545,8 +565,7 @@ pub const Assembler = struct {
 
             _ = try parser.expect(.comma);
 
-            const name = try std.mem.dupe(assembler.allocator, u8, name_tok.text);
-            errdefer assembler.allocator.free(name);
+            const name = try assembler.internString(name_tok.text);
 
             const value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
             const value = try assembler.evaluate(value_expr.expression, true);
@@ -564,10 +583,14 @@ pub const Assembler = struct {
             if (filename != .string)
                 return error.TypeMismatch;
 
-            var blob = try assembler.directory.readFileAlloc(assembler.allocator, filename.string, 65536);
-            defer assembler.allocator.free(blob);
+            if (assembler.directory) |dir| {
+                var blob = try dir.readFileAlloc(assembler.allocator, filename.string, 65536);
+                defer assembler.allocator.free(blob);
 
-            try assembler.currentSection().bytes.writer().writeAll(blob);
+                try assembler.currentSection().bytes.writer().writeAll(blob);
+            } else {
+                try assembler.emitError(.@"error", filename_expr.expression.location, "Cannot open file {s}: No filesystem available", .{filename});
+            }
         }
 
         fn @".include"(assembler: *Assembler, parser: *Parser) !void {
@@ -577,19 +600,22 @@ pub const Assembler = struct {
             if (filename != .string)
                 return error.TypeMismatch;
 
-            var file = try assembler.directory.openFile(filename.string, .{ .read = true, .write = false });
-            defer file.close();
+            if (assembler.directory) |dir| {
+                var file = try dir.openFile(filename.string, .{ .read = true, .write = false });
+                defer file.close();
 
-            const old_file_name = assembler.fileName;
-            const old_directory = assembler.directory;
+                const old_file_name = assembler.fileName;
 
-            defer assembler.fileName = old_file_name;
-            defer assembler.directory = old_directory;
+                defer assembler.fileName = old_file_name;
+                defer assembler.directory = dir;
 
-            var dir = try assembler.directory.openDir(std.fs.path.dirname(filename.string) orelse ".", .{ .access_sub_paths = true, .iterate = false });
-            defer dir.close();
+                var new_dir = try dir.openDir(std.fs.path.dirname(filename.string) orelse ".", .{ .access_sub_paths = true, .iterate = false });
+                defer new_dir.close();
 
-            try assembler.assemble(filename.string, dir, file.reader());
+                try assembler.assemble(filename.string, new_dir, file.reader());
+            } else {
+                try assembler.emitError(.@"error", filename_expr.expression.location, "Cannot open file {s}: No filesystem available", .{filename});
+            }
         }
     };
     // Output handling:
@@ -646,10 +672,8 @@ pub const Assembler = struct {
     // Expression handling
 
     fn parseAndInternString(assembler: *Assembler, token: Token) ![]const u8 {
-        // very interning, much optimization
-        // TODO: Implement actual string interning
         const buffer = try assembler.allocator.alloc(u8, token.text.len - 2);
-        errdefer assembler.allocator.free(buffer);
+        defer assembler.allocator.free(buffer);
 
         var length: usize = 0;
 
@@ -662,182 +686,40 @@ pub const Assembler = struct {
             offset += c.length;
         }
 
-        return buffer[0..length];
+        return try assembler.internString(buffer[0..length]);
     }
 
-    const EvaluationError = error{ InvalidExpression, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
-    fn evaluate(assembler: *Assembler, expression: Expression, emitErrorOnMissing: bool) EvaluationError!Value {
-        var stack = std.ArrayList(Value).init(assembler.allocator);
-        defer stack.deinit();
-
-        // std.debug.warn("evaluate expression: `{}`", .{expression});
-
-        for (expression.sequence) |item| {
-            switch (item.type) {
-                .identifier => if (assembler.symbols.get(item.text)) |sym|
-                    try stack.append(Value{ .number = sym })
-                else {
-                    if (emitErrorOnMissing) {
-                        try assembler.emitError(.@"error", item, "Missing identifier: {s}", .{item.text});
-                    }
-                    return error.MissingIdentifiers;
-                },
-
-                .dot_identifier => if (assembler.local_symbols.get(item.text)) |sym|
-                    try stack.append(Value{ .number = sym })
-                else {
-                    if (emitErrorOnMissing) {
-                        try assembler.emitError(.@"error", item, "Missing identifier: {s}", .{item.text});
-                    }
-                    return error.MissingIdentifiers;
-                },
-
-                // Number literals
-                .bin_number => try stack.append(Value{
-                    .number = try std.fmt.parseInt(u16, item.text[2..], 2),
-                }),
-                .oct_number => try stack.append(Value{
-                    .number = try std.fmt.parseInt(u16, item.text[2..], 8),
-                }),
-                .dec_number => try stack.append(Value{
-                    .number = try std.fmt.parseInt(u16, item.text, 10),
-                }),
-                .hex_number => try stack.append(Value{
-                    .number = try std.fmt.parseInt(u16, item.text[2..], 16),
-                }),
-                .char_literal => {
-                    try stack.append(Value{
-                        .number = (try translateEscapedChar(item.text[1..])).char,
-                    });
-                },
-                .dot => try stack.append(Value{
-                    .number = @intCast(u16, assembler.currentSection().getDotOffset()),
-                }),
-
-                // String literal
-                .string_literal => try stack.append(Value{
-                    .string = try assembler.parseAndInternString(item),
-                }),
-
-                // This is advanced stuff for later!
-
-                .operator_plus => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (@as(ValueType, lhs) != @as(ValueType, rhs))
-                        return error.TypeMismatch;
-                    try stack.append(switch (lhs) {
-                        .number => Value{ .number = lhs.number +% rhs.number },
-                        .string => Value{
-                            .string = try std.mem.concat(assembler.allocator, u8, &[_][]const u8{
-                                lhs.string,
-                                rhs.string,
-                            }),
-                        },
-                    });
-                },
-                .operator_minus => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number -% rhs.number });
-                },
-                .operator_multiply => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number *% rhs.number });
-                },
-                .operator_divide => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number / rhs.number });
-                },
-                .operator_modulo => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number % rhs.number });
-                },
-                .operator_bitand => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number & rhs.number });
-                },
-                .operator_bitor => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number | rhs.number });
-                },
-                .operator_bitxor => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = lhs.number ^ rhs.number });
-                },
-                .operator_shl => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = @truncate(u16, lhs.number << @truncate(u4, rhs.number)) });
-                },
-                .operator_shr => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = @truncate(u16, lhs.number >> @truncate(u4, rhs.number)) });
-                },
-                .operator_asr => {
-                    const rhs = stack.popOrNull() orelse return error.InvalidExpression;
-                    const lhs = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (lhs != .number or rhs != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = (lhs.number & 0x8000) | (lhs.number >> @truncate(u4, rhs.number)) });
-                },
-                .operator_bitnot => {
-                    const value = stack.popOrNull() orelse return error.InvalidExpression;
-
-                    if (value != .number)
-                        return error.TypeMismatch;
-                    try stack.append(Value{ .number = ~value.number });
-                },
-
-                // If it's none of the above tokens, we made a programming mistake earlier
-                else => unreachable,
-            }
+    fn internString(assembler: *Assembler, string: []const u8) ![]const u8 {
+        const gop = try assembler.interned_strings.getOrPut(assembler.allocator, string);
+        if (!gop.found_existing) {
+            gop.key_ptr.* = try assembler.string_arena.allocator.dupe(u8, string);
         }
+        return gop.key_ptr.*;
+    }
 
-        if (stack.items.len != 1)
-            return error.InvalidExpression;
+    const EvaluationError = error{ InvalidExpression, UnknownFunction, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
+    fn evaluate(assembler: *Assembler, expression: Expression, emitErrorOnMissing: bool) EvaluationError!Value {
+        return try expression.evaluate(assembler, emitErrorOnMissing);
 
-        // std.debug.warn(" => `{}`\n", .{
-        //     stack.items[0],
-        // });
+        //         .operator_plus => {
+        //             const rhs = stack.popOrNull() orelse return error.InvalidExpression;
+        //             const lhs = stack.popOrNull() orelse return error.InvalidExpression;
 
-        return stack.items[0];
+        //             if (@as(ValueType, lhs) != @as(ValueType, rhs))
+        //                 return error.TypeMismatch;
+        //             try stack.append(switch (lhs) {
+        //                 .number => Value{ .number = lhs.number +% rhs.number },
+        //                 .string => Value{
+        //                     .string = try std.mem.concat(assembler.allocator, u8, &[_][]const u8{
+        //                         lhs.string,
+        //                         rhs.string,
+        //                     }),
+        //                 },
+        //             });
+        //         },
+        //     }
+        // }
+
     }
 
     const EscapingResult = struct {
@@ -870,12 +752,6 @@ pub const Assembler = struct {
             },
         };
     }
-
-    const Value = union(enum) {
-        string: []const u8, // does not need to be freed, will be string-pooled
-        number: u16,
-    };
-    const ValueType = std.meta.Tag(Value);
 };
 
 pub const TokenType = enum {
@@ -925,30 +801,24 @@ pub const TokenType = enum {
             else => false,
         };
     }
-
-    fn operatorPrecedence(self: Self) u32 {
-        return switch (self) {
-            .operator_plus => 10,
-            .operator_minus => 10,
-            .operator_multiply => 20,
-            .operator_divide => 20,
-            .operator_modulo => 20,
-            .operator_bitand => 30,
-            .operator_bitor => 30,
-            .operator_bitxor => 30,
-            .operator_shl => 40,
-            .operator_shr => 40,
-            .operator_asr => 40,
-            .operator_bitnot => 50,
-            else => unreachable, // programming mistake
-        };
-    }
 };
 
 pub const Location = struct {
     file: ?[]const u8,
     line: u32,
     column: u32,
+
+    fn merge(a: Location, b: Location) Location {
+        std.debug.assert(std.meta.eql(a.file, b.file));
+        return if (a.line < b.line)
+            a
+        else if (a.line > b.line)
+            b
+        else if (a.column < b.column)
+            a
+        else
+            b;
+    }
 };
 
 pub const Token = struct {
@@ -1011,6 +881,9 @@ pub const Parser = struct {
     }
 
     fn expect(parser: *Self, t: TokenType) !Token {
+        var state = parser.saveState();
+        errdefer parser.restoreState(state);
+
         const tok = (try parser.parse()) orelse return error.UnexpectedEndOfFile;
         if (tok.type == t)
             return tok;
@@ -1024,17 +897,20 @@ pub const Parser = struct {
     }
 
     fn expectAny(parser: *Self, types: anytype) !Token {
+        var state = parser.saveState();
+        errdefer parser.restoreState(state);
+
         const tok = (try parser.parse()) orelse return error.UnexpectedEndOfFile;
         inline for (types) |t| {
             if (tok.type == @as(TokenType, t))
                 return tok;
         }
-        if (std.builtin.mode == .Debug) {
-            std.debug.warn("Unexpected token: {}\nexpected one of: {}\n", .{
-                tok,
-                types,
-            });
-        }
+        // if (std.builtin.mode == .Debug) {
+        //     std.debug.warn("Unexpected token: {}\nexpected one of: {}\n", .{
+        //         tok,
+        //         types,
+        //     });
+        // }
         return error.UnexpectedToken;
     }
 
@@ -1187,7 +1063,7 @@ pub const Parser = struct {
                 if (parser.source[parser.offset + 1] != '>')
                     return error.UnrecognizedCharacter;
 
-                if (parser.offset + 2 < parser.source.len and parser.source[parser.offset + 1] == '>') {
+                if (parser.offset + 2 < parser.source.len and parser.source[parser.offset + 2] == '>') {
                     break :blk Token{
                         .type = .operator_asr,
                         .text = parser.source[parser.offset..][0..3],
@@ -1348,143 +1224,576 @@ pub const Parser = struct {
         return slice[slice.len - 1];
     }
 
+    const ParserState = struct {
+        source: []u8,
+        offset: usize,
+        peeked_token: ?Token,
+        current_location: Location,
+    };
+
+    fn saveState(parser: Parser) ParserState {
+        return ParserState{
+            .source = parser.source,
+            .offset = parser.offset,
+            .peeked_token = parser.peeked_token,
+            .current_location = parser.current_location,
+        };
+    }
+
+    fn restoreState(parser: *Parser, state: ParserState) void {
+        parser.source = state.source;
+        parser.offset = state.offset;
+        parser.peeked_token = state.peeked_token;
+        parser.current_location = state.current_location;
+    }
+
     // parses an expression from the token stream
     const ParseExpressionResult = struct {
         expression: Expression,
         terminator: Token,
     };
     fn parseExpression(parser: *Parser, allocator: *std.mem.Allocator, terminators: anytype) !ParseExpressionResult {
-        var stack = std.ArrayList(Token).init(allocator);
-        defer stack.deinit();
+        _ = terminators;
 
-        var sequence = std.ArrayList(Token).init(allocator);
-        errdefer sequence.deinit();
+        const state = parser.saveState();
+        errdefer parser.restoreState(state);
 
-        const terminator = input_loop: while (true) {
-            var tok = try parser.expectAny(.{
-                // literals and identifiers
-                .dec_number,
-                .hex_number,
-                .oct_number,
-                .bin_number,
-                .dot,
-                .identifier,
-                .dot_identifier,
-                .char_literal,
-                .string_literal,
+        var expr = Expression{
+            .arena = std.heap.ArenaAllocator.init(allocator),
+            .root = undefined,
+            .location = undefined,
+        };
+        errdefer expr.arena.deinit();
 
-                // parenthesis
-                .opening_parens,
-                .closing_parens,
+        expr.root = try parser.acceptExpression(&expr.arena.allocator);
 
-                // operators
+        return ParseExpressionResult{
+            .expression = expr,
+            .terminator = try parser.expectAny(terminators),
+        };
+    }
+
+    fn moveToHeap(allocator: *std.mem.Allocator, value: anytype) !*@TypeOf(value) {
+        const T = @TypeOf(value);
+        std.debug.assert(@typeInfo(T) != .Pointer);
+        const ptr = try allocator.create(T);
+        ptr.* = value;
+        std.debug.assert(std.meta.eql(ptr.*, value));
+        return ptr;
+    }
+
+    const ParseError = error{
+        OutOfMemory,
+        UnexpectedEndOfFile,
+        UnrecognizedCharacter,
+        IncompleteStringLiteral,
+        UnexpectedToken,
+        InvalidNumber,
+        InvalidCharacter,
+    };
+    const acceptExpression = acceptSumExpression;
+
+    fn acceptSumExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
+
+        var expr = try self.acceptMulExpression(allocator);
+        while (true) {
+            var and_or = self.expectAny(.{
                 .operator_plus,
                 .operator_minus,
+            }) catch break;
+            var rhs = try self.acceptMulExpression(allocator);
+
+            var new_expr = ExpressionNode{
+                .location = expr.location.merge(and_or.location).merge(rhs.location),
+                .type = .{
+                    .binary_op = .{
+                        .operator = switch (and_or.type) {
+                            .operator_plus => .add,
+                            .operator_minus => .sub,
+                            else => unreachable,
+                        },
+                        .lhs = try moveToHeap(allocator, expr),
+                        .rhs = try moveToHeap(allocator, rhs),
+                    },
+                },
+            };
+            expr = new_expr;
+        }
+        return expr;
+    }
+
+    fn acceptMulExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
+
+        var expr = try self.acceptBitwiseExpression(allocator);
+        while (true) {
+            var and_or = self.expectAny(.{
                 .operator_multiply,
                 .operator_divide,
                 .operator_modulo,
+            }) catch break;
+            var rhs = try self.acceptBitwiseExpression(allocator);
+
+            var new_expr = ExpressionNode{
+                .location = expr.location.merge(and_or.location).merge(rhs.location),
+                .type = .{
+                    .binary_op = .{
+                        .operator = switch (and_or.type) {
+                            .operator_multiply => .mul,
+                            .operator_divide => .div,
+                            .operator_modulo => .mod,
+                            else => unreachable,
+                        },
+                        .lhs = try moveToHeap(allocator, expr),
+                        .rhs = try moveToHeap(allocator, rhs),
+                    },
+                },
+            };
+            expr = new_expr;
+        }
+        return expr;
+    }
+
+    fn acceptBitwiseExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
+
+        var expr = try self.acceptShiftExpression(allocator);
+        while (true) {
+            var and_or = self.expectAny(.{
                 .operator_bitand,
                 .operator_bitor,
                 .operator_bitxor,
+            }) catch break;
+            var rhs = try self.acceptShiftExpression(allocator);
+
+            var new_expr = ExpressionNode{
+                .location = expr.location.merge(and_or.location).merge(rhs.location),
+                .type = .{
+                    .binary_op = .{
+                        .operator = switch (and_or.type) {
+                            .operator_bitand => .bit_and,
+                            .operator_bitor => .bit_or,
+                            .operator_bitxor => .bit_xor,
+                            else => unreachable,
+                        },
+                        .lhs = try moveToHeap(allocator, expr),
+                        .rhs = try moveToHeap(allocator, rhs),
+                    },
+                },
+            };
+            expr = new_expr;
+        }
+        return expr;
+    }
+
+    fn acceptShiftExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
+
+        var expr = try self.acceptUnaryPrefixOperatorExpression(allocator);
+        while (true) {
+            var and_or = self.expectAny(.{
                 .operator_shl,
                 .operator_shr,
                 .operator_asr,
-                .operator_bitnot,
-            } ++ terminators);
+            }) catch break;
+            var rhs = try self.acceptUnaryPrefixOperatorExpression(allocator);
 
-            inline for (terminators) |t| {
-                if (tok.type == t)
-                    break :input_loop tok;
-            }
-            switch (tok.type) {
-                .dec_number, .hex_number, .oct_number, .bin_number, .dot, .identifier, .dot_identifier, .char_literal, .string_literal => {
-                    try sequence.append(tok);
+            var new_expr = ExpressionNode{
+                .location = expr.location.merge(and_or.location).merge(rhs.location),
+                .type = .{
+                    .binary_op = .{
+                        .operator = switch (and_or.type) {
+                            .operator_shl => .lsl,
+                            .operator_shr => .lsr,
+                            .operator_asr => .asr,
+                            else => unreachable,
+                        },
+                        .lhs = try moveToHeap(allocator, expr),
+                        .rhs = try moveToHeap(allocator, rhs),
+                    },
                 },
-
-                .function => {
-                    try stack.append(tok);
-                },
-
-                .comma => {
-                    if (stack.items.len == 0)
-                        return error.UnexpectedToken;
-                    while (lastOfSlice(stack.items).type != .opening_parens) {
-                        try sequence.append(stack.pop());
-                        if (stack.items.len == 0)
-                            return error.UnexpectedToken;
-                        //         FEHLER-BEI Stack IST-LEER:
-                        //             GRUND (1) Ein falsch platziertes Argumenttrennzeichen.
-                        //             GRUND (2) Der schließenden Klammer geht keine öffnende voraus.
-                        //         ENDEFEHLER
-                    }
-                },
-
-                .operator_plus, .operator_minus, .operator_multiply, .operator_divide, .operator_modulo, .operator_bitand, .operator_bitor, .operator_bitxor, .operator_shl, .operator_shr, .operator_asr, .operator_bitnot => {
-                    while (stack.items.len != 0 and lastOfSlice(stack.items).type.isOperator() and tok.type.operatorPrecedence() <= lastOfSlice(stack.items).type.operatorPrecedence()) {
-                        try sequence.append(stack.pop());
-                    }
-                    try stack.append(tok);
-                },
-
-                .opening_parens => {
-                    try stack.append(tok);
-                },
-
-                .closing_parens => {
-                    if (stack.items.len == 0)
-                        return error.UnexpectedToken;
-                    while (lastOfSlice(stack.items).type != .opening_parens) {
-                        if (stack.items.len == 0)
-                            return error.UnexpectedToken;
-                        try sequence.append(stack.pop());
-                    }
-                    _ = stack.pop();
-                    if (stack.items.len > 0 and lastOfSlice(stack.items).type == .function) {
-                        try sequence.append(stack.pop());
-                    }
-                },
-
-                else => {
-                    if (std.builtin.mode == .Debug) {
-                        std.debug.warn("unreachable token in parseExpression: {}\n", .{tok});
-                    }
-                    unreachable;
-                },
-            }
-        } else unreachable;
-
-        while (stack.items.len > 0) {
-            const tok = stack.pop();
-            if (tok.type == .opening_parens)
-                return error.ParensImbalance;
-            try sequence.append(tok);
+            };
+            expr = new_expr;
         }
+        return expr;
+    }
 
-        for (sequence.items) |*item| {
-            item.* = try item.duplicate(allocator);
+    fn acceptUnaryPrefixOperatorExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
+
+        if (self.expectAny(.{ .operator_bitnot, .operator_minus })) |prefix| {
+            // this must directly recurse as we can write `not not x`
+            const value = try self.acceptUnaryPrefixOperatorExpression(allocator);
+            return ExpressionNode{
+                .location = prefix.location.merge(value.location),
+                .type = .{
+                    .unary_op = .{
+                        .operator = switch (prefix.type) {
+                            .operator_bitnot => .bit_invert,
+                            .operator_minus => .negate,
+                            else => unreachable,
+                        },
+                        .value = try moveToHeap(allocator, value),
+                    },
+                },
+            };
+        } else |_| {
+            return try self.acceptCallExpression(allocator);
         }
+    }
 
-        return ParseExpressionResult{
-            .expression = Expression{
-                .allocator = allocator,
-                .sequence = sequence.toOwnedSlice(),
+    const acceptCallExpression = acceptValueExpression;
+    // fn acceptCallExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    //     const state = self.saveState();
+    //     errdefer self.restoreState(state);
+
+    //     var value = try self.acceptValueExpression(allocator);
+
+    //     while (self.expect(.opening_parens)) |_| {
+    //         var args = std.ArrayList(ExpressionNode).init(allocator);
+    //         defer args.deinit();
+
+    //         var loc = value.location;
+
+    //         if (self.expect(.closing_parens)) |_| {
+    //             // this is the end of the argument list
+    //         } else |_| {
+    //             while (true) {
+    //                 const arg = try self.acceptExpression(allocator);
+    //                 try args.append(arg);
+    //                 const terminator = try self.expectAny(.{ .closing_parens, .comma });
+    //                 loc = terminator.location.merge(loc);
+    //                 if (terminator.type == .closing_parens)
+    //                     break;
+    //             }
+    //         }
+
+    //         const old_val = value;
+    //         value = ExpressionNode{
+    //             .location = loc,
+    //             .type = .{
+    //                 .fn_call = .{
+    //                     .function = try moveToHeap(allocator, old_val),
+    //                     .arguments = args.toOwnedSlice(),
+    //                 },
+    //             },
+    //         };
+    //     } else |_| {}
+
+    //     return value;
+    // }
+
+    fn acceptValueExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
+
+        const token = try self.expectAny(.{
+            .opening_parens,
+            .bin_number,
+            .oct_number,
+            .dec_number,
+            .hex_number,
+            .string_literal,
+            .char_literal,
+            .identifier,
+        });
+        switch (token.type) {
+            .opening_parens => {
+                const value = try self.acceptExpression(allocator);
+                _ = try self.expect(.closing_parens);
+                return value;
             },
-            .terminator = terminator,
-        };
+            .bin_number => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .numeric_literal = std.fmt.parseInt(i64, token.text[2..], 2) catch return error.InvalidNumber,
+                },
+            },
+            .oct_number => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .numeric_literal = std.fmt.parseInt(i64, token.text[2..], 8) catch return error.InvalidNumber,
+                },
+            },
+            .dec_number => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .numeric_literal = std.fmt.parseInt(i64, token.text, 10) catch return error.InvalidNumber,
+                },
+            },
+            .hex_number => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .numeric_literal = std.fmt.parseInt(i64, token.text[2..], 16) catch return error.InvalidNumber,
+                },
+            },
+
+            .string_literal => {
+                std.debug.assert(token.text.len >= 2);
+                return ExpressionNode{
+                    .location = token.location,
+                    .type = .{
+                        .string_literal = token.text[1 .. token.text.len - 1],
+                    },
+                };
+            },
+
+            .char_literal => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .numeric_literal = (Assembler.translateEscapedChar(token.text[1..]) catch return error.InvalidCharacter).char,
+                },
+            },
+
+            .identifier => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .symbol_reference = try allocator.dupe(u8, token.text),
+                },
+            },
+
+            .dot_identifier => return ExpressionNode{
+                .location = token.location,
+                .type = .{
+                    .local_symbol_reference = try allocator.dupe(u8, token.text),
+                },
+            },
+            else => unreachable,
+        }
     }
 };
+
+const ExpressionNode = struct {
+    location: Location,
+    type: ExpressionType,
+    const ExpressionType = union(enum) {
+        const Self = @This();
+
+        string_literal: []const u8,
+        numeric_literal: i64,
+        symbol_reference: []const u8,
+        local_symbol_reference: []const u8,
+        current_location,
+
+        binary_op: BinaryExpr,
+        unary_op: UnaryExpr,
+
+        fn_call: FunctionCall,
+
+        const BinaryExpr = struct {
+            operator: BinaryOperator,
+            lhs: *ExpressionNode,
+            rhs: *ExpressionNode,
+        };
+
+        const UnaryExpr = struct {
+            operator: UnaryOperator,
+            value: *ExpressionNode,
+        };
+
+        const FunctionCall = struct {
+            function: []const u8,
+            arguments: []Self,
+        };
+
+        const BinaryOperator = enum {
+            add,
+            sub,
+            mul,
+            div,
+            mod,
+            bit_and,
+            bit_or,
+            bit_xor,
+            lsl,
+            lsr,
+            asr,
+        };
+        const UnaryOperator = enum {
+            negate,
+            bit_invert,
+        };
+    };
+};
+
+const Value = union(enum) {
+    string: []const u8, // does not need to be freed, will be string-pooled
+    number: u16,
+};
+const ValueType = std.meta.Tag(Value);
 
 /// A sequence of tokens created with a shunting yard algorithm.
 /// Can be parsed/executed left-to-right
 const Expression = struct {
     const Self = @This();
 
-    allocator: *std.mem.Allocator,
-    sequence: []Token,
+    arena: std.heap.ArenaAllocator,
+    location: Location,
+    root: ExpressionNode,
 
     fn deinit(expr: *Expression) void {
-        expr.allocator.free(expr.sequence);
+        expr.arena.deinit();
         expr.* = undefined;
+    }
+
+    pub const EvalError = error{ MissingIdentifiers, UnknownFunction, OutOfMemory, TypeMismatch, Overflow };
+    pub fn evaluate(self: *const Self, context: *Assembler, emitErrorOnMissing: bool) EvalError!Value {
+        const errors = ErrorEmitter{
+            .context = context,
+            .emitErrorOnMissing = emitErrorOnMissing,
+        };
+        const result = try self.evaluateRecursive(context, errors, &self.root);
+        return switch (result) {
+            .number => |v| Value{ .number = try errors.truncateTo(v) },
+            .string => |s| Value{ .string = s },
+        };
+    }
+
+    const ErrorEmitter = struct {
+        context: *Assembler,
+        emitErrorOnMissing: bool,
+
+        pub fn emit(self: @This(), err: EvalError, location: ?Location, comptime fmt: []const u8, args: anytype) EvalError {
+            if (self.emitErrorOnMissing) {
+                try self.context.emitError(.@"error", location, fmt, args);
+            }
+            return err;
+        }
+
+        fn requireValueType(errors: ErrorEmitter, comptime valtype: std.meta.Tag(EvalValue), value: EvalValue) !switch (valtype) {
+            .number => i64,
+            .string => []const u8,
+        } {
+            return switch (value) {
+                valtype => |v| v,
+                else => errors.emit(error.TypeMismatch, null, "Expected {s}, got {s}", .{ std.meta.tagName(valtype), std.meta.tagName(value) }),
+            };
+        }
+
+        fn requireNumber(errors: ErrorEmitter, value: EvalValue) !i64 {
+            return requireValueType(errors, .number, value);
+        }
+
+        fn requireString(errors: ErrorEmitter, value: EvalValue) ![]const u8 {
+            return requireValueType(errors, .string, value);
+        }
+
+        fn truncateTo(errors: ErrorEmitter, src: i64) !u16 {
+            const result = @truncate(u16, @bitCast(u64, src));
+            if (src < 0 or src > 0xFFFF) {
+                if (errors.emitErrorOnMissing) {
+                    try errors.context.emitError(.warning, null, "Truncating numeric {} to 16-bit value {}", .{ src, result });
+                }
+            }
+            return result;
+        }
+    };
+
+    const EvalValue = union(enum) {
+        string: []const u8, // does not need to be freed, will be string-pooled
+        number: i64,
+    };
+
+    fn evaluateRecursive(self: *const Self, context: *Assembler, errors: ErrorEmitter, node: *const ExpressionNode) EvalError!EvalValue {
+        return switch (node.type) {
+            .numeric_literal => |number| EvalValue{ .number = number },
+            .string_literal => |str| EvalValue{
+                .string = try context.internString(str),
+            },
+            .current_location => EvalValue{
+                .number = @intCast(u16, context.currentSection().getDotOffset()),
+            },
+
+            .symbol_reference => |symbol_name| if (context.symbols.get(symbol_name)) |sym|
+                EvalValue{ .number = sym }
+            else
+                return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}),
+
+            .local_symbol_reference => |symbol_name| if (context.local_symbols.get(symbol_name)) |sym|
+                EvalValue{ .number = sym }
+            else
+                return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}),
+
+            .binary_op => |op| blk: {
+                const lhs = try self.evaluateRecursive(context, errors, op.lhs);
+                const rhs = try self.evaluateRecursive(context, errors, op.rhs);
+                break :blk switch (op.operator) {
+                    .add => EvalValue{
+                        .number = (try errors.requireNumber(lhs)) +% (try errors.requireNumber(rhs)),
+                    },
+                    .sub => EvalValue{
+                        .number = (try errors.requireNumber(lhs)) -% (try errors.requireNumber(rhs)),
+                    },
+                    .mul => EvalValue{
+                        .number = (try errors.requireNumber(lhs)) *% (try errors.requireNumber(rhs)),
+                    },
+                    .div => EvalValue{
+                        .number = @divTrunc(try errors.requireNumber(lhs), try errors.requireNumber(rhs)),
+                    },
+                    .mod => EvalValue{
+                        .number = @mod(try errors.requireNumber(lhs), try errors.requireNumber(rhs)),
+                    },
+                    .bit_and => EvalValue{
+                        .number = (try errors.requireNumber(lhs)) & (try errors.requireNumber(rhs)),
+                    },
+                    .bit_or => EvalValue{
+                        .number = (try errors.requireNumber(lhs)) | (try errors.requireNumber(rhs)),
+                    },
+                    .bit_xor => EvalValue{
+                        .number = (try errors.requireNumber(lhs)) ^ (try errors.requireNumber(rhs)),
+                    },
+                    .lsl => EvalValue{
+                        .number = @truncate(u16, @bitCast(u64, try errors.requireNumber(lhs))) << @truncate(u4, @bitCast(u64, try errors.requireNumber(rhs))),
+                    },
+                    .lsr => EvalValue{
+                        .number = @truncate(u16, @bitCast(u64, try errors.requireNumber(lhs))) >> @truncate(u4, @bitCast(u64, try errors.requireNumber(rhs))),
+                    },
+                    .asr => asr_res: {
+                        const lhs_n = try errors.truncateTo(try errors.requireNumber(lhs));
+                        const rhs_n = try errors.truncateTo(try errors.requireNumber(rhs));
+                        const bits = @truncate(u4, rhs_n);
+                        const shifted = (lhs_n >> bits);
+
+                        if (lhs_n >= 0x8000) {
+                            const mask_mask: u16 = @as(u16, 0xFFFF) >> bits;
+                            const mask: u16 = @as(u16, 0xFFFF) & ~mask_mask;
+                            break :asr_res EvalValue{
+                                .number = shifted | mask,
+                            };
+                        }
+                        break :asr_res EvalValue{
+                            .number = shifted,
+                        };
+
+                        // } else {
+                        //     break :asr_res (lhs_n >> bits);
+                        // }
+
+                    },
+                };
+            },
+            .unary_op => |op| blk: {
+                const value = try errors.requireNumber(try self.evaluateRecursive(context, errors, op.value));
+                break :blk switch (op.operator) {
+                    .bit_invert => EvalValue{
+                        .number = ~value,
+                    },
+                    .negate => EvalValue{
+                        .number = 0 -% value,
+                    },
+                };
+            },
+            .fn_call => |fun| {
+                std.log.err("TODO: Implement function evaluation!", .{});
+                return errors.emit(error.UnknownFunction, null, "The function {s} does not exist!", .{fun});
+            },
+        };
     }
 
     pub fn format(value: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
@@ -1569,7 +1878,7 @@ const Modifiers = struct {
                 }
             }
         }
-        try assembler.emitError(.@"error", mod_type, "Unknown modifier: {s}{s}", .{ mod_type.text, mod_value.text });
+        try assembler.emitError(.@"error", mod_type.location, "Unknown modifier: {s}{s}", .{ mod_type.text, mod_value.text });
     }
 
     const condition_items = .{
@@ -1637,3 +1946,203 @@ const Modifiers = struct {
         .{ "intr", .intr },
     };
 };
+
+test "empty file" {
+    var as = try Assembler.init(std.testing.allocator);
+    defer as.deinit();
+
+    var stream = std.io.fixedBufferStream(
+        \\
+    );
+
+    try as.assemble("memory", null, stream.reader());
+    try as.finalize();
+
+    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
+    try std.testing.expect(as.sections.first != null);
+
+    try std.testing.expectEqual(@as(usize, 0), as.sections.first.?.data.offset);
+    try std.testing.expectEqual(@as(usize, 0), as.sections.first.?.data.bytes.items.len);
+}
+
+test "section deduplication" {
+    var as = try Assembler.init(std.testing.allocator);
+    defer as.deinit();
+
+    var stream = std.io.fixedBufferStream(
+        \\.org 0x8000
+    );
+
+    try as.assemble("memory", null, stream.reader());
+    try as.finalize();
+
+    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
+    try std.testing.expect(as.sections.first != null);
+
+    try std.testing.expectEqual(@as(usize, 0x8000), as.sections.first.?.data.offset);
+    try std.testing.expectEqual(@as(usize, 0), as.sections.first.?.data.bytes.items.len);
+}
+
+test "emit raw word" {
+    var as = try Assembler.init(std.testing.allocator);
+    defer as.deinit();
+
+    var stream = std.io.fixedBufferStream(
+        \\.dw 0x1234
+        \\.dw 0x5678, 0x9ABC
+    );
+
+    try as.assemble("memory", null, stream.reader());
+    try as.finalize();
+
+    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
+    try std.testing.expect(as.sections.first != null);
+
+    const sect = as.sections.first.?.data;
+
+    try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
+    try std.testing.expectEqual(@as(usize, 6), sect.bytes.items.len);
+    try std.testing.expectEqual(@as(u16, 0x1234), std.mem.readIntLittle(u16, sect.bytes.items[0..2]));
+    try std.testing.expectEqual(@as(u16, 0x5678), std.mem.readIntLittle(u16, sect.bytes.items[2..4]));
+    try std.testing.expectEqual(@as(u16, 0x9ABC), std.mem.readIntLittle(u16, sect.bytes.items[4..6]));
+}
+
+test "emit raw byte" {
+    var as = try Assembler.init(std.testing.allocator);
+    defer as.deinit();
+
+    var stream = std.io.fixedBufferStream(
+        \\.db 0x12
+        \\.db 0x34, 0x56, 0x78
+    );
+
+    try as.assemble("memory", null, stream.reader());
+    try as.finalize();
+
+    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
+    try std.testing.expect(as.sections.first != null);
+
+    const sect = as.sections.first.?.data;
+
+    try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
+    try std.testing.expectEqual(@as(usize, 4), sect.bytes.items.len);
+    try std.testing.expectEqual(@as(u8, 0x12), std.mem.readIntLittle(u8, sect.bytes.items[0..1]));
+    try std.testing.expectEqual(@as(u8, 0x34), std.mem.readIntLittle(u8, sect.bytes.items[1..2]));
+    try std.testing.expectEqual(@as(u8, 0x56), std.mem.readIntLittle(u8, sect.bytes.items[2..3]));
+    try std.testing.expectEqual(@as(u8, 0x78), std.mem.readIntLittle(u8, sect.bytes.items[3..4]));
+}
+
+fn testExpressionEvaluation(expected: u16, comptime source: []const u8) !void {
+    var as = try Assembler.init(std.testing.allocator);
+    defer as.deinit();
+
+    {
+        var source_cpy = source[0..source.len].*;
+        var stream = std.io.fixedBufferStream(source);
+
+        try as.assemble("memory", null, stream.reader());
+
+        // destroy all evidence
+        std.mem.set(u8, &source_cpy, 0x55);
+
+        try as.finalize();
+    }
+
+    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
+    try std.testing.expect(as.sections.first != null);
+
+    const sect = as.sections.first.?.data;
+
+    try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
+    try std.testing.expectEqual(@as(usize, 2), sect.bytes.items.len);
+    try std.testing.expectEqual(expected, std.mem.readIntLittle(u16, sect.bytes.items[0..2]));
+}
+
+test "parsing integer literals" {
+    try testExpressionEvaluation(100,
+        \\.dw 100 ; decimal
+    );
+    try testExpressionEvaluation(0b100,
+        \\.dw 0b100 ; binary
+    );
+    try testExpressionEvaluation(0o100,
+        \\.dw 0o100 ; octal
+    );
+    try testExpressionEvaluation(0x100,
+        \\.dw 0x100 ; hexadecimal
+    );
+}
+
+test "basic (non-nested) basic arithmetic" {
+    try testExpressionEvaluation(30,
+        \\.dw 20+10
+    );
+    try testExpressionEvaluation(10,
+        \\.dw 20-10
+    );
+    try testExpressionEvaluation(200,
+        \\.dw 20*10
+    );
+    try testExpressionEvaluation(2,
+        \\.dw 20/10
+    );
+}
+
+test "basic (non-nested) bitwise arithmetic" {
+    try testExpressionEvaluation(3,
+        \\.dw 7&3
+    );
+    try testExpressionEvaluation(12,
+        \\.dw 8|12
+    );
+    try testExpressionEvaluation(4,
+        \\.dw 13^9
+    );
+}
+
+test "basic (non-nested) shift arithmetic" {
+    try testExpressionEvaluation(256,
+        \\.dw 16<<4
+    );
+    try testExpressionEvaluation(4,
+        \\.dw 16>>2
+    );
+    try testExpressionEvaluation(0xFFFF,
+        \\.dw 0x8000>>>15
+    );
+    try testExpressionEvaluation(0x0000,
+        \\.dw 0x7FFF>>>15
+    );
+}
+
+test "basic unary operators" {
+    try testExpressionEvaluation(0x00FF,
+        \\.dw ~0xFF00
+    );
+    try testExpressionEvaluation(65526,
+        \\.dw -10
+    );
+}
+
+test "operator precedence" {
+    try testExpressionEvaluation(610,
+        \\.dw 10+20*30
+    );
+    try testExpressionEvaluation(900,
+        \\.dw (10+20)*30
+    );
+}
+
+test "backward references" {
+    try testExpressionEvaluation(0,
+        \\backward:
+        \\.dw backward
+    );
+}
+
+test "forward references" {
+    try testExpressionEvaluation(2,
+        \\.dw forward
+        \\forward:
+    );
+}
