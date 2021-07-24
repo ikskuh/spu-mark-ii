@@ -18,7 +18,9 @@ jobs:
           submodules: "recursive"
 
       - name: Install dependencies
-        run: sudo apt-get install libsdl2-dev libsdl2-image-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --fix-missing libsdl2-dev libsdl2-image-dev
 
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v1
@@ -26,7 +28,10 @@ jobs:
           version: master
 
       - name: Build all software
-        run: zig build install
+        run: |
+          mkdir -p zig-out/bin
+          mkdir -p zig-out/firmware
+          zig build install
 
       - name: Run Testsuite
         run: zig build test

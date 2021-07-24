@@ -3,8 +3,6 @@ name: Autogenerate Docs
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 jobs:
   build:
@@ -12,6 +10,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
           submodules: "recursive" 
         
       - name: Setup Python
@@ -32,13 +31,19 @@ jobs:
           version: master
 
       - name: Compile wasm emulator
-        run: zig build wasm
+        run: |
+          mkdir -p zig-out/bin
+          mkdir -p zig-out/firmware
+          zig build wasm
         
       - name: Render site
         run: mkdocs build
 
-      - name: Add static files and emulator
-        run: cp -r zig-out/lib/emulator.wasm website/* website-out/
+      - name: Add static files
+        run: cp -r website/* website-out/website/livedemo/
+
+      - name: Add emulator
+        run: cp zig-out/lib/emulator.wasm website-out/website/livedemo/emulator.wasm
 
       - name: Deploy to Server
         uses: easingthemes/ssh-deploy@v2.1.1

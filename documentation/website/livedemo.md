@@ -1,7 +1,7 @@
 # SPU Mark II Livedemo
 
-<link rel="stylesheet" href="../../xterm/xterm.css" />
-<script src="../../xterm/xterm.js"></script>
+<link rel="stylesheet" href="xterm/xterm.css" />
+<script src="xterm/xterm.js"></script>
 
 ## About
 
@@ -18,7 +18,7 @@ Currently, the emulator runs the [serial BIOS](https://github.com/MasterQ32/spu-
 </code>
 -->
 
-<script type="text/javascript" src="../../livedemo.js"></script>
+<script type="text/javascript" src="livedemo.js"></script>
 
 ## Quick start:
 

@@ -70,7 +70,7 @@ function stepEmulator(time) {
     }
 }
 
-fetch('../../emulator.wasm')
+fetch('emulator.wasm')
     .then(response => response.arrayBuffer())
     .then(bytes => WebAssembly.instantiate(bytes, wasmImports))
     .then(results => {
