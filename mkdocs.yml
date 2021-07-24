@@ -29,10 +29,9 @@ nav:
       - 'Disassembler': website/tbd.md
       - 'Ashet Emulator': website/tbd.md
       - 'Basic System Emulator': website/tbd.md
-  - 'OS':
+  - 'Ashet OS':
     - 'Overview': os/index.md
     - 'Syscalls': os/syscalls.md
-  - DunstFS: dunstfs.md
 theme:
     name: mkdocs
     nav_style: light

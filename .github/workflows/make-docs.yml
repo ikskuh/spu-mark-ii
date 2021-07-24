@@ -1,0 +1,52 @@
+name: Autogenerate Docs
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+          submodules: "recursive" 
+        
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
+          architecture: 'x64'
+        
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip     # install pip
+          python3 -m pip install mkdocs            # install mkdocs 
+          python3 -m pip install mkdocs-material   # install material theme
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v1
+        with:
+          version: master
+
+      - name: Compile wasm emulator
+        run: zig build wasm
+        
+      - name: Render site
+        run: mkdocs build
+
+      - name: Add static files and emulator
+        run: cp -r zig-out/lib/emulator.wasm website/* website-out/
+
+      - name: Deploy to Server
+        uses: easingthemes/ssh-deploy@v2.1.1
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
+          ARGS: "-rltgoDzvO --delete"
+          SOURCE: "website-out/"
+          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
+          REMOTE_USER: ${{ secrets.DEPLOY_USERNAME }}
+          TARGET: "/home/${{ secrets.DEPLOY_USERNAME }}/website"
+
