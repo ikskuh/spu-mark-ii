@@ -74,6 +74,14 @@ Currently, the emulator runs the [serial BIOS](https://github.com/MasterQ32/spu-
 
 ## Quick start:
 
+Pause the emulator, and load a binary file compiled with the assember. Then press the play button to run your program.
+
+Programs can be compiled with the assembler like this:
+```
+./zig-out/bin/assembler --format binary --output application.bin application.asm
+```
+
+<!--
 Focus the emulator terminal, press `h` to display a short help text from the BIOS. Then press `l` to go into [ihex](https://en.wikipedia.org/wiki/Intel_HEX) loading mode. The *BIOS* now awaits a valid ihex file over the serial port. Paste this text into the terminal:
 
 ```ihex
@@ -84,8 +92,9 @@ Focus the emulator terminal, press `h` to display a short help text from the BIO
 ```
 
 This has loaded a small *Hello World* program into RAM that can now be executed by pressing `g`.
+-->
 
-Now you know how to load your own programs, go write one! Starting point is [AN000](../AN000 - Understanding the Instruction Set.md) and [AN001](../app-notes/AN001 - The SPU Assembly Language.md), as well as the [ISA description](../specs/spu-mark-ii.md).
+Now you know how to load your own programs, go write one! Starting point is [AN000](../app-notes/AN000 - Understanding the Instruction Set.md) and [AN001](../app-notes/AN001 - The SPU Assembly Language.md), as well as the [ISA description](../specs/spu-mark-ii.md).
 
 
 ## Memory Layout
@@ -94,7 +103,6 @@ The memory layout for the emulator is:
 
 | Memory Range        | Function          |
 |---------------------|-------------------|
-| `0x0000`…`0x3FFF` | BIOS ROM          |
-| `0x4000`…`0x4000` | UART Port. Write to send blockingly, read nonblockingly. No value available returns 0xFFFF. |
-| `0x6000`…`0x6FFF` | RAM 0             |
-| `0x8000`…`0xFFFF` | RAM 1             |
+| `0x0000`…`0x7FFD`   | BIOS ROM          |
+| `0x7FFE`            | UART Port. Write to send blockingly, read nonblockingly. No value available returns 0xFFFF. |
+| `0x8000`…`0xFFFF`   | RAM 1             |
