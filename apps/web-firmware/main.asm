@@ -13,26 +13,34 @@
 
 handler.nmi:
 	st 'N', SERIAL_PORT 
-  jmp hang
+	st 'M', SERIAL_PORT 
+	st 'I', SERIAL_PORT 
+  iret
 
 handler.bus:
 	st 'B', SERIAL_PORT 
+	st 'U', SERIAL_PORT 
+	st 'S', SERIAL_PORT 
   jmp hang
 
 handler.arith:
 	st 'A', SERIAL_PORT
+	st 'R', SERIAL_PORT
+	st 'I', SERIAL_PORT
+	st 'T', SERIAL_PORT
+	st 'H', SERIAL_PORT
 	iret
 
 handler.software:
 	st 'S', SERIAL_PORT
-	iret
-
-handler.reserved:
-	st 'R', SERIAL_PORT
+	st 'W', SERIAL_PORT
+	st 'I', SERIAL_PORT
 	iret
 
 handler.irq:
 	st 'I', SERIAL_PORT 
+	st 'R', SERIAL_PORT 
+	st 'Q', SERIAL_PORT 
 	iret
 
 entrypoint:

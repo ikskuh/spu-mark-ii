@@ -29,13 +29,32 @@ export fn init() void {
 }
 
 export fn run(steps: u32) u32 {
-    emulator.runBatch(steps) catch |err| switch (err) {
-        error.BadInstruction => return 1,
-        error.UnalignedAccess => return 2,
-        error.BusError => return 3,
-        error.DebugBreak => return 4,
+    emulator.runBatch(steps) catch |err| {
+        emulator.reset();
+        switch (err) {
+            error.BadInstruction => return 1,
+            error.UnalignedAccess => return 2,
+            error.BusError => return 3,
+            error.DebugBreak => return 4,
+        }
     };
     return 0;
+}
+
+export fn resetCpu() void {
+    emulator.triggerInterrupt(.reset);
+}
+
+export fn invokeNmi() void {
+    emulator.triggerInterrupt(.nmi);
+}
+
+export fn getRomPtr() [*]u8 {
+    return &emulator.memory.rom;
+}
+
+export fn getRamPtr() [*]u8 {
+    return &emulator.memory.ram;
 }
 
 extern fn invokeJsPanic() noreturn;

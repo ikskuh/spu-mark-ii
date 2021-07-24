@@ -9,7 +9,7 @@ const FileFormat = enum { ihex, binary };
 pub fn main() !u8 {
     const cli_args = argsParser.parseForCurrentProcess(struct {
         help: bool = false,
-        format: ?FileFormat = .binary,
+        format: FileFormat = .ihex,
         output: []const u8 = "a.out",
 
         pub const shorthands = .{
@@ -89,39 +89,51 @@ pub fn main() !u8 {
 
         var outstream = file.writer();
 
-        var iter = assembler.sections.first;
-        while (iter) |section_node| : (iter = section_node.next) {
-            const section = &section_node.data;
-
-            var i: usize = 0;
-
-            while (i < section.bytes.items.len) : (i += 16) {
-                const length = std.math.min(section.bytes.items.len - i, 16);
-
-                const source = section.bytes.items[i..][0..length];
-
-                var buffer: [256 + 5]u8 = undefined;
-                std.mem.writeIntBig(u8, buffer[0..][0..1], @intCast(u8, length));
-                std.mem.writeIntBig(u16, buffer[1..][0..2], @intCast(u16, section.offset + i));
-                std.mem.writeIntBig(u8, buffer[3..][0..1], 0x00); // data record
-                std.mem.copy(u8, buffer[4..], source);
-
-                var checksum: u8 = 0;
-                for (buffer[0 .. 4 + length]) |b| {
-                    checksum -%= b;
+        switch (cli_args.options.format) {
+            .binary => {
+                var iter = assembler.sections.first;
+                while (iter) |section_node| : (iter = section_node.next) {
+                    const section = &section_node.data;
+                    try file.seekTo(section.offset);
+                    try file.writeAll(section.bytes.items);
                 }
-                std.mem.writeIntBig(u8, buffer[4 + length ..][0..1], checksum); // data record
+            },
+            .ihex => {
+                var iter = assembler.sections.first;
+                while (iter) |section_node| : (iter = section_node.next) {
+                    const section = &section_node.data;
 
-                // data records
-                try outstream.print(
-                    ":{}\n",
-                    .{std.fmt.fmtSliceHexUpper(buffer[0 .. length + 5])},
-                );
-            }
+                    var i: usize = 0;
+
+                    while (i < section.bytes.items.len) : (i += 16) {
+                        const length = std.math.min(section.bytes.items.len - i, 16);
+
+                        const source = section.bytes.items[i..][0..length];
+
+                        var buffer: [256 + 5]u8 = undefined;
+                        std.mem.writeIntBig(u8, buffer[0..][0..1], @intCast(u8, length));
+                        std.mem.writeIntBig(u16, buffer[1..][0..2], @intCast(u16, section.offset + i));
+                        std.mem.writeIntBig(u8, buffer[3..][0..1], 0x00); // data record
+                        std.mem.copy(u8, buffer[4..], source);
+
+                        var checksum: u8 = 0;
+                        for (buffer[0 .. 4 + length]) |b| {
+                            checksum -%= b;
+                        }
+                        std.mem.writeIntBig(u8, buffer[4 + length ..][0..1], checksum); // data record
+
+                        // data records
+                        try outstream.print(
+                            ":{}\n",
+                            .{std.fmt.fmtSliceHexUpper(buffer[0 .. length + 5])},
+                        );
+                    }
+                }
+
+                // file/stream terminator
+                try outstream.writeAll(":00000001FF\n");
+            },
         }
-
-        // file/stream terminator
-        try outstream.writeAll(":00000001FF\n");
     }
 
     return 0;
