@@ -1,6 +1,7 @@
 site_name: Ashet Home Computer
 site_url: https://ashet.computer/
 site_author: Felix "xq" Queißner
+site_description: The Ashet Home Computer is a self-made late 80ies style inspired home computer with a 16 bit cpu.
 repo_url: https://github.com/MasterQ32/spu-mark-ii/
 edit_uri: ''
 docs_dir: documentation
