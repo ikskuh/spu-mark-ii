@@ -163,7 +163,7 @@ function loadFile(file) {
 
         console.log("Loaded ", len, " bytes into rom!");
 
-        resetCpu();
+        invokeReset();
     };
     let buffer = reader.readAsArrayBuffer(file);
 }
