@@ -1,16 +1,19 @@
+# BasicVGA
+
 Planned features:
+
 - Modes:
-	- Graphic 128×128, 8bpp, 60 Hz
 	- Graphic 256×128, 8bpp, 60 Hz
-	- 40×30 Text Mode, Monochrome, 60 Hz (8×8 fixed character set)
+	- (*planned*) Graphic, 2bpp, 60 Hz
 - 256 color palette support for RGB565
 - Output signal is 640x480 with double scaling and a border color
-	> ```
-	> # 640x480 59.38 Hz (CVT 0.31M3) hsync: 29.69 kHz; pclk: 23.75 MHz
-	> Modeline "640x480_60.00"   23.75  640 664 720 800  480 483 487 500 -hsync +vsync
-	> ```
 
-## Registers
+```
+# 640x480 59.38 Hz (CVT 0.31M3) hsync: 29.69 kHz; pclk: 23.75 MHz
+Modeline "640x480_60.00"   23.75  640 664 720 800  480 483 487 500 -hsync +vsync
+```
+
+# Registers
 
 | Offset   | Size | Access | Description           |
 |----------|------|--------|-----------------------|
@@ -22,7 +25,7 @@ Planned features:
 | `0x1***` |    2 | R/W    | Palette Entry *       |
 | `0x1FFE` |    2 | R/W    | Palette Entry 255     |
 
-### Framebuffer Address
+## Framebuffer Address
 Start address of the linear framebuffer. The frame buffer
 is stored row-major, so the first 128 byte are the the first
 row of pixels.
@@ -31,46 +34,47 @@ The address is in 24 bit address format, the upper 8 bit are
 ignored by the VGA module. Also, the address is in physical
 layout, so the memory must not be mapped to be visible.
 
-### Status Register
+## Status Register
 
-0,1: Mode
-2:   VSync Active
-3:   HSync Active
+- 0: HighRes
+- 1: *unused*
+- 2: VSync Active
+- 3: HSync Active
 
-Mode:
-	0=Off
-	1=Text Mode
-	2=128×128
-	3=256×128
+When *HighRes* is `1`, the graphic mode is switched from 256×128,8bpp to 512×256,2bpp. In this mode, only 4 colors are available, but the size is horizontally and vertically doubled.
 
-### Control Register
-Mirror register of the status register that allows writing
-several control commands into the VGA.
+## Control Register
+Mirror register of the status register that allows writing several control commands into the VGA.
 
-0,1: Set Mode
-1: N/A
-2: N/A
+- 0: HighRes
+- 1: *unused*
+- 2: N/A
+- 3: N/A
 
+# Sprite Unit
 
-## Sprite Unit
+**This part of the document isn't written yet. Please consider this not even a working draft.**
 
 The sprite unit is a built into two parts:
-- 
+
 - A 4096 byte memory section that stores both sprite pixels and sprite definitions
+- A set of registers that enable up to 8 sprites
 
-> This document isn't written yet. Please consider this not even a working draft.
+Facts:
 
-Fakten:
-- 4096 Byte Platz
-- 16 × 16²-Sprites mit 8 bpp
+- 4096 byte storage for sprite data (one page)
+- Sprite size can be set in steps of 4 pixels width and height
+- Sprite size can be from 4×4 to 64×64 pixels.
+- Sprites always use 255 colors from the palette, color 0 is transparent
 
-```
+```c
 struct SpriteDef {
-	word pixeldata_addr;
-	word next_sprite_addr;
-	sword x;
-	sbyte y;
-	byte config; // [ w: u4, h: u4 ]
+	u16 pixeldata_addr;
+	u16 next_sprite_addr;
+	i16 x;
+	i8  y;
+	u4 width;
+	u4 height;
 }
 ```
 

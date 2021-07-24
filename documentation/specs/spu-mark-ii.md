@@ -1,3 +1,5 @@
+# The SPU Mark II Architecture
+
 ## Documentation Style
 
 ### Numbers

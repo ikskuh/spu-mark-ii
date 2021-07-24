@@ -178,15 +178,31 @@ pub fn build(b: *std.build.Builder) !void {
     });
 
     {
-        const wasm_emulator = b.addStaticLibrary("emulator", "tools/emulator/web-main.zig");
+        const assemble_wasm_step = nativeToolchain.assembler.run();
+        assemble_wasm_step.addArgs(&[_][]const u8{
+            "-o",
+            "./zig-out/firmware/wasm.hex",
+            "./apps/web-firmware/main.asm",
+        });
+
+        const gen_wasm_firmware_blob = nativeToolchain.hex2bin.run();
+        gen_wasm_firmware_blob.step.dependOn(&assemble_wasm_step.step);
+        gen_wasm_firmware_blob.addArgs(&[_][]const u8{
+            "-o",
+            "./zig-out/firmware/wasm.bin",
+            "./zig-out/firmware/wasm.hex",
+        });
+
+        const wasm_emulator = b.addSharedLibrary("emulator", "tools/emulator/web-main.zig", .unversioned);
         wasm_emulator.addPackage(packages.ihex);
         wasm_emulator.addPackage(packages.@"spu-mk2");
         wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
-        wasm_emulator.setBuildMode(.ReleaseSafe);
-        wasm_emulator.step.dependOn(&gen_firmware_blob.step);
+        wasm_emulator.setBuildMode(mode);
+        wasm_emulator.step.dependOn(&gen_wasm_firmware_blob.step);
+        wasm_emulator.install();
 
         const wasm_step = b.step("wasm", "Builds the WASM emulator");
-        wasm_step.dependOn(&wasm_emulator.step);
+        wasm_step.dependOn(&wasm_emulator.install_step.?.step);
     }
 
     const bitmap_converter = b.addExecutable("bit-loader", "tools/bit-loader/main.zig");

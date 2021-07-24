@@ -22,7 +22,3 @@ This bundle contains all available tools, core libraries, manuals (in html forma
 - [Windows 64bit](downloads/disassembler-windows-x86_64.exe)
 - [Linux 64bit](downloads/disassembler-linux-x86_64)
 
-## SOC Debugger
-
-- [Windows 64bit](downloads/debugger-windows-x86_64.exe)
-- [Linux 64bit](downloads/debugger-linux-x86_64)

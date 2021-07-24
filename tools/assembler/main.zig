@@ -61,13 +61,23 @@ pub fn main() !u8 {
         try stdout.writeAll("Errors appeared while assembling:\n");
 
         for (assembler.errors.items) |err| {
-            try stdout.print("{s}: {s}:{}:{}: {s}\n", .{
-                @tagName(err.type),
-                "f", //err.location.?.file,
-                err.location.?.line,
-                err.location.?.column,
-                err.message,
-            });
+            if (err.location) |loc| {
+                try stdout.print("{s}: {s}:{}:{}: {s}\n", .{
+                    @tagName(err.type),
+                    "f", //err.location.?.file,
+                    loc.line,
+                    loc.column,
+                    err.message,
+                });
+            } else {
+                try stdout.print("{s}: {s}:{}:{}: {s}\n", .{
+                    @tagName(err.type),
+                    "f", //err.location.?.file,
+                    0,
+                    0,
+                    err.message,
+                });
+            }
         }
 
         return 1;

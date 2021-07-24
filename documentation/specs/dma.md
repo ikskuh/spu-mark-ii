@@ -1,5 +1,9 @@
+# OverkillDMA
+
+**DISCLAIMER: This document is very much work-in-progress and is only a rough working draft!**
 
 TODO:
+
 - blitter finished irq
 - vector fill
 	- How to solve "xor" with color values?
@@ -7,9 +11,10 @@ TODO:
 
 ## Draw Lists
 
-The RAM Blitter has a linked-list design to process a sequence of commands instead of accepting single commands.
+The OverkillDMA has a linked-list design to process a sequence of commands instead of accepting single commands.
 
 The supported commands are:
+
 - Copy Rectangle
 - Paint Primitives (Point, Line, Circle, Triangle)
 - Vector Fill
@@ -32,22 +37,22 @@ The flags define one bit right now:
 
 | Value    | Name            | Description                                       |
 |----------|-----------------|---------------------------------------------------|
-| `"02000"` | End of List     | If this operation is encountered, the chip will stop following the linked list and emit an IRQ signal. |
-| `"0001"` | Copy Rect       | This node describes a *Copy Rect* operation.      |
-| `"0010"` | Vector Fill     | This node describes a *Vector Fill* operation     |
-| `"0011"` | *reserved*      |                                                   |
-| `"0100"` | *reserved*      |                                                   |
-| `"0101"` | *reserved*      |                                                   |
-| `"0110"` | *reserved*      |                                                   |
-| `"0111"` | *reserved*      |                                                   |
-| `"1000"` | Paint Primitive | This node describes a *Paint Point* operation.    |
-| `"1001"` | Paint Primitive | This node describes a *Paint Line* operation.     |
-| `"1010"` | Paint Primitive | This node describes a *Paint Triangle* operation. |
-| `"1011"` | Paint Primitive | This node describes a *Paint Circle* operation.   |
-| `"1100"` | *reserved*      |                                                   |
-| `"1101"` | *reserved*      |                                                   |
-| `"1110"` | *reserved*      |                                                   |
-| `"1111"` | *reserved*      |                                                   |
+| `0000` | End of List     | If this operation is encountered, the chip will stop following the linked list and emit an IRQ signal. |
+| `0001` | Copy Rect       | This node describes a *Copy Rect* operation.      |
+| `0010` | Vector Fill     | This node describes a *Vector Fill* operation     |
+| `0011` | *reserved*      |                                                   |
+| `0100` | *reserved*      |                                                   |
+| `0101` | *reserved*      |                                                   |
+| `0110` | *reserved*      |                                                   |
+| `0111` | *reserved*      |                                                   |
+| `1000` | Paint Primitive | This node describes a *Paint Point* operation.    |
+| `1001` | Paint Primitive | This node describes a *Paint Line* operation.     |
+| `1010` | Paint Primitive | This node describes a *Paint Triangle* operation. |
+| `1011` | Paint Primitive | This node describes a *Paint Circle* operation.   |
+| `1100` | *reserved*      |                                                   |
+| `1101` | *reserved*      |                                                   |
+| `1110` | *reserved*      |                                                   |
+| `1111` | *reserved*      |                                                   |
 
 
 ## Copy Rect
@@ -58,6 +63,7 @@ While copying, both an alpha operation as well as a masking operation can be per
 ### Operation
 
 **Inputs:**
+
 - Alpha (byte)
 - Source (rectangle)
 - Destination (rectangle)

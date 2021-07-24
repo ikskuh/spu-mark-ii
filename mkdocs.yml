@@ -1,0 +1,38 @@
+site_name: Ashet Home Computer
+site_url: https://ashet.computer/
+site_author: Felix "xq" Queißner
+repo_url: https://github.com/MasterQ32/spu-mark-ii/
+edit_uri: ''
+docs_dir: documentation
+site_dir: website-out
+
+nav:
+  - 'Live Demo': website/livedemo.md
+  - 'Documentation':
+    - 'Specifications':
+      - 'SPU Mark II': specs/spu-mark-ii.md
+      - 'Ashet': specs/ashet.md
+    - 'Datasheet':
+      - 'TinyUART': specs/uart.md
+      - 'SimpleMMU': specs/mmu.md
+      - 'IRQ Controller': specs/irq.md
+      - 'BasicVGA': specs/vga.md
+      - 'PS/2': specs/ps2.md
+      - 'OverkillDMA': specs/dma.md
+    - 'Application Notes':
+      - 'AN000 - Understanding the Instruction Set': 'app-notes/AN000 - Understanding the Instruction Set.md'
+      - 'AN001 - The SPU Assembly Language': 'app-notes/AN001 - The SPU Assembly Language.md'
+      - 'AN002 - Standard Calling Convention': 'app-notes/AN002 - Standard Calling Convention.md'
+      - 'AN003 - Writing efficient code': 'app-notes/AN003 - Writing efficient code.md'
+    - 'Manuals':
+      - 'Assembler': website/tbd.md
+      - 'Disassembler': website/tbd.md
+      - 'Ashet Emulator': website/tbd.md
+      - 'Basic System Emulator': website/tbd.md
+  - 'OS':
+    - 'Overview': os/index.md
+    - 'Syscalls': os/syscalls.md
+  - DunstFS: dunstfs.md
+theme:
+    name: mkdocs
+    nav_style: light

@@ -138,12 +138,12 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
                                 self.fr = std.mem.zeroes(FlagRegister);
                             }
                             self.ip = ip;
-                            std.debug.print("Interrupt {} was triggered, jump to 0x{X:0>4}, FR={b:0>8}, IR={b:0>8}\n", .{
-                                i,
-                                ip,
-                                self.fr.int,
-                                self.ir,
-                            });
+                            // std.debug.print("Interrupt {} was triggered, jump to 0x{X:0>4}, FR={b:0>8}, IR={b:0>8}\n", .{
+                            //     i,
+                            //     ip,
+                            //     self.fr.int,
+                            //     self.ir,
+                            // });
                         }
                     }
                 }

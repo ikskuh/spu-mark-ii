@@ -1,4 +1,4 @@
-> DEPRECATED. IS NOW IN xq.tech!
+# SimpleMMU
 
 ## Overview
 - 16 bit virtual addresses

@@ -1,4 +1,4 @@
-# Builtin UART peripherial
+# TinyUART
 
 Planned features:
 - Status Register
