@@ -189,10 +189,8 @@ pub const Assembler = struct {
 
     // utilities
     allocator: *std.mem.Allocator,
-
-    // string interning
-    string_arena: std.heap.ArenaAllocator,
-    interned_strings: std.StringHashMapUnmanaged(void),
+    string_cache: StringCache,
+    arena: std.heap.ArenaAllocator,
 
     // assembling result
     sections: std.TailQueue(Section),
@@ -235,13 +233,14 @@ pub const Assembler = struct {
             .errors = std.ArrayList(CompileError).init(allocator),
             .fileName = undefined,
             .directory = undefined,
-            .string_arena = std.heap.ArenaAllocator.init(allocator),
-            .interned_strings = .{},
+            .string_cache = StringCache.init(allocator),
+            .arena = std.heap.ArenaAllocator.init(allocator),
         };
-        errdefer a.string_arena.deinit();
+        errdefer a.arena.deinit();
+        errdefer a.string_cache.deinit();
 
-        a.local_symbols = try a.string_arena.allocator.create(std.StringHashMap(u16));
-        a.local_symbols.* = std.StringHashMap(u16).init(&a.string_arena.allocator);
+        a.local_symbols = try a.arena.allocator.create(std.StringHashMap(u16));
+        a.local_symbols.* = std.StringHashMap(u16).init(&a.arena.allocator);
 
         _ = try a.appendSection(0x0000);
 
@@ -253,8 +252,8 @@ pub const Assembler = struct {
             sect.data.deinit();
             self.allocator.destroy(sect);
         }
-        self.interned_strings.deinit(self.allocator);
-        self.string_arena.deinit();
+        self.string_cache.deinit();
+        self.arena.deinit();
         self.symbols.deinit();
         self.* = undefined;
     }
@@ -291,7 +290,7 @@ pub const Assembler = struct {
 
         var location_clone = location;
         if (location_clone) |*l| {
-            l.file = try self.internString(self.fileName);
+            l.file = try self.string_cache.internString(self.fileName);
         }
 
         try self.errors.append(CompileError{
@@ -319,7 +318,7 @@ pub const Assembler = struct {
         ParensImbalance,
     };
     pub fn assemble(self: *Assembler, fileName: []const u8, directory: ?std.fs.Dir, stream: anytype) AssembleError!void {
-        var parser = try Parser.fromStream(self.allocator, stream);
+        var parser = try Parser.fromStream(&self.string_cache, self.allocator, stream);
         defer parser.deinit();
 
         self.fileName = fileName;
@@ -342,7 +341,7 @@ pub const Assembler = struct {
                 .label => {
                     const label = try parser.expect(.label);
 
-                    const name = try self.internString(label.text[0 .. label.text.len - 1]);
+                    const name = try self.string_cache.internString(label.text[0 .. label.text.len - 1]);
 
                     const offset = self.currentSection().getGlobalOffset();
 
@@ -351,8 +350,8 @@ pub const Assembler = struct {
                         try self.local_symbols.put(name, offset);
                     } else {
                         // global label
-                        self.local_symbols = try self.string_arena.allocator.create(std.StringHashMap(u16));
-                        self.local_symbols.* = std.StringHashMap(u16).init(&self.string_arena.allocator);
+                        self.local_symbols = try self.arena.allocator.create(std.StringHashMap(u16));
+                        self.local_symbols.* = std.StringHashMap(u16).init(&self.arena.allocator);
                         try self.symbols.put(name, offset);
                     }
                 },
@@ -587,9 +586,11 @@ pub const Assembler = struct {
 
             _ = try parser.expect(.comma);
 
-            const name = try assembler.internString(name_tok.text);
+            const name = try assembler.string_cache.internString(name_tok.text);
 
-            const value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            var value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            defer value_expr.expression.deinit();
+
             const value = try assembler.evaluate(value_expr.expression, true);
             if (value != .number)
                 return error.TypeMismatch;
@@ -693,32 +694,6 @@ pub const Assembler = struct {
 
     // Expression handling
 
-    fn parseAndInternString(assembler: *Assembler, token: Token) ![]const u8 {
-        const buffer = try assembler.allocator.alloc(u8, token.text.len - 2);
-        defer assembler.allocator.free(buffer);
-
-        var length: usize = 0;
-
-        var offset: usize = 1;
-        while (offset < token.text.len - 1) {
-            const c = try translateEscapedChar(token.text[offset..]);
-
-            buffer[length] = c.char;
-            length += 1;
-            offset += c.length;
-        }
-
-        return try assembler.internString(buffer[0..length]);
-    }
-
-    fn internString(assembler: *Assembler, string: []const u8) ![]const u8 {
-        const gop = try assembler.interned_strings.getOrPut(assembler.allocator, string);
-        if (!gop.found_existing) {
-            gop.key_ptr.* = try assembler.string_arena.allocator.dupe(u8, string);
-        }
-        return gop.key_ptr.*;
-    }
-
     const EvaluationError = error{ InvalidExpression, UnknownFunction, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
     fn evaluate(assembler: *Assembler, expression: Expression, emitErrorOnMissing: bool) EvaluationError!Value {
         return try expression.evaluate(assembler, emitErrorOnMissing);
@@ -742,6 +717,29 @@ pub const Assembler = struct {
         //     }
         // }
 
+    }
+};
+
+const StringCache = struct {
+    const Self = @This();
+
+    string_arena: std.heap.ArenaAllocator,
+    interned_strings: std.StringHashMap(void),
+    scratch_buffer: std.ArrayList(u8),
+
+    pub fn init(allocator: *std.mem.Allocator) Self {
+        return .{
+            .string_arena = std.heap.ArenaAllocator.init(allocator),
+            .interned_strings = std.StringHashMap(void).init(allocator),
+            .scratch_buffer = std.ArrayList(u8).init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.interned_strings.deinit();
+        self.string_arena.deinit();
+        self.scratch_buffer.deinit();
+        self.* = undefined;
     }
 
     const EscapingResult = struct {
@@ -767,12 +765,41 @@ pub const Assembler = struct {
                 'x' => {
                     return EscapingResult{
                         .length = 4,
-                        .char = try std.fmt.parseInt(u8, pattern[2..4], 16),
+                        .char = std.fmt.parseInt(u8, pattern[2..4], 16) catch |err| switch (err) {
+                            error.Overflow => unreachable, // 2 hex chars can never overflow a byte!
+                            else => |e| return e,
+                        },
                     };
                 },
                 else => |c| c,
             },
         };
+    }
+
+    pub fn escapeAndInternString(self: *Self, raw_string: []const u8) ![]const u8 {
+        self.scratch_buffer.shrinkRetainingCapacity(0);
+
+        // we can safely resize the buffer here to the source string length, as
+        // in the worst case, we will not change the size and in the best case we will
+        // be left with 1/4th of the char count (\x??)
+        try self.scratch_buffer.ensureTotalCapacity(raw_string.len);
+
+        var offset: usize = 0;
+        while (offset < raw_string.len) {
+            const c = try translateEscapedChar(raw_string[offset..]);
+            offset += c.length;
+            self.scratch_buffer.append(c.char) catch unreachable;
+        }
+
+        return try self.internString(self.scratch_buffer.items);
+    }
+
+    pub fn internString(self: *Self, string: []const u8) ![]const u8 {
+        const gop = try self.interned_strings.getOrPut(string);
+        if (!gop.found_existing) {
+            gop.key_ptr.* = try self.string_arena.allocator.dupe(u8, string);
+        }
+        return gop.key_ptr.*;
     }
 };
 
@@ -861,6 +888,7 @@ pub const Token = struct {
 
 pub const Parser = struct {
     allocator: ?*std.mem.Allocator,
+    string_cache: *StringCache,
     source: []u8,
     offset: usize,
     peeked_token: ?Token,
@@ -868,8 +896,9 @@ pub const Parser = struct {
 
     const Self = @This();
 
-    fn fromStream(allocator: *std.mem.Allocator, stream: anytype) !Self {
+    fn fromStream(string_cache: *StringCache, allocator: *std.mem.Allocator, stream: anytype) !Self {
         return Self{
+            .string_cache = string_cache,
             .allocator = allocator,
             .source = try stream.readAllAlloc(allocator, 16 << 20), // 16 MB
             .offset = 0,
@@ -882,8 +911,9 @@ pub const Parser = struct {
         };
     }
 
-    fn fromSlice(text: []const u8) Self {
+    fn fromSlice(string_cache: *StringCache, text: []const u8) Self {
         return Self{
+            .string_cache = string_cache,
             .allocator = null,
             .source = text,
             .offset = 0,
@@ -1561,7 +1591,7 @@ pub const Parser = struct {
                 return ExpressionNode{
                     .location = token.location,
                     .type = .{
-                        .string_literal = token.text[1 .. token.text.len - 1],
+                        .string_literal = try self.string_cache.escapeAndInternString(token.text[1 .. token.text.len - 1]),
                     },
                 };
             },
@@ -1569,21 +1599,21 @@ pub const Parser = struct {
             .char_literal => return ExpressionNode{
                 .location = token.location,
                 .type = .{
-                    .numeric_literal = (Assembler.translateEscapedChar(token.text[1..]) catch return error.InvalidCharacter).char,
+                    .numeric_literal = (StringCache.translateEscapedChar(token.text[1..]) catch return error.InvalidCharacter).char,
                 },
             },
 
             .identifier => return ExpressionNode{
                 .location = token.location,
                 .type = .{
-                    .symbol_reference = try allocator.dupe(u8, token.text),
+                    .symbol_reference = try self.string_cache.internString(token.text),
                 },
             },
 
             .dot_identifier => return ExpressionNode{
                 .location = token.location,
                 .type = .{
-                    .local_symbol_reference = try allocator.dupe(u8, token.text),
+                    .local_symbol_reference = try self.string_cache.internString(token.text),
                 },
             },
             else => unreachable,
@@ -1726,7 +1756,7 @@ const Expression = struct {
         return switch (node.type) {
             .numeric_literal => |number| EvalValue{ .number = number },
             .string_literal => |str| EvalValue{
-                .string = try context.internString(str),
+                .string = try context.string_cache.internString(str),
             },
             .current_location => EvalValue{
                 .number = @intCast(u16, context.currentSection().getDotOffset()),
@@ -2054,7 +2084,7 @@ test "emit raw byte" {
     try std.testing.expectEqual(@as(u8, 0x78), std.mem.readIntLittle(u8, sect.bytes.items[3..4]));
 }
 
-fn testExpressionEvaluation(expected: u16, comptime source: []const u8) !void {
+fn testCodeGenerationEqual(expected: []const u8, comptime source: []const u8) !void {
     var as = try Assembler.init(std.testing.allocator);
     defer as.deinit();
 
@@ -2062,7 +2092,7 @@ fn testExpressionEvaluation(expected: u16, comptime source: []const u8) !void {
         var source_cpy = source[0..source.len].*;
         var stream = std.io.fixedBufferStream(source);
 
-        try as.assemble("memory", null, stream.reader());
+        try as.assemble("memory", std.fs.cwd(), stream.reader());
 
         // destroy all evidence
         std.mem.set(u8, &source_cpy, 0x55);
@@ -2076,8 +2106,13 @@ fn testExpressionEvaluation(expected: u16, comptime source: []const u8) !void {
     const sect = as.sections.first.?.data;
 
     try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
-    try std.testing.expectEqual(@as(usize, 2), sect.bytes.items.len);
-    try std.testing.expectEqual(expected, std.mem.readIntLittle(u16, sect.bytes.items[0..2]));
+    try std.testing.expectEqualSlices(u8, expected, sect.bytes.items);
+}
+
+fn testExpressionEvaluation(expected: u16, comptime source: []const u8) !void {
+    var buf: [2]u8 = undefined;
+    std.mem.writeIntLittle(u16, &buf, expected);
+    return try testCodeGenerationEqual(&buf, source);
 }
 
 test "parsing integer literals" {
@@ -2166,5 +2201,91 @@ test "forward references" {
     try testExpressionEvaluation(2,
         \\.dw forward
         \\forward:
+    );
+}
+
+test "basic string generation" {
+    try testCodeGenerationEqual("abc",
+        \\.db 'a', 'b'
+        \\.db 'c'
+    );
+    try testCodeGenerationEqual("abc",
+        \\.ascii "abc"
+    );
+    try testCodeGenerationEqual("abc",
+        \\.ascii "ab"
+        \\.ascii "c"
+    );
+    try testCodeGenerationEqual("abc",
+        \\.ascii "abc"
+    );
+    try testCodeGenerationEqual("ab\x00c\x00",
+        \\.asciiz "ab"
+        \\.asciiz "c"
+    );
+}
+
+test "string escaping" {
+    try testCodeGenerationEqual(&[_]u8{ 0x07, 0x08, 0x1B, 0x0A, 0x0D, 0x0B, 0x5C, 0x27, 0x22, 0x12, 0xFF, 0x00 },
+        \\.db '\a', '\b', '\e', '\n', '\r', '\t', '\\', '\'', '\"', '\x12', '\xFF', '\x00'
+    );
+    try testCodeGenerationEqual(&[_]u8{ 0x07, 0x08, 0x1B, 0x0A, 0x0D, 0x0B, 0x5C, 0x27, 0x22, 0x12, 0xFF, 0x00 },
+        \\.ascii "\a\b\e\n\r\t\\\'\"\x12\xFF\x00"
+    );
+}
+
+test ".equ" {
+    try testExpressionEvaluation(42,
+        \\.equ constant, 40
+        \\.equ forward, constant
+        \\.equ result, forward + 2
+        \\.dw result
+    );
+}
+
+test ".space" {
+    try testCodeGenerationEqual(&[_]u8{ 1, 0, 0, 0, 2 },
+        \\.db 1
+        \\.space 3
+        \\.db 2
+    );
+}
+
+test ".incbin" {
+    try testCodeGenerationEqual(".ascii \"include\"",
+        \\.incbin "test/include.inc"
+    );
+}
+
+test ".include" {
+    try testCodeGenerationEqual("[include]",
+        \\.db '['
+        \\.include "test/include.inc"
+        \\.db ']'
+    );
+}
+
+fn testInstructionGeneration(expected: Instruction, operands: []const u16, comptime source: []const u8) !void {
+    var buf: [6]u8 = undefined;
+    std.mem.writeIntLittle(u16, buf[0..2], @bitCast(u16, expected));
+    for (operands) |o, i| {
+        std.mem.writeIntLittle(u16, buf[2 * i ..][0..2], o);
+    }
+    return try testCodeGenerationEqual(buf[0 .. 2 * operands.len + 2], source);
+}
+
+test "nop generation" {
+    try testInstructionGeneration(
+        Instruction{
+            .condition = .always,
+            .input0 = .zero,
+            .input1 = .zero,
+            .modify_flags = false,
+            .output = .discard,
+            .command = .copy,
+        },
+        &[_]u16{},
+        \\nop
+        ,
     );
 }

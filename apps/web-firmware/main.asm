@@ -67,5 +67,4 @@ hang:
   jmp hang
 
 init_msg:
-.ascii "Hello, World!"
-.db 13, 10, '>', 0
+.asciiz "Hello, World!\r\n>"
