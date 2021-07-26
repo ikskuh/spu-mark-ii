@@ -181,6 +181,16 @@ pub const CompileError = struct {
     location: ?Location,
     message: []const u8,
     type: Type,
+
+    pub fn format(err: CompileError, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+        _ = fmt;
+        _ = options;
+        try stream.print("{}: {s}: {s}", .{
+            err.location,
+            @tagName(err.type),
+            err.message,
+        });
+    }
 };
 
 pub const Assembler = struct {
@@ -1920,7 +1930,7 @@ const Modifiers = struct {
                     return;
                 }
             }
-        } else if (std.mem.eql(u8, mod_type.text, "out:")) {
+        } else if (std.mem.eql(u8, mod_type.text, "cmd:")) {
             if (mods.command != null)
                 return error.DuplicateModifier;
             inline for (command_items) |item| {
@@ -2098,6 +2108,10 @@ fn testCodeGenerationEqual(expected: []const u8, comptime source: []const u8) !v
         std.mem.set(u8, &source_cpy, 0x55);
 
         try as.finalize();
+    }
+
+    for (as.errors.items) |err| {
+        std.log.err("compile error: {}", .{err});
     }
 
     try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
@@ -2288,4 +2302,172 @@ test "nop generation" {
         \\nop
         ,
     );
+}
+
+test "[ex:] modifier application" {
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:always]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .when_zero, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:zero]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .not_zero, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:nonzero]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .greater_zero, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:greater]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .less_than_zero, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:less]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .greater_or_equal_zero, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:gequal]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .less_or_equal_zero, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:lequal]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .overflow, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [ex:ovfl]
+        ,
+    );
+}
+
+test "[f:] modifier application" {
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [f:no]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = true, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [f:yes]
+        ,
+    );
+}
+
+test "[i0:] modifier application" {
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i0:zero]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .immediate, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i0:immediate]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .peek, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i0:peek]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .pop, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i0:pop]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .immediate, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i0:arg]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .immediate, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i0:imm]
+        ,
+    );
+}
+test "[i1:] modifier application" {
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i1:zero]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .immediate, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i1:immediate]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .peek, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i1:peek]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .pop, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i1:pop]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .immediate, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i1:arg]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .immediate, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [i1:imm]
+        ,
+    );
+}
+
+test "[out:] modifier application" {
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = .copy },
+        &[_]u16{},
+        \\nop [out:discard]
+        ,
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .push, .command = .copy },
+        &[_]u16{},
+        \\nop [out:push]
+        ,
+    );
+}
+
+test "[cmd:] modifier application" {
+    inline for (Modifiers.command_items) |cmd| {
+        try testInstructionGeneration(
+            Instruction{ .condition = .always, .input0 = .zero, .input1 = .zero, .modify_flags = false, .output = .discard, .command = cmd[1] },
+            &[_]u16{},
+            "nop [cmd:" ++ cmd[0] ++ "]",
+        );
+    }
 }
