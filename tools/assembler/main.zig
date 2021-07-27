@@ -2281,11 +2281,12 @@ test ".include" {
 
 fn testInstructionGeneration(expected: Instruction, operands: []const u16, comptime source: []const u8) !void {
     var buf: [6]u8 = undefined;
-    std.mem.writeIntLittle(u16, buf[0..2], @bitCast(u16, expected));
+    std.mem.copy(u8, buf[0..2], std.mem.asBytes(&expected));
     for (operands) |o, i| {
-        std.mem.writeIntLittle(u16, buf[2 * i ..][0..2], o);
+        std.mem.writeIntLittle(u16, buf[2 * (i + 1) ..][0..2], o);
     }
-    return try testCodeGenerationEqual(buf[0 .. 2 * operands.len + 2], source);
+    const slice = buf[0 .. 2 * operands.len + 2];
+    try testCodeGenerationEqual(slice, source);
 }
 
 test "nop generation" {
@@ -2470,4 +2471,22 @@ test "[cmd:] modifier application" {
             "nop [cmd:" ++ cmd[0] ++ "]",
         );
     }
+}
+
+test "input count selection" {
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .store16, .output = .discard, .modify_flags = false },
+        &[_]u16{},
+        "st",
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .pop, .input1 = .immediate, .command = .store16, .output = .discard, .modify_flags = false },
+        &[_]u16{0x1234},
+        "st 0x1234",
+    );
+    try testInstructionGeneration(
+        Instruction{ .condition = .always, .input0 = .immediate, .input1 = .immediate, .command = .store16, .output = .discard, .modify_flags = false },
+        &[_]u16{ 0x1234, 0x4567 },
+        "st 0x1234, 0x4567",
+    );
 }
