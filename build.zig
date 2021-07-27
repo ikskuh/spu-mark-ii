@@ -104,6 +104,7 @@ pub fn build(b: *std.build.Builder) !void {
     {
         const asm_test = addTest(b, test_step, "assembler", "tools/assembler/main.zig");
         asm_test.addPackage(zpm.pkgs.@"spu-mk2");
+        asm_test.addPackage(zpm.pkgs.args);
 
         _ = addTest(b, test_step, "debugger", "tools/debugger/main.zig");
         _ = addTest(b, test_step, "emulator", "tools/emulator/pc-main.zig");

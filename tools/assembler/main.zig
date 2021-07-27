@@ -94,7 +94,7 @@ pub fn main() !u8 {
                 var iter = assembler.sections.first;
                 while (iter) |section_node| : (iter = section_node.next) {
                     const section = &section_node.data;
-                    try file.seekTo(section.offset);
+                    try file.seekTo(section.phys_offset);
                     try file.writeAll(section.bytes.items);
                 }
             },
@@ -112,7 +112,7 @@ pub fn main() !u8 {
 
                         var buffer: [256 + 5]u8 = undefined;
                         std.mem.writeIntBig(u8, buffer[0..][0..1], @intCast(u8, length));
-                        std.mem.writeIntBig(u16, buffer[1..][0..2], @intCast(u16, section.offset + i));
+                        std.mem.writeIntBig(u16, buffer[1..][0..2], @intCast(u16, section.phys_offset + i));
                         std.mem.writeIntBig(u8, buffer[3..][0..1], 0x00); // data record
                         std.mem.copy(u8, buffer[4..], source);
 
@@ -148,7 +148,8 @@ pub const Patch = struct {
 pub const Section = struct {
     const Self = @This();
 
-    offset: u16,
+    load_offset: u16,
+    phys_offset: u32,
     bytes: std.ArrayList(u8),
     patches: std.ArrayList(Patch),
     dot_offset: u16,
@@ -167,7 +168,7 @@ pub const Section = struct {
     }
 
     fn getGlobalOffset(sect: Self) u16 {
-        return @intCast(u16, sect.offset + sect.bytes.items.len);
+        return @intCast(u16, sect.load_offset + sect.bytes.items.len);
     }
 
     fn getDotOffset(sect: Self) u16 {
@@ -212,16 +213,17 @@ pub const Assembler = struct {
     fileName: []const u8,
     directory: ?std.fs.Dir,
 
-    fn appendSection(assembler: *Assembler, offset: u16) !*Section {
+    fn appendSection(assembler: *Assembler, load_offset: u16, phys_offset: u32) !*Section {
         var node = try assembler.allocator.create(SectionNode);
         errdefer assembler.allocator.destroy(node);
 
         node.* = SectionNode{
             .data = Section{
-                .offset = offset,
+                .load_offset = load_offset,
+                .phys_offset = phys_offset,
                 .bytes = std.ArrayList(u8).init(assembler.allocator),
                 .patches = std.ArrayList(Patch).init(assembler.allocator),
-                .dot_offset = offset,
+                .dot_offset = load_offset,
             },
         };
 
@@ -252,7 +254,7 @@ pub const Assembler = struct {
         a.local_symbols = try a.arena.allocator.create(std.StringHashMap(u16));
         a.local_symbols.* = std.StringHashMap(u16).init(&a.arena.allocator);
 
-        _ = try a.appendSection(0x0000);
+        _ = try a.appendSection(0x0000, 0x0000_0000);
 
         return a;
     }
@@ -496,19 +498,37 @@ pub const Assembler = struct {
 
     const Directives = struct {
         fn @".org"(assembler: *Assembler, parser: *Parser) !void {
-            const offset_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            const offset_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
 
-            const offset = try assembler.evaluate(offset_expr.expression, true);
-            if (offset != .number) {
-                return try assembler.emitError(.@"error", offset_expr.expression.location, "Type mismatch: Expected number, found {s}", .{@tagName(offset)});
+            const physical_expr = if (offset_expr.terminator.type == .comma)
+                // parse the physical offset expr here
+                try parser.parseExpression(assembler.allocator, .{.line_break})
+            else
+                null;
+
+            const load_offset = try assembler.evaluate(offset_expr.expression, true);
+            if (load_offset != .number) {
+                return try assembler.emitError(.@"error", offset_expr.expression.location, "Type mismatch: Expected number, found {s}", .{@tagName(load_offset)});
+            }
+
+            const phys_offset = if (physical_expr) |expr|
+                try assembler.evaluate(expr.expression, true)
+            else
+                null;
+
+            if (phys_offset) |offset| {
+                if (offset != .number) {
+                    return try assembler.emitError(.@"error", physical_expr.?.expression.location, "Type mismatch: Expected number, found {s}", .{@tagName(offset)});
+                }
             }
 
             const sect = if (assembler.currentSection().bytes.items.len == 0)
                 assembler.currentSection()
             else
-                try assembler.appendSection(offset.number);
+                try assembler.appendSection(load_offset.number, (phys_offset orelse load_offset).number);
 
-            sect.offset = offset.number;
+            sect.load_offset = load_offset.number;
+            sect.phys_offset = (phys_offset orelse load_offset).number;
         }
 
         fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
@@ -2009,92 +2029,33 @@ const Modifiers = struct {
     };
 };
 
-test "empty file" {
-    var as = try Assembler.init(std.testing.allocator);
-    defer as.deinit();
-
-    var stream = std.io.fixedBufferStream(
-        \\
-    );
-
-    try as.assemble("memory", null, stream.reader());
-    try as.finalize();
-
-    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
-    try std.testing.expect(as.sections.first != null);
-
-    try std.testing.expectEqual(@as(usize, 0), as.sections.first.?.data.offset);
-    try std.testing.expectEqual(@as(usize, 0), as.sections.first.?.data.bytes.items.len);
+test {
+    _ = main;
 }
 
-test "section deduplication" {
-    var as = try Assembler.init(std.testing.allocator);
-    defer as.deinit();
+const TestSectionDesc = struct {
+    load_offset: u16,
+    phys_offset: u32,
+    contents: []const u8,
 
-    var stream = std.io.fixedBufferStream(
-        \\.org 0x8000
-    );
+    fn initZeroOffset(content: []const u8) TestSectionDesc {
+        return .{
+            .load_offset = 0,
+            .phys_offset = 0,
+            .contents = content,
+        };
+    }
 
-    try as.assemble("memory", null, stream.reader());
-    try as.finalize();
+    fn initOffset(offset: u16, content: []const u8) TestSectionDesc {
+        return .{
+            .load_offset = offset,
+            .phys_offset = offset,
+            .contents = content,
+        };
+    }
+};
 
-    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
-    try std.testing.expect(as.sections.first != null);
-
-    try std.testing.expectEqual(@as(usize, 0x8000), as.sections.first.?.data.offset);
-    try std.testing.expectEqual(@as(usize, 0), as.sections.first.?.data.bytes.items.len);
-}
-
-test "emit raw word" {
-    var as = try Assembler.init(std.testing.allocator);
-    defer as.deinit();
-
-    var stream = std.io.fixedBufferStream(
-        \\.dw 0x1234
-        \\.dw 0x5678, 0x9ABC
-    );
-
-    try as.assemble("memory", null, stream.reader());
-    try as.finalize();
-
-    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
-    try std.testing.expect(as.sections.first != null);
-
-    const sect = as.sections.first.?.data;
-
-    try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
-    try std.testing.expectEqual(@as(usize, 6), sect.bytes.items.len);
-    try std.testing.expectEqual(@as(u16, 0x1234), std.mem.readIntLittle(u16, sect.bytes.items[0..2]));
-    try std.testing.expectEqual(@as(u16, 0x5678), std.mem.readIntLittle(u16, sect.bytes.items[2..4]));
-    try std.testing.expectEqual(@as(u16, 0x9ABC), std.mem.readIntLittle(u16, sect.bytes.items[4..6]));
-}
-
-test "emit raw byte" {
-    var as = try Assembler.init(std.testing.allocator);
-    defer as.deinit();
-
-    var stream = std.io.fixedBufferStream(
-        \\.db 0x12
-        \\.db 0x34, 0x56, 0x78
-    );
-
-    try as.assemble("memory", null, stream.reader());
-    try as.finalize();
-
-    try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
-    try std.testing.expect(as.sections.first != null);
-
-    const sect = as.sections.first.?.data;
-
-    try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
-    try std.testing.expectEqual(@as(usize, 4), sect.bytes.items.len);
-    try std.testing.expectEqual(@as(u8, 0x12), std.mem.readIntLittle(u8, sect.bytes.items[0..1]));
-    try std.testing.expectEqual(@as(u8, 0x34), std.mem.readIntLittle(u8, sect.bytes.items[1..2]));
-    try std.testing.expectEqual(@as(u8, 0x56), std.mem.readIntLittle(u8, sect.bytes.items[2..3]));
-    try std.testing.expectEqual(@as(u8, 0x78), std.mem.readIntLittle(u8, sect.bytes.items[3..4]));
-}
-
-fn testCodeGenerationEqual(expected: []const u8, comptime source: []const u8) !void {
+fn testCodeGenerationGeneratesOutput(expected: []const TestSectionDesc, comptime source: []const u8) !void {
     var as = try Assembler.init(std.testing.allocator);
     defer as.deinit();
 
@@ -2115,12 +2076,67 @@ fn testCodeGenerationEqual(expected: []const u8, comptime source: []const u8) !v
     }
 
     try std.testing.expectEqual(@as(usize, 0), as.errors.items.len);
-    try std.testing.expect(as.sections.first != null);
 
-    const sect = as.sections.first.?.data;
+    var section = as.sections.first;
+    for (expected) |output| {
+        try std.testing.expect(section != null);
 
-    try std.testing.expectEqual(@as(usize, 0x0000), sect.offset);
-    try std.testing.expectEqualSlices(u8, expected, sect.bytes.items);
+        try std.testing.expectEqual(output.load_offset, section.?.data.load_offset);
+        try std.testing.expectEqual(output.phys_offset, section.?.data.phys_offset);
+        try std.testing.expectEqualSlices(u8, output.contents, section.?.data.bytes.items);
+
+        section = section.?.next;
+    }
+}
+
+fn testCodeGenerationEqual(expected: []const u8, comptime source: []const u8) !void {
+    try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{TestSectionDesc.initZeroOffset(expected)}, source);
+}
+
+test "empty file" {
+    try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{TestSectionDesc.initZeroOffset("")}, "");
+}
+
+test "section deduplication" {
+    try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{TestSectionDesc.initOffset(0x8000, "hello")},
+        \\.org 0x0000
+        \\.org 0x8000
+        \\.ascii "hello"
+    );
+}
+
+test "section physical offset setup" {
+    try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{
+        .{
+            .load_offset = 0x0000,
+            .phys_offset = 0x8000,
+            .contents = "hello",
+        },
+        .{
+            .load_offset = 0x2000,
+            .phys_offset = 0x1000,
+            .contents = "bye",
+        },
+    },
+        \\.org 0x0000, 0x8000
+        \\.ascii "hello"
+        \\.org 0x2000, 0x1000
+        \\.ascii "bye"
+    );
+}
+
+test "emit raw word" {
+    try testCodeGenerationEqual(&[_]u8{ 0x34, 0x12, 0x78, 0x56, 0xBC, 0x9A },
+        \\.dw 0x1234
+        \\.dw 0x5678, 0x9ABC
+    );
+}
+
+test "emit raw byte" {
+    try testCodeGenerationEqual(&[_]u8{ 0x12, 0x34, 0x56, 0x78 },
+        \\.db 0x12
+        \\.db 0x34, 0x56, 0x78
+    );
 }
 
 fn testExpressionEvaluation(expected: u16, comptime source: []const u8) !void {
