@@ -142,7 +142,7 @@ pub fn main() !u8 {
 pub const Patch = struct {
     offset: u16,
     value: Expression,
-    locals: *std.StringHashMap(u16),
+    locals: *std.StringHashMap(i64),
 };
 
 pub const Section = struct {
@@ -205,8 +205,8 @@ pub const Assembler = struct {
 
     // assembling result
     sections: std.TailQueue(Section),
-    symbols: std.StringHashMap(u16),
-    local_symbols: *std.StringHashMap(u16),
+    symbols: std.StringHashMap(i64),
+    local_symbols: *std.StringHashMap(i64),
     errors: std.ArrayList(CompileError),
 
     // in-flight symbols
@@ -240,7 +240,7 @@ pub const Assembler = struct {
         var a = Self{
             .allocator = allocator,
             .sections = std.TailQueue(Section){},
-            .symbols = std.StringHashMap(u16).init(allocator),
+            .symbols = std.StringHashMap(i64).init(allocator),
             .local_symbols = undefined,
             .errors = std.ArrayList(CompileError).init(allocator),
             .fileName = undefined,
@@ -251,8 +251,8 @@ pub const Assembler = struct {
         errdefer a.arena.deinit();
         errdefer a.string_cache.deinit();
 
-        a.local_symbols = try a.arena.allocator.create(std.StringHashMap(u16));
-        a.local_symbols.* = std.StringHashMap(u16).init(&a.arena.allocator);
+        a.local_symbols = try a.arena.allocator.create(std.StringHashMap(i64));
+        a.local_symbols.* = std.StringHashMap(i64).init(&a.arena.allocator);
 
         _ = try a.appendSection(0x0000, 0x0000_0000);
 
@@ -283,10 +283,9 @@ pub const Assembler = struct {
                     else => return err,
                 };
 
-                switch (value) {
-                    .number => |n| std.mem.writeIntLittle(u16, section.bytes.items[patch.offset..][0..2], n),
-                    else => return error.TypeMismatch,
-                }
+                const patch_value = value.toWord(self) catch 0xAAAA;
+
+                std.mem.writeIntLittle(u16, section.bytes.items[patch.offset..][0..2], patch_value);
             }
 
             for (section.patches.items) |*patch| {
@@ -297,7 +296,7 @@ pub const Assembler = struct {
     }
 
     fn emitError(self: *Self, kind: CompileError.Type, location: ?Location, comptime fmt: []const u8, args: anytype) !void {
-        const msg = try std.fmt.allocPrint(self.allocator, fmt, args);
+        const msg = try std.fmt.allocPrint(&self.string_cache.string_arena.allocator, fmt, args);
         errdefer self.allocator.free(msg);
 
         var location_clone = location;
@@ -362,8 +361,8 @@ pub const Assembler = struct {
                         try self.local_symbols.put(name, offset);
                     } else {
                         // global label
-                        self.local_symbols = try self.arena.allocator.create(std.StringHashMap(u16));
-                        self.local_symbols.* = std.StringHashMap(u16).init(&self.arena.allocator);
+                        self.local_symbols = try self.arena.allocator.create(std.StringHashMap(i64));
+                        self.local_symbols.* = std.StringHashMap(i64).init(&self.arena.allocator);
                         try self.symbols.put(name, offset);
                     }
                 },
@@ -506,29 +505,25 @@ pub const Assembler = struct {
             else
                 null;
 
-            const load_offset = try assembler.evaluate(offset_expr.expression, true);
-            if (load_offset != .number) {
-                return try assembler.emitError(.@"error", offset_expr.expression.location, "Type mismatch: Expected number, found {s}", .{@tagName(load_offset)});
-            }
-
-            const phys_offset = if (physical_expr) |expr|
+            const load_offset_val = try assembler.evaluate(offset_expr.expression, true);
+            const phys_offset_val = if (physical_expr) |expr|
                 try assembler.evaluate(expr.expression, true)
             else
                 null;
 
-            if (phys_offset) |offset| {
-                if (offset != .number) {
-                    return try assembler.emitError(.@"error", physical_expr.?.expression.location, "Type mismatch: Expected number, found {s}", .{@tagName(offset)});
-                }
-            }
+            const load_offset = load_offset_val.toWord(assembler) catch return;
+            const phys_offset = if (phys_offset_val) |val|
+                val.toLong(assembler) catch return
+            else
+                null;
 
             const sect = if (assembler.currentSection().bytes.items.len == 0)
                 assembler.currentSection()
             else
-                try assembler.appendSection(load_offset.number, (phys_offset orelse load_offset).number);
+                try assembler.appendSection(load_offset, phys_offset orelse load_offset);
 
-            sect.load_offset = load_offset.number;
-            sect.phys_offset = (phys_offset orelse load_offset).number;
+            sect.load_offset = load_offset;
+            sect.phys_offset = phys_offset orelse load_offset;
         }
 
         fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
@@ -555,13 +550,13 @@ pub const Assembler = struct {
         fn @".align"(assembler: *Assembler, parser: *Parser) !void {
             const alignment_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const alignment = try assembler.evaluate(alignment_expr.expression, true);
-            if (alignment != .number)
-                return error.TypeMismatch;
+            const alignment_val = try assembler.evaluate(alignment_expr.expression, true);
+
+            const alignment = alignment_val.toWord(assembler) catch return;
 
             const sect = assembler.currentSection();
 
-            const newSize = std.mem.alignForward(sect.bytes.items.len, alignment.number);
+            const newSize = std.mem.alignForward(sect.bytes.items.len, alignment);
 
             if (newSize != sect.bytes.items.len) {
                 try sect.bytes.appendNTimes(0x00, newSize - sect.bytes.items.len);
@@ -573,21 +568,18 @@ pub const Assembler = struct {
         fn @".space"(assembler: *Assembler, parser: *Parser) !void {
             const size_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
 
-            const size = try assembler.evaluate(size_expr.expression, true);
-            if (size != .number)
-                return error.TypeMismatch;
+            const size_val = try assembler.evaluate(size_expr.expression, true);
+            const size = size_val.toWord(assembler) catch return;
 
             const sect = assembler.currentSection();
 
-            try sect.bytes.appendNTimes(0x00, size.number);
+            try sect.bytes.appendNTimes(0x00, size);
         }
 
         fn @".dw"(assembler: *Assembler, parser: *Parser) !void {
             while (true) {
                 const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
-
                 try assembler.emitExpr(value_expr.expression);
-
                 if (value_expr.terminator.type == .line_break)
                     break;
             }
@@ -595,16 +587,14 @@ pub const Assembler = struct {
 
         fn @".db"(assembler: *Assembler, parser: *Parser) !void {
             while (true) {
-                const value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
+                var value_expr = try parser.parseExpression(assembler.allocator, .{ .line_break, .comma });
+                defer value_expr.expression.deinit();
 
-                const value = try assembler.evaluate(value_expr.expression, true);
-                if (value != .number)
-                    return error.TypeMismatch;
-
-                if (value.number >= 0x100)
-                    return error.OutOfRange;
-
-                try assembler.emitU8(@intCast(u8, value.number));
+                const byte_val = try assembler.evaluate(value_expr.expression, true);
+                try assembler.emitU8(if (byte_val.toByte(assembler)) |byte|
+                    byte
+                else |_|
+                    0xAA);
 
                 if (value_expr.terminator.type == .line_break)
                     break;
@@ -621,12 +611,13 @@ pub const Assembler = struct {
             var value_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
             defer value_expr.expression.deinit();
 
-            const value = try assembler.evaluate(value_expr.expression, true);
-            if (value != .number)
-                return error.TypeMismatch;
+            const equ_val = try assembler.evaluate(value_expr.expression, true);
+
+            // TODO: Decide whether unreferenced symbol or invalid value is better!
+            const equ = equ_val.toNumber(assembler) catch 0xAAAA;
 
             // TODO: reinclude duplicatesymbol
-            try assembler.symbols.put(name, value.number);
+            try assembler.symbols.put(name, equ);
         }
 
         fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
@@ -695,13 +686,9 @@ pub const Assembler = struct {
         errdefer copy.deinit();
 
         if (assembler.evaluate(copy, false)) |value| {
-            if (value != .number) {
-                if (std.builtin.mode == .Debug) {
-                    std.debug.warn("unexpected value: {}\n", .{value});
-                }
-                return error.TypeMismatch;
-            }
-            try assembler.emitU16(value.number);
+            const int_val = value.toWord(assembler) catch 0xAAAA;
+
+            try assembler.emitU16(int_val);
             copy.deinit();
         } else |err| switch (err) {
             error.MissingIdentifiers => {
@@ -1706,7 +1693,52 @@ const ExpressionNode = struct {
 
 const Value = union(enum) {
     string: []const u8, // does not need to be freed, will be string-pooled
-    number: u16,
+    number: i64,
+
+    // TODO: Decide how to enable truncation warnings
+    pub const warn_truncation = false;
+
+    fn toInteger(self: Value, assembler: ?*Assembler, comptime T: type) !T {
+        if (comptime !std.meta.trait.isIntegral(T)) @compileError("T must be a integer type!");
+        switch (self) {
+            .number => |src| {
+                const result = switch (@typeInfo(T).Int.signedness) {
+                    .signed => @truncate(T, src),
+                    .unsigned => @truncate(T, @bitCast(u64, src)),
+                };
+                if (warn_truncation) {
+                    if (src < std.math.minInt(T) or src > std.math.maxInt(T)) {
+                        if (assembler) |as| {
+                            try as.emitError(.warning, null, "Truncating number {} to {}-bit value {}", .{ src, @bitSizeOf(T), result });
+                        }
+                    }
+                }
+                return result;
+            },
+            else => {
+                if (assembler) |as| {
+                    try as.emitError(.warning, null, "Type mismatch: Expected number, found {s}", .{std.meta.tagName(self)});
+                }
+                return error.TypeMismatch;
+            },
+        }
+    }
+
+    pub fn toByte(self: Value, assembler: ?*Assembler) !u8 {
+        return try self.toInteger(assembler, u8);
+    }
+
+    pub fn toWord(self: Value, assembler: ?*Assembler) !u16 {
+        return try self.toInteger(assembler, u16);
+    }
+
+    pub fn toLong(self: Value, assembler: ?*Assembler) !u32 {
+        return try self.toInteger(assembler, u32);
+    }
+
+    pub fn toNumber(self: Value, assembler: ?*Assembler) !i64 {
+        return try self.toInteger(assembler, i64);
+    }
 };
 const ValueType = std.meta.Tag(Value);
 
@@ -1732,7 +1764,7 @@ const Expression = struct {
         };
         const result = try self.evaluateRecursive(context, errors, &self.root);
         return switch (result) {
-            .number => |v| Value{ .number = try errors.truncateTo(v) },
+            .number => |v| Value{ .number = v },
             .string => |s| Value{ .string = s },
         };
     }
@@ -2114,13 +2146,13 @@ test "section physical offset setup" {
         },
         .{
             .load_offset = 0x2000,
-            .phys_offset = 0x1000,
+            .phys_offset = 0x10_0000,
             .contents = "bye",
         },
     },
         \\.org 0x0000, 0x8000
         \\.ascii "hello"
-        \\.org 0x2000, 0x1000
+        \\.org 0x2000, 0x100000
         \\.ascii "bye"
     );
 }
@@ -2270,6 +2302,14 @@ test ".equ" {
         \\.equ forward, constant
         \\.equ result, forward + 2
         \\.dw result
+    );
+}
+
+test ".equ with big numbers" {
+    try testExpressionEvaluation(1,
+        \\.equ big_a, 0x1000000000
+        \\.equ big_b, 0x0FFFFFFFFF
+        \\.dw big_a - big_b
     );
 }
 

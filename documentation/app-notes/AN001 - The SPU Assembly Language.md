@@ -190,13 +190,17 @@ Directives change what the assembler does or emit data instead of instructions. 
 The overall syntax for directives is the same as for mnemonics: Directives can have operands and there can be only one directive or mnemonic per line.
 
 #### `.org`
-This directive changes the current position in the memory stream. It takes a single operand that defines the new start position to write code to.
+This directive changes the current position in the memory stream. It takes either a single operand that defines the new start position to write code to or two operands, where the first will define the *load* address (which is the address of the code in memory) and a *physical* address (which is the address in the output binary).
 
 Note that all symbols used in the expression for `.org` must be known when `.org` is encountered and may not depend on future symbols.
 
 ```asm
 .org 0x1234
 	nop ; instruction will be located at offset 0x1234
+
+.org 0x5000, 0x10000
+foo:  ; will have address 0x5000
+	nop ; will be located at 0x10000 in the output binary
 ```
 
 #### `.equ`
