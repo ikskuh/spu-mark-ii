@@ -1,11 +1,12 @@
 const std = @import("std");
 const spu = @import("spu-mk2");
 
-pub const BasicMemory = struct {
+const SerialEmulator = @import("root").SerialEmulator;
+
+pub const WasmDemoMachine = struct {
     const Self = @This();
 
-    rom: [32768]u8 = undefined, // lower half is ROM
-    ram: [32768]u8 = undefined, // upper half is RAM
+    memory: [65536]u8 = undefined, // lower half is ROM, upper half is RAM
 
     pub const LoaderError = error{InvalidAddress};
     pub fn loadHexRecord(self: *Self, base: u32, data: []const u8) LoaderError!void {
@@ -13,44 +14,39 @@ pub const BasicMemory = struct {
         for (data) |byte, offset| {
             const address = base + offset;
             switch (address) {
-                0x0000...0x7FFF => |a| self.rom[a] = byte,
-                0x8000...0xFFFF => |a| self.ram[a - 0x8000] = byte,
+                0x0000...0xFFFF => |a| self.memory[a] = byte,
                 else => return error.InvalidAddress,
             }
         }
     }
 
     pub fn read8(self: *Self, address: u16) !u8 {
-        _ = self;
-        _ = address;
         return switch (address) {
-            else => return error.BusError,
+            0x7FFE...0x7FFF => return error.BusError,
+            else => self.memory[address],
         };
     }
 
     pub fn write8(self: *Self, address: u16, value: u8) !void {
-        _ = self;
-        _ = address;
-        _ = value;
         switch (address) {
-            else => return error.BusError,
+            0x0000...0x7FFD => return error.BusError,
+            0x7FFE...0x7FFF => return error.BusError,
+            0x8000...0xFFFF => self.memory[address] = value,
         }
     }
 
     pub fn read16(self: *Self, address: u16) !u16 {
-        _ = self;
-        _ = address;
         return switch (address) {
-            else => return error.BusError,
+            0x7FFE...0x7FFF => try SerialEmulator.read(),
+            else => std.mem.readIntLittle(u16, self.memory[address..][0..2]),
         };
     }
 
     pub fn write16(self: *Self, address: u16, value: u16) !void {
-        _ = self;
-        _ = address;
-        _ = value;
-        switch (address) {
-            else => return error.BusError,
-        }
+        return switch (address) {
+            0x0000...0x7FFD => return error.BusError,
+            0x7FFE...0x7FFF => try SerialEmulator.write(value),
+            0x8000...0xFFFF => std.mem.writeIntLittle(u16, self.memory[address..][0..2], value),
+        };
     }
 };

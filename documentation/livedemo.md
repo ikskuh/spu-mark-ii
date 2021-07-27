@@ -94,7 +94,7 @@ Focus the emulator terminal, press `h` to display a short help text from the BIO
 This has loaded a small *Hello World* program into RAM that can now be executed by pressing `g`.
 -->
 
-Now you know how to load your own programs, go write one! Starting point is [AN000](../app-notes/AN000 - Understanding the Instruction Set.md) and [AN001](../app-notes/AN001 - The SPU Assembly Language.md), as well as the [ISA description](../specs/spu-mark-ii.md).
+Now you know how to load your own programs, go write one! Starting point is [AN000](app-notes/AN000 - Understanding the Instruction Set.md) and [AN001](app-notes/AN001 - The SPU Assembly Language.md), as well as the [ISA description](specs/spu-mark-ii.md).
 
 
 ## Memory Layout

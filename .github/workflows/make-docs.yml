@@ -40,10 +40,10 @@ jobs:
         run: mkdocs build
 
       - name: Add static files
-        run: cp -r website/* website-out/website/livedemo/
+        run: cp -r website/* website-out/livedemo/
 
       - name: Add emulator
-        run: cp zig-out/lib/emulator.wasm website-out/website/livedemo/emulator.wasm
+        run: cp zig-out/lib/emulator.wasm website-out/livedemo/emulator.wasm
 
       - name: Deploy to Server
         uses: easingthemes/ssh-deploy@v2.1.1

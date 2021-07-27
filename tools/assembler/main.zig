@@ -11,11 +11,13 @@ pub fn main() !u8 {
         help: bool = false,
         format: FileFormat = .ihex,
         output: []const u8 = "a.out",
+        map: bool = false,
 
         pub const shorthands = .{
             .h = "help",
             .f = "format",
             .o = "output",
+            .m = "map",
         };
     }, std.heap.page_allocator, .print) catch return 1;
     defer cli_args.deinit();
@@ -30,6 +32,7 @@ pub fn main() !u8 {
             \\               If not given, the assembler will emit raw binaries.
             \\-o, --output   Defines the name of the output file. If not given,
             \\               the assembler will chose a.out as the output file name.
+            \\-m, --map      Output all global symbols to stdout
             \\
         );
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
@@ -81,6 +84,18 @@ pub fn main() !u8 {
         }
 
         return 1;
+    }
+
+    if (cli_args.options.map) {
+        var stdout = std.io.getStdOut().writer();
+
+        var it = assembler.symbols.iterator();
+        while (it.next()) |entry| {
+            try stdout.print("{s}\t0x{X:0>4}\n", .{
+                entry.key_ptr.*,
+                @bitCast(u64, try entry.value_ptr.getValue()),
+            });
+        }
     }
 
     {
@@ -1651,6 +1666,8 @@ pub const Parser = struct {
             .string_literal,
             .char_literal,
             .identifier,
+            .dot_identifier,
+            .dot,
         });
         switch (token.type) {
             .opening_parens => {
@@ -1712,6 +1729,11 @@ pub const Parser = struct {
                 .type = .{
                     .local_symbol_reference = try self.string_cache.internString(token.text),
                 },
+            },
+
+            .dot => return ExpressionNode{
+                .location = token.location,
+                .type = .current_location,
             },
             else => unreachable,
         }
@@ -2672,10 +2694,11 @@ test "function 'substr'" {
 
 test "function 'physicalAddress'" {
     try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{
-        .{ .contents = "\x00\x10", .load_offset = 0x0000, .phys_offset = 0x1000 },
+        .{ .contents = "\x00\x00\x00\x10", .load_offset = 0x0000, .phys_offset = 0x1000 },
     },
         \\.org 0x0000, 0x1000
         \\this:
+        \\.dw 0
         \\.dw physicalAddress("this")
     );
 }

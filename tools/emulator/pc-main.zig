@@ -6,7 +6,7 @@ const common = @import("shared.zig");
 
 extern "kernel32" fn SetConsoleMode(hConsoleHandle: std.os.windows.HANDLE, dwMode: std.os.windows.DWORD) callconv(.Stdcall) std.os.windows.BOOL;
 
-pub fn dumpState(emu: *spu.SpuMk2(common.BasicMemory)) !void {
+pub fn dumpState(emu: *spu.SpuMk2(common.WasmDemoMachine)) !void {
     const stdout = std.io.getStdOut().writer();
     try stdout.print(
         "\r\nstate: IP={X:0>4} SP={X:0>4} BP={X:0>4} FR={X:0>4}\r\n",
@@ -38,18 +38,6 @@ pub fn dumpState(emu: *spu.SpuMk2(common.BasicMemory)) !void {
     }
 }
 
-pub fn dumpTrace(emu: *spu.SpuMk2(common.BasicMemory), ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) !void {
-    _ = emu;
-    const stdout = std.io.getStdOut().writer();
-    try stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
-        ip,
-        instruction,
-        input0,
-        input1,
-        output,
-    });
-}
-
 var termios_bak: std.os.termios = undefined;
 
 var window: *c.SDL_Window = undefined;
@@ -58,7 +46,7 @@ var texture: *c.SDL_Texture = undefined;
 
 var framebuffer: [128][256]u8 = undefined;
 
-fn outputErrorMsg(emu: *spu.SpuMk2(common.BasicMemory), err: anyerror) !u8 {
+fn outputErrorMsg(emu: *spu.SpuMk2(common.WasmDemoMachine), err: anyerror) !u8 {
     const stdin = std.io.getStdIn();
 
     // reset terminal before outputting error messages
@@ -85,7 +73,7 @@ pub fn main() !u8 {
     const cli_args = argsParser.parseForCurrentProcess(struct {
         help: bool = false,
         @"entry-point": u16 = 0x0000,
-        @"video-scaling": u32 = 3,
+        trace: bool = false,
 
         pub const shorthands = .{
             .h = "help",
@@ -107,8 +95,14 @@ pub fn main() !u8 {
         return if (cli_args.options.help) @as(u8, 0) else @as(u8, 1);
     }
 
-    var emu = spu.SpuMk2(common.BasicMemory).init(.{});
+    var debugger = Debugger{};
+
+    var emu = spu.SpuMk2(common.WasmDemoMachine).init(.{});
     const memory = &emu.memory;
+
+    if (cli_args.options.trace) {
+        emu.debug_interface = &debugger.interface;
+    }
 
     const hexParseMode = ihex.ParseMode{ .pedantic = true };
     for (cli_args.positionals) |path| {
@@ -116,7 +110,7 @@ pub fn main() !u8 {
         defer file.close();
 
         // Emulator will always start at address 0x0000 or CLI given entry point.
-        _ = try ihex.parseData(file.reader(), hexParseMode, memory, common.BasicMemory.LoaderError, common.BasicMemory.loadHexRecord);
+        _ = try ihex.parseData(file.reader(), hexParseMode, memory, common.WasmDemoMachine.LoaderError, common.WasmDemoMachine.loadHexRecord);
     }
 
     emu.ip = cli_args.options.@"entry-point";
@@ -150,9 +144,12 @@ pub fn main() !u8 {
         const CS8 = 0o0000060;
 
         // Note that this will also disable break signals!
-        modified_raw.iflag &= ~@as(std.os.tcflag_t, IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+        _ = 0;
+        _ = 0;
+        _ = 0 | ISIG;
+        modified_raw.iflag &= ~@as(std.os.tcflag_t, BRKINT | IGNBRK | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
         modified_raw.oflag &= ~@as(std.os.tcflag_t, OPOST);
-        modified_raw.lflag &= ~@as(std.os.tcflag_t, ISIG | ECHO | ECHONL | ICANON | IEXTEN);
+        modified_raw.lflag &= ~@as(std.os.tcflag_t, ECHO | ECHONL | ICANON | IEXTEN);
         modified_raw.cflag &= ~@as(std.os.tcflag_t, CSIZE | PARENB);
         modified_raw.cflag |= CS8;
 
@@ -180,6 +177,34 @@ pub fn main() !u8 {
 
     return @as(u8, 0);
 }
+
+const Debugger = struct {
+    interface: spu.DebugInterface = .{
+        .traceInstructionFn = traceInstruction,
+        .traceAddressFn = traceAddress,
+    },
+
+    fn traceInstruction(interface: *spu.DebugInterface, ip: u16, instruction: spu.Instruction, input0: u16, input1: u16, output: u16) void {
+        const self = @fieldParentPtr(Debugger, "interface", interface);
+        _ = self;
+
+        const stdout = std.io.getStdOut().writer();
+        stdout.print("offset={X:0>4} instr={}\tinput0={X:0>4}\tinput1={X:0>4}\toutput={X:0>4}\r\n", .{
+            ip,
+            instruction,
+            input0,
+            input1,
+            output,
+        }) catch {};
+    }
+    fn traceAddress(interface: *spu.DebugInterface, virt: u16) spu.DebugInterface.TraceError!void {
+        const self = @fieldParentPtr(Debugger, "interface", interface);
+
+        _ = self;
+        _ = virt;
+        //
+    }
+};
 
 pub const SerialEmulator = struct {
     pub fn read() !u16 {

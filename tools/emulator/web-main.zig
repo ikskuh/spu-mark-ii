@@ -3,7 +3,7 @@ const std = @import("std");
 const spu = @import("spu-mk2");
 const common = @import("shared.zig");
 
-var emulator: spu.SpuMk2(WasmDemoMachine) = undefined;
+var emulator: spu.SpuMk2(common.WasmDemoMachine) = undefined;
 
 const bootrom = @embedFile("../../zig-out/firmware/wasm.bin");
 
@@ -22,9 +22,9 @@ pub fn dumpTrace(emu: *spu.SpuMk2, ip: u16, instruction: spu.Instruction, input0
 
 export fn init() void {
     // serialWrite("a", 1);
-    emulator = spu.SpuMk2(WasmDemoMachine).init(.{});
+    emulator = spu.SpuMk2(common.WasmDemoMachine).init(.{});
     // serialWrite("b", 1);
-    std.mem.copy(u8, &emulator.memory.rom, bootrom[0..std.math.min(emulator.memory.rom.len, bootrom.len)]);
+    std.mem.copy(u8, &emulator.memory.memory, bootrom[0..std.math.min(emulator.memory.memory.len, bootrom.len)]);
     // serialWrite("c", 1);
 }
 
@@ -49,12 +49,8 @@ export fn invokeNmi() void {
     emulator.triggerInterrupt(.nmi);
 }
 
-export fn getRomPtr() [*]u8 {
-    return &emulator.memory.rom;
-}
-
-export fn getRamPtr() [*]u8 {
-    return &emulator.memory.ram;
+export fn getMemoryPtr() [*]u8 {
+    return &emulator.memory.memory;
 }
 
 extern fn invokeJsPanic() noreturn;
@@ -90,55 +86,3 @@ pub fn log(level: anytype, comptime fmt: []const u8, args: anytype) void {
     _ = args;
     //
 }
-
-pub const WasmDemoMachine = struct {
-    const Self = @This();
-
-    rom: [32768]u8 = undefined, // lower half is ROM
-    ram: [32768]u8 = undefined, // upper half is RAM
-
-    pub const LoaderError = error{InvalidAddress};
-    pub fn loadHexRecord(self: *Self, base: u32, data: []const u8) LoaderError!void {
-        // std.debug.warn("load {}+{}: {X}\n", .{ base, data.len, data });
-        for (data) |byte, offset| {
-            const address = base + offset;
-            switch (address) {
-                0x0000...0x7FFF => |a| self.rom[a] = byte,
-                0x8000...0xFFFF => |a| self.ram[a - 0x8000] = byte,
-                else => return error.InvalidAddress,
-            }
-        }
-    }
-
-    pub fn read8(self: *Self, address: u16) !u8 {
-        return switch (address) {
-            0x0000...0x7FFD => self.rom[address],
-            0x7FFE...0x7FFF => return error.BusError,
-            0x8000...0xFFFF => self.ram[address],
-        };
-    }
-
-    pub fn write8(self: *Self, address: u16, value: u8) !void {
-        switch (address) {
-            0x0000...0x7FFD => return error.BusError,
-            0x7FFE...0x7FFF => return error.BusError,
-            0x8000...0xFFFF => self.ram[address] = value,
-        }
-    }
-
-    pub fn read16(self: *Self, address: u16) !u16 {
-        return switch (address) {
-            0x0000...0x7FFD => std.mem.readIntLittle(u16, self.rom[address..][0..2]),
-            0x7FFE...0x7FFF => try SerialEmulator.read(),
-            0x8000...0xFFFF => std.mem.readIntLittle(u16, self.ram[address - 0x8000 ..][0..2]),
-        };
-    }
-
-    pub fn write16(self: *Self, address: u16, value: u16) !void {
-        return switch (address) {
-            0x0000...0x7FFD => std.mem.writeIntLittle(u16, self.rom[address..][0..2], value),
-            0x7FFE...0x7FFF => try SerialEmulator.write(value),
-            0x8000...0xFFFF => std.mem.writeIntLittle(u16, self.ram[address - 0x8000 ..][0..2], value),
-        };
-    }
-};

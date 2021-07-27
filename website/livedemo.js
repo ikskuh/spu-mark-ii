@@ -135,6 +135,30 @@ function invokeNmi() {
     wasmContext.instance.exports.invokeNmi();
 }
 
+
+function hexDump() {
+    let rom_view = new Uint8Array(
+        wasmContext.instance.exports.memory.buffer,
+        wasmContext.instance.exports.getMemoryPtr(),
+        65536);
+    let was_zero = false;
+    let i = 0;
+    while (i < 65536) {
+        const view = rom_view.slice(i, i + 16);
+        const arr = Array.from(view);
+        const is_zero = arr.every(x => (x == 0));
+
+        if ((is_zero && !was_zero) || !is_zero) {
+            console.log(
+                i.toString(16).padStart(4, "0"),
+                arr.map(x => x.toString(16).padStart(2, "0")).join(" "));
+        }
+
+        was_zero = is_zero;
+        i += 16;
+    }
+}
+
 function loadFile(file) {
     if (emulation_running) {
         throw 'Cannot load file while running!';
@@ -150,8 +174,8 @@ function loadFile(file) {
 
         let rom_view = new Uint8Array(
             wasmContext.instance.exports.memory.buffer,
-            wasmContext.instance.exports.getRomPtr(),
-            32768);
+            wasmContext.instance.exports.getMemoryPtr(),
+            65536);
 
         let len = Math.min(file_view.length, rom_view.length);
 

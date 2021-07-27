@@ -21,7 +21,7 @@ handler.bus:
 	st 'B', SERIAL_PORT 
 	st 'U', SERIAL_PORT 
 	st 'S', SERIAL_PORT 
-  jmp hang
+  iret
 
 handler.arith:
 	st 'A', SERIAL_PORT
@@ -48,23 +48,34 @@ entrypoint:
   bpset 0x0000
 
   push init_msg
-
-print_loop:
-  ld8 [i0:peek] [f:yes]
-  [ex:zero] jmp echo_loop [i1:pop]
-  st SERIAL_PORT
-  add 1
-  jmp print_loop
+	call printString
+	pop
 
 echo_loop:
   ld SERIAL_PORT [f:yes]
   [ex:less] pop
-  [ex:less] jmp echo_loop
-  st SERIAL_PORT
+  [ex:gequal] st SERIAL_PORT
   jmp echo_loop
 
-hang:
-  jmp hang
+
+; fn printString(str: [*:0]const u8) void
+printString:
+	bpget
+	spget
+	bpset
+	get 2
+
+.loop:
+  ld8 [i0:peek] [f:yes]
+	[ex:zero] jmp .done
+  st SERIAL_PORT
+	add 1
+	jmp .loop
+.done:
+	bpget
+	spset
+	bpset
+	ret
 
 init_msg:
 .asciiz "Hello, World!\r\n>"
