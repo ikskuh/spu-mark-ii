@@ -142,7 +142,7 @@ pub fn main() !u8 {
 pub const Patch = struct {
     offset: u16,
     value: Expression,
-    locals: *std.StringHashMap(i64),
+    locals: *std.StringHashMap(Symbol),
 };
 
 pub const Section = struct {
@@ -194,6 +194,25 @@ pub const CompileError = struct {
     }
 };
 
+pub const Symbol = struct {
+    /// The value of the symbol. If a section is given, this is the relative offset inside the
+    /// section. Otherwise, it's a global offset.
+    value: i64,
+    section: ?*Section,
+
+    pub fn getPhysicalAddress(self: Symbol) !u32 {
+        const sect = self.section orelse return error.InvalidSymbol;
+        return try std.math.cast(u32, sect.phys_offset + self.value);
+    }
+
+    pub fn getValue(self: Symbol) !i64 {
+        return if (self.section) |sect|
+            sect.load_offset + self.value
+        else
+            self.value;
+    }
+};
+
 pub const Assembler = struct {
     const Self = @This();
     const SectionNode = std.TailQueue(Section).Node;
@@ -205,8 +224,8 @@ pub const Assembler = struct {
 
     // assembling result
     sections: std.TailQueue(Section),
-    symbols: std.StringHashMap(i64),
-    local_symbols: *std.StringHashMap(i64),
+    symbols: std.StringHashMap(Symbol),
+    local_symbols: *std.StringHashMap(Symbol),
     errors: std.ArrayList(CompileError),
 
     // in-flight symbols
@@ -240,7 +259,7 @@ pub const Assembler = struct {
         var a = Self{
             .allocator = allocator,
             .sections = std.TailQueue(Section){},
-            .symbols = std.StringHashMap(i64).init(allocator),
+            .symbols = std.StringHashMap(Symbol).init(allocator),
             .local_symbols = undefined,
             .errors = std.ArrayList(CompileError).init(allocator),
             .fileName = undefined,
@@ -251,8 +270,8 @@ pub const Assembler = struct {
         errdefer a.arena.deinit();
         errdefer a.string_cache.deinit();
 
-        a.local_symbols = try a.arena.allocator.create(std.StringHashMap(i64));
-        a.local_symbols.* = std.StringHashMap(i64).init(&a.arena.allocator);
+        a.local_symbols = try a.arena.allocator.create(std.StringHashMap(Symbol));
+        a.local_symbols.* = std.StringHashMap(Symbol).init(&a.arena.allocator);
 
         _ = try a.appendSection(0x0000, 0x0000_0000);
 
@@ -354,16 +373,22 @@ pub const Assembler = struct {
 
                     const name = try self.string_cache.internString(label.text[0 .. label.text.len - 1]);
 
-                    const offset = self.currentSection().getGlobalOffset();
+                    const section = self.currentSection();
+                    const offset = section.getGlobalOffset();
+
+                    const symbol = Symbol{
+                        .value = offset,
+                        .section = section,
+                    };
 
                     if (name[0] == '.') {
                         // local label
-                        try self.local_symbols.put(name, offset);
+                        try self.local_symbols.put(name, symbol);
                     } else {
                         // global label
-                        self.local_symbols = try self.arena.allocator.create(std.StringHashMap(i64));
-                        self.local_symbols.* = std.StringHashMap(i64).init(&self.arena.allocator);
-                        try self.symbols.put(name, offset);
+                        self.local_symbols = try self.arena.allocator.create(std.StringHashMap(Symbol));
+                        self.local_symbols.* = std.StringHashMap(Symbol).init(&self.arena.allocator);
+                        try self.symbols.put(name, symbol);
                     }
                 },
 
@@ -493,7 +518,63 @@ pub const Assembler = struct {
         return error.UnknownDirective;
     }
 
-    // Directives:
+    const FunctionCallError = error{ OutOfMemory, TypeMismatch, InvalidArgument, WrongArgumentCount };
+    const Functions = struct {
+        fn substr(assembler: *Assembler, argv: []const Value) FunctionCallError!Value {
+            switch (argv.len) {
+                2 => {
+                    const str = try argv[0].toString(assembler);
+                    const start = try argv[1].toLong(assembler);
+
+                    return if (start < str.len)
+                        Value{ .string = str[start..] }
+                    else
+                        Value{ .string = "" };
+                },
+                3 => {
+                    const str = try argv[0].toString(assembler);
+                    const start = try argv[1].toLong(assembler);
+                    const length = try argv[2].toLong(assembler);
+
+                    const offset_str = if (start < str.len)
+                        str[start..]
+                    else
+                        "";
+
+                    const len = std.math.min(offset_str.len, length);
+
+                    return Value{ .string = offset_str[0..len] };
+                },
+
+                else => return error.WrongArgumentCount,
+            }
+        }
+
+        fn physicalAddress(assembler: *Assembler, argv: []const Value) FunctionCallError!Value {
+            if (argv.len != 1)
+                return error.WrongArgumentCount;
+
+            const symbol_name = try argv[0].toString(assembler);
+
+            const lut = if (std.mem.startsWith(u8, symbol_name, "."))
+                assembler.local_symbols.*
+            else
+                assembler.symbols;
+
+            if (lut.get(symbol_name)) |sym| {
+                const value = sym.getPhysicalAddress() catch |err| {
+                    err catch {};
+                    return error.InvalidArgument;
+                };
+
+                return Value{
+                    .number = value,
+                };
+            } else {
+                return error.InvalidArgument;
+            }
+        }
+    };
 
     const Directives = struct {
         fn @".org"(assembler: *Assembler, parser: *Parser) !void {
@@ -527,22 +608,21 @@ pub const Assembler = struct {
         }
 
         fn @".ascii"(assembler: *Assembler, parser: *Parser) !void {
-            const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            var string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            defer string_expr.expression.deinit();
 
-            const string = try assembler.evaluate(string_expr.expression, true);
-            if (string != .string)
-                return error.TypeMismatch;
-
-            try assembler.emit(string.string);
+            const string_val = try assembler.evaluate(string_expr.expression, true);
+            const string = string_val.toString(assembler) catch return;
+            try assembler.emit(string);
         }
 
         fn @".asciiz"(assembler: *Assembler, parser: *Parser) !void {
-            const string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            var string_expr = try parser.parseExpression(assembler.allocator, .{.line_break});
+            defer string_expr.expression.deinit();
 
-            const string = try assembler.evaluate(string_expr.expression, true);
-            if (string != .string)
-                return error.TypeMismatch;
-            try assembler.emit(string.string);
+            const string_val = try assembler.evaluate(string_expr.expression, true);
+            const string = string_val.toString(assembler) catch return;
+            try assembler.emit(string);
 
             try assembler.emitU8(0x00); // null terminator
         }
@@ -617,7 +697,7 @@ pub const Assembler = struct {
             const equ = equ_val.toNumber(assembler) catch 0xAAAA;
 
             // TODO: reinclude duplicatesymbol
-            try assembler.symbols.put(name, equ);
+            try assembler.symbols.put(name, Symbol{ .value = equ, .section = null });
         }
 
         fn @".incbin"(assembler: *Assembler, parser: *Parser) !void {
@@ -711,10 +791,9 @@ pub const Assembler = struct {
 
     // Expression handling
 
-    const EvaluationError = error{ InvalidExpression, UnknownFunction, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
+    const EvaluationError = FunctionCallError || error{ InvalidExpression, UnknownFunction, MissingIdentifiers, OutOfMemory, TypeMismatch, Overflow, InvalidCharacter };
     fn evaluate(assembler: *Assembler, expression: Expression, emitErrorOnMissing: bool) EvaluationError!Value {
         return try expression.evaluate(assembler, emitErrorOnMissing);
-
         //         .operator_plus => {
         //             const rhs = stack.popOrNull() orelse return error.InvalidExpression;
         //             const lhs = stack.popOrNull() orelse return error.InvalidExpression;
@@ -957,10 +1036,10 @@ pub const Parser = struct {
         if (tok.type == t)
             return tok;
         if (std.builtin.mode == .Debug) {
-            std.debug.warn("Unexpected token: {}\nexpected: {}\n", .{
-                tok,
-                t,
-            });
+            // std.debug.warn("Unexpected token: {}\nexpected: {}\n", .{
+            //     tok,
+            //     t,
+            // });
         }
         return error.UnexpectedToken;
     }
@@ -1517,46 +1596,47 @@ pub const Parser = struct {
         }
     }
 
-    const acceptCallExpression = acceptValueExpression;
-    // fn acceptCallExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
-    //     const state = self.saveState();
-    //     errdefer self.restoreState(state);
+    fn acceptCallExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+        const state = self.saveState();
+        errdefer self.restoreState(state);
 
-    //     var value = try self.acceptValueExpression(allocator);
+        var value = try self.acceptValueExpression(allocator);
 
-    //     while (self.expect(.opening_parens)) |_| {
-    //         var args = std.ArrayList(ExpressionNode).init(allocator);
-    //         defer args.deinit();
+        if (value.type == .symbol_reference) {
+            if (self.expect(.opening_parens)) |_| {
+                var args = std.ArrayList(ExpressionNode).init(allocator);
+                defer args.deinit();
 
-    //         var loc = value.location;
+                var loc = value.location;
 
-    //         if (self.expect(.closing_parens)) |_| {
-    //             // this is the end of the argument list
-    //         } else |_| {
-    //             while (true) {
-    //                 const arg = try self.acceptExpression(allocator);
-    //                 try args.append(arg);
-    //                 const terminator = try self.expectAny(.{ .closing_parens, .comma });
-    //                 loc = terminator.location.merge(loc);
-    //                 if (terminator.type == .closing_parens)
-    //                     break;
-    //             }
-    //         }
+                if (self.expect(.closing_parens)) |_| {
+                    // this is the end of the argument list
+                } else |_| {
+                    while (true) {
+                        const arg = try self.acceptExpression(allocator);
+                        try args.append(arg);
+                        const terminator = try self.expectAny(.{ .closing_parens, .comma });
+                        loc = terminator.location.merge(loc);
+                        if (terminator.type == .closing_parens)
+                            break;
+                    }
+                }
 
-    //         const old_val = value;
-    //         value = ExpressionNode{
-    //             .location = loc,
-    //             .type = .{
-    //                 .fn_call = .{
-    //                     .function = try moveToHeap(allocator, old_val),
-    //                     .arguments = args.toOwnedSlice(),
-    //                 },
-    //             },
-    //         };
-    //     } else |_| {}
+                const name = value.type.symbol_reference;
+                value = ExpressionNode{
+                    .location = loc,
+                    .type = .{
+                        .fn_call = .{
+                            .function = name,
+                            .arguments = args.toOwnedSlice(),
+                        },
+                    },
+                };
+            } else |_| {}
+        }
 
-    //     return value;
-    // }
+        return value;
+    }
 
     fn acceptValueExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
@@ -1668,7 +1748,7 @@ const ExpressionNode = struct {
 
         const FunctionCall = struct {
             function: []const u8,
-            arguments: []Self,
+            arguments: []ExpressionNode,
         };
 
         const BinaryOperator = enum {
@@ -1739,6 +1819,18 @@ const Value = union(enum) {
     pub fn toNumber(self: Value, assembler: ?*Assembler) !i64 {
         return try self.toInteger(assembler, i64);
     }
+
+    pub fn toString(self: Value, assembler: ?*Assembler) ![]const u8 {
+        return switch (self) {
+            .string => |v| v,
+            else => {
+                if (assembler) |as| {
+                    try as.emitError(.warning, null, "Type mismatch: Expected string, found {s}", .{std.meta.tagName(self)});
+                }
+                return error.TypeMismatch;
+            },
+        };
+    }
 };
 const ValueType = std.meta.Tag(Value);
 
@@ -1756,18 +1848,16 @@ const Expression = struct {
         expr.* = undefined;
     }
 
-    pub const EvalError = error{ MissingIdentifiers, UnknownFunction, OutOfMemory, TypeMismatch, Overflow };
+    pub const EvalError = Assembler.FunctionCallError || error{ MissingIdentifiers, UnknownFunction, OutOfMemory, TypeMismatch, Overflow };
     pub fn evaluate(self: *const Self, context: *Assembler, emitErrorOnMissing: bool) EvalError!Value {
         const errors = ErrorEmitter{
             .context = context,
             .emitErrorOnMissing = emitErrorOnMissing,
         };
-        const result = try self.evaluateRecursive(context, errors, &self.root);
-        return switch (result) {
-            .number => |v| Value{ .number = v },
-            .string => |s| Value{ .string = s },
-        };
+        return try self.evaluateRecursive(context, errors, &self.root);
     }
+
+    const EvalValue = Value;
 
     const ErrorEmitter = struct {
         context: *Assembler,
@@ -1809,11 +1899,6 @@ const Expression = struct {
         }
     };
 
-    const EvalValue = union(enum) {
-        string: []const u8, // does not need to be freed, will be string-pooled
-        number: i64,
-    };
-
     fn evaluateRecursive(self: *const Self, context: *Assembler, errors: ErrorEmitter, node: *const ExpressionNode) EvalError!EvalValue {
         return switch (node.type) {
             .numeric_literal => |number| EvalValue{ .number = number },
@@ -1825,12 +1910,12 @@ const Expression = struct {
             },
 
             .symbol_reference => |symbol_name| if (context.symbols.get(symbol_name)) |sym|
-                EvalValue{ .number = sym }
+                EvalValue{ .number = try sym.getValue() }
             else
                 return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}),
 
             .local_symbol_reference => |symbol_name| if (context.local_symbols.get(symbol_name)) |sym|
-                EvalValue{ .number = sym }
+                EvalValue{ .number = try sym.getValue() }
             else
                 return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}),
 
@@ -1904,7 +1989,24 @@ const Expression = struct {
                 };
             },
             .fn_call => |fun| {
-                std.log.err("TODO: Implement function evaluation!", .{});
+                const argv = try context.allocator.alloc(Value, fun.arguments.len);
+                defer context.allocator.free(argv);
+
+                for (fun.arguments) |*src_node, i| {
+                    argv[i] = try self.evaluateRecursive(context, errors, src_node);
+                }
+
+                inline for (std.meta.declarations(Assembler.Functions)) |decl| {
+                    if (std.mem.eql(u8, fun.function, decl.name)) {
+                        const result: Assembler.FunctionCallError!Value = @field(Assembler.Functions, decl.name)(context, argv);
+                        if (result) |val| {
+                            return val;
+                        } else |err| {
+                            return errors.emit(err, null, "Failed to invoke the function {s}: {s}", .{ fun, @errorName(err) });
+                        }
+                    }
+                }
+
                 return errors.emit(error.UnknownFunction, null, "The function {s} does not exist!", .{fun});
             },
         };
@@ -2544,5 +2646,36 @@ test "input count selection" {
         Instruction{ .condition = .always, .input0 = .immediate, .input1 = .immediate, .command = .store16, .output = .discard, .modify_flags = false },
         &[_]u16{ 0x1234, 0x4567 },
         "st 0x1234, 0x4567",
+    );
+}
+
+test "function 'substr'" {
+    try testCodeGenerationEqual("ll",
+        \\.ascii substr("hello", 2, 2)
+    );
+    try testCodeGenerationEqual("o",
+        \\.ascii substr("hello", 4, 100)
+    );
+    try testCodeGenerationEqual("",
+        \\.ascii substr("hello", 5, 1)
+    );
+    try testCodeGenerationEqual("",
+        \\.ascii substr("hello", 1000, 1000)
+    );
+    try testCodeGenerationEqual("llo",
+        \\.ascii substr("hello", 2)
+    );
+    try testCodeGenerationEqual("",
+        \\.ascii substr("hello", 7)
+    );
+}
+
+test "function 'physicalAddress'" {
+    try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{
+        .{ .contents = "\x00\x10", .load_offset = 0x0000, .phys_offset = 0x1000 },
+    },
+        \\.org 0x0000, 0x1000
+        \\this:
+        \\.dw physicalAddress("this")
     );
 }
