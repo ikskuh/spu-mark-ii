@@ -30,12 +30,15 @@ export fn init() void {
 
 export fn run(steps: u32) u32 {
     emulator.runBatch(steps) catch |err| {
-        emulator.reset();
+        // halting is similar to debugging
+        if (err != error.CpuHalted)
+            emulator.reset();
         switch (err) {
             error.BadInstruction => return 1,
             error.UnalignedAccess => return 2,
             error.BusError => return 3,
             error.DebugBreak => return 4,
+            error.CpuHalted => return 5,
         }
     };
     return 0;

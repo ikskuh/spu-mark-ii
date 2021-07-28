@@ -83,4 +83,6 @@ pub const mnemonics = [_]Mnemonic{
     Mnemonic{ .name = "iret", .info = "Returns from a interrupt.", .argc = 0, .instruction = .{ .condition = .always, .input0 = .pop, .input1 = .pop, .command = .setip, .output = .discard, .modify_flags = false } },
 
     Mnemonic{ .name = "intr", .info = "Invokes the given interrupts.", .argc = 1, .instruction = .{ .condition = .always, .input0 = .immediate, .input1 = .zero, .command = .intr, .output = .discard, .modify_flags = false } },
+
+    Mnemonic{ .name = "halt", .info = "Halts the CPU until the next IRQ.", .argc = 0, .instruction = .{ .condition = .always, .input0 = .zero, .input1 = .zero, .command = .halt, .output = .discard, .modify_flags = false } },
 };

@@ -31,13 +31,18 @@
   height: 2.5em;
   vertical-align: bottom;
 }
+ul li svg {
+  height: 1em;
+  border: 1px solid black;
+  padding: 1px;
+}
 </style>
 
 ## About
 
-The black box below is an ANSI terminal emulator with an emulated *Ashet* connected to it. Just press `h` to see the available options in the boot rom.
+The black box below is an ANSI terminal emulator with a small SPU Mark II based computer connected to it. Just press `h` to see the available options in the boot rom. The [BIOS](https://github.com/MasterQ32/spu-mark-ii/blob/master/apps/web-firmware/main.asm) implements basic [Intel Hex](https://en.wikipedia.org/wiki/Intel_HEX) loading and allows you to run some code there.
 
-Currently, the emulator runs the [serial BIOS](https://github.com/MasterQ32/spu-mark-ii/blob/master/apps/web-firmware/main.asm) of *Ashet*, as the graphical components are still in development.
+**NOTE:** This emulator does not implement the hardware features of the *Ashet Home Computer*, but is a playground to learn and play with the CPU without having to implement a fullly featured home computer.
 
 <div id="live-terminal"></div>
 
@@ -72,6 +77,17 @@ Currently, the emulator runs the [serial BIOS](https://github.com/MasterQ32/spu-
 
 &nbsp;
 
+## Controls
+
+The buttons, left to right, implement the following features:
+
+- <svg viewBox="0 0 24 24"><path d="M19,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H19A2,2 0 0,1 21,8H21L4,8V18L6.14,10H23.21L20.93,18.5C20.7,19.37 19.92,20 19,20Z" /></svg> loads a binary firmware file
+- <svg viewBox="0 0 24 24"><path d="M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V10.6L7,5.6L12,0.6V4M6.3,17.6C3.7,15 3.3,11 5.1,7.9L6.6,9.4C5.5,11.6 5.9,14.4 7.8,16.2C8.3,16.7 8.9,17.1 9.6,17.4L9,19.4C8,19 7.1,18.4 6.3,17.6Z" /></svg> resets the CPU
+- <svg viewBox="0 0 24 24"><path d="M10 3H14V14H10V3M10 21V17H14V21H10Z" /></svg> invokes the non-maskable interrupt
+- <svg viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z" /></svg> starts the emulation
+- <svg viewBox="0 0 24 24"><path d="M14,19H18V5H14M6,19H10V5H6V19Z" /></svg> pauses the emulation
+- <svg viewBox="0 0 24 24"><path d="M5,5V19H8V5M10,5V19L21,12" /></svg> executes a single instruction
+
 ## Quick start:
 
 Pause the emulator, and load a binary file compiled with the assember. Then press the play button to run your program.
@@ -95,7 +111,6 @@ This has loaded a small *Hello World* program into RAM that can now be executed 
 -->
 
 Now you know how to load your own programs, go write one! Starting point is [AN000](app-notes/AN000 - Understanding the Instruction Set.md) and [AN001](app-notes/AN001 - The SPU Assembly Language.md), as well as the [ISA description](specs/spu-mark-ii.md).
-
 
 ## Memory Layout
 

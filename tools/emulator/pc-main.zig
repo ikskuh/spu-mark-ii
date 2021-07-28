@@ -172,10 +172,13 @@ pub fn main() !u8 {
     // defer std.debug.warn("Executed {} instructions!\n", .{emu.count});
 
     while (true) {
-        emu.runBatch(10_000) catch |err| return outputErrorMsg(&emu, err);
+        emu.runBatch(10_000) catch |err| switch (err) {
+            error.CpuHalted => return 0,
+            else => |e| return try outputErrorMsg(&emu, e),
+        };
     }
 
-    return @as(u8, 0);
+    return 0;
 }
 
 const Debugger = struct {

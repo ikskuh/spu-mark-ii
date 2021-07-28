@@ -46,16 +46,29 @@ const wasmImports = {
     }
 };
 
+const SpuError = {
+    SUCCESS: 0,
+    BAD_INSTRUCTION: 1,
+    UNALIGNED_ACCESS: 2,
+    BUS_ERROR: 3,
+    DEBUG_BREAK: 4,
+    CPU_HALTED: 5,
+};
+
 function translateEmulatorError(ind) {
     switch (ind) {
-        case 0:
+        case SpuError.SUCCESS:
             return 'success';
-        case 1:
+        case SpuError.BAD_INSTRUCTION:
             return 'bad instruction';
-        case 2:
+        case SpuError.UNALIGNED_ACCESS:
             return 'unaligned access';
-        case 3:
+        case SpuError.BUS_ERROR:
             return 'bus error';
+        case SpuError.DEBUG_BREAK:
+            return 'cpu halted';
+        case SpuError.CPU_HALTED:
+            return 'debug break';
         default:
             return 'unknown';
     }
@@ -91,7 +104,9 @@ function emulateFor(num) {
     const success = wasmContext.instance.exports.run(num);
     if (success != 0) {
         emulation_running = false;
-        console.log('emulator failed: ', translateEmulatorError(success));
+        if (success != SpuError.CPU_HALTED) {
+            term.write("\r\n\x1B[91m" + translateEmulatorError(success) + "\x1B[0m\r\n");
+        }
     }
     return success;
 }

@@ -254,7 +254,7 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
                     .lsl => input0 << 1,
                     .lsr => input0 >> 1,
                     .cpuid => 0,
-                    .halt => @panic("not implemented yet!"),
+                    .halt => return error.CpuHalted,
                     .setip => blk: {
                         const out = self.ip;
                         self.ip = input0;
