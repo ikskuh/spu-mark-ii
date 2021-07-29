@@ -65,10 +65,8 @@ entrypoint:
 mainMenu:
   st '>', SERIAL_PORT
 
-.waitLoop:
-  ld SERIAL_PORT [f:yes]
-  [ex:less] pop
-	[ex:less] jmp .waitLoop
+	push 0
+	call getChar
 
 	cmpp 'h'
 	[ex:zero] jmp mainMenu.help
@@ -105,10 +103,35 @@ mainMenu.loadIhex:
 	push mainMenu.strings.pasteIhex
 	call printString
 	pop
+
+.getStart:
+  push 0
+	call getChar
+
+	cmpp ':'
+	[ex:zero] jmp .loadRecord
+
+	cmpp '\r'
+	[ex:nonzero] cmpp '\n'
+	[ex:zero] jmp .getStart
 	
-	; TODO: Implement hex loading
+	replace mainMenu.ihex.invalidChar
+	call printString
+	pop
 
 	jmp mainMenu
+
+.loadRecord:
+	pop ; remove ':'
+
+	; TODO: Implement hex loading
+
+.copy_loop:
+	push 0
+	call getHexByte
+	st SERIAL_PORT
+
+	jmp .copy_loop
 
 mainMenu.runApp:
 	pop ; remove menu char
@@ -131,6 +154,134 @@ mainMenu.halt:
 	halt ; exit
 
 	jmp mainMenu
+
+; fn getChar() u8
+.align 2
+getChar:
+	bpget
+	spget
+	bpset
+
+.waitLoop:
+  ld SERIAL_PORT [f:yes]
+  [ex:less] pop
+	[ex:less] jmp .waitLoop
+
+	set FN_ARG_0 ; this is the return value
+
+	bpget
+	spset
+	bpset
+	ret
+
+; fn getHexByte() !u8
+.align 2
+getHexByte:
+	bpget
+	spget
+	bpset
+
+	; fetch upper nibble
+	push 0
+	call getChar
+	call hexToValue
+	[ex:less] jmp .done ; handle error
+	lsl
+	lsl
+	lsl
+	lsl
+
+	; fetch lower nibble
+	push 0
+	call getChar
+	call hexToValue
+	[ex:less] jmp .done ; handle error
+
+	; merge upper and lower nibble
+	or 
+	set FN_ARG_0 [f:yes] ; reset "negative" flag
+
+.done:
+	bpget
+	spset
+	bpset
+	ret
+
+; fn getHexWord() !u8
+.align 2
+getHexWord:
+	bpget
+	spget
+	bpset
+
+	; fetch upper byte
+	push 0 
+	call getHexByte
+	[ex:less] jmp .done
+	bswap
+
+	; fetch lower byte
+	push 0
+	call getHexByte
+	[ex:less] jmp .done
+
+	or ; merge upper and lower byte
+	set FN_ARG_0
+
+	push [out:discard] [f:yes] 0 ; reset "negative" flag
+
+.done:
+	bpget
+	spset
+	bpset
+	ret
+
+; fn hexToValue(ascii: u8) !u8
+.align 2
+hexToValue:
+	bpget
+	spget
+	bpset
+
+	; 0 … 9 ( 48 …  57 ) => 0 … 9
+	; A … F ( 65 …  70 ) => 10 … 15
+	; a … f ( 97 … 102 ) => 10 … 15
+
+	get FN_ARG_0
+
+	sub '0' [f:yes]
+	[ex:less] jmp .failure ; less than '0'
+
+	cmpp 10
+	[ex:less] jmp .parseBelow10
+	
+	sub 'A'-'0' [f:yes]
+	[ex:less] jmp .failure ; between 58 and 64
+	
+	cmpp 6
+	[ex:less] jmp .parseUpper
+
+	sub 'a'-'A' [f:yes]
+	[ex:less] jmp .failure ; between 71 and 96
+
+	cmpp 6
+	[ex:less] jmp .parseUpper
+
+.failure:
+  set FN_ARG_0, 0xFFFF [f:yes] ; store result, set "negative" flag
+	jmp .done
+
+.parseUpper:
+	add 10 ; move current value up to A…F
+
+.parseBelow10:
+	set FN_ARG_0 [f:yes] ; store result, reset "negative" flag
+
+.done:
+	bpget
+	spset
+	bpset
+	ret
 
 ; fn printString(str: [*:0]const u8) void
 .align 2
@@ -176,3 +327,6 @@ mainMenu.strings.runAppIntro:
 
 mainMenu.strings.haltMessage:
 .asciiz "quit (and halt cpu)\r\n"
+
+mainMenu.ihex.invalidChar:
+.asciiz "received invalid char\r\n"
