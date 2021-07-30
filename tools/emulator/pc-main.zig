@@ -20,10 +20,10 @@ pub fn dumpState(emu: *spu.SpuMk2(common.WasmDemoMachine)) !void {
         },
     );
 
-    try stdout.writeAll("stack:\n");
+    try stdout.writeAll("stack:\r\n");
 
-    var offset: i8 = -4;
-    while (offset <= 4) : (offset += 1) {
+    var offset: i8 = -6;
+    while (offset <= 6) : (offset += 1) {
         const msg: []const u8 = if (offset == 0) " <-" else ""; // workaround for tuple bug
         const addr = if (offset < 0) emu.sp -% @intCast(u8, -2 * offset) else emu.sp +% @intCast(u8, 2 * offset);
         const msg_2: []const u8 = if (addr == emu.bp) " (BASE)" else "";
@@ -74,6 +74,7 @@ pub fn main() !u8 {
         help: bool = false,
         @"entry-point": u16 = 0x0000,
         trace: bool = false,
+        @"memory-dump": ?[]const u8 = null,
 
         pub const shorthands = .{
             .h = "help",
@@ -171,11 +172,16 @@ pub fn main() !u8 {
 
     // defer std.debug.warn("Executed {} instructions!\n", .{emu.count});
 
-    while (true) {
+    main_loop: while (true) {
         emu.runBatch(10_000) catch |err| switch (err) {
-            error.CpuHalted => return 0,
+            error.CpuHalted => break :main_loop,
+            error.DebugBreak => try dumpState(&emu),
             else => |e| return try outputErrorMsg(&emu, e),
         };
+    }
+
+    if (cli_args.options.@"memory-dump") |file_name| {
+        try std.fs.cwd().writeFile(file_name, &emu.memory.memory);
     }
 
     return 0;

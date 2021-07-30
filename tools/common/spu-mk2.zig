@@ -254,7 +254,10 @@ pub fn SpuMk2(comptime MemoryInterface: type) type {
                     .lsl => input0 << 1,
                     .lsr => input0 >> 1,
                     .cpuid => 0,
-                    .halt => return error.CpuHalted,
+                    .halt => switch (input1) {
+                        0xDEAD => return error.DebugBreak, // "hidden" control
+                        else => return error.CpuHalted,
+                    },
                     .setip => blk: {
                         const out = self.ip;
                         self.ip = input0;

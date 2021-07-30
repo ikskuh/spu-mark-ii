@@ -21,15 +21,15 @@
 .equ FN_ARG_5, 7
 
 handler.nmi:
-	st 'N', SERIAL_PORT 
-	st 'M', SERIAL_PORT 
-	st 'I', SERIAL_PORT 
+	st 'N', SERIAL_PORT
+	st 'M', SERIAL_PORT
+	st 'I', SERIAL_PORT
   iret
 
 handler.bus:
-	st 'B', SERIAL_PORT 
-	st 'U', SERIAL_PORT 
-	st 'S', SERIAL_PORT 
+	st 'B', SERIAL_PORT
+	st 'U', SERIAL_PORT
+	st 'S', SERIAL_PORT
   iret
 
 handler.arith:
@@ -47,9 +47,9 @@ handler.software:
 	iret
 
 handler.irq:
-	st 'I', SERIAL_PORT 
-	st 'R', SERIAL_PORT 
-	st 'Q', SERIAL_PORT 
+	st 'I', SERIAL_PORT
+	st 'R', SERIAL_PORT
+	st 'Q', SERIAL_PORT
 	iret
 
 .align 2
@@ -79,7 +79,7 @@ mainMenu:
 
 	cmpp 'q'
 	[ex:zero] jmp mainMenu.halt
-	
+
 	pop ; implement switch here
 
 	push mainMenu.strings.invalidCmd
@@ -104,34 +104,136 @@ mainMenu.loadIhex:
 	call printString
 	pop
 
-.getStart:
+.waitForRecord:
   push 0
 	call getChar
 
 	cmpp ':'
 	[ex:zero] jmp .loadRecord
 
+	cmpp 'q'
+	[ex:zero] jmp .returnToMenu
+
 	cmpp '\r'
 	[ex:nonzero] cmpp '\n'
-	[ex:zero] jmp .getStart
-	
+	[ex:zero] jmp .waitForRecord
+
 	replace mainMenu.ihex.invalidChar
 	call printString
 	pop
 
 	jmp mainMenu
 
+.returnToMenu:
+	pop
+	jmp mainMenu
+
 .loadRecord:
 	pop ; remove ':'
 
-	; TODO: Implement hex loading
+	; record format:
+	; ":NNAAAATT...CC"
+	;   NN => Length
+	; AAAA => Address
+	;   TT => Type
+	;  ... => Data Bytes (2 * NN)
+	;   CC => Checksum
 
-.copy_loop:
+	push 0 ; length    (get -1)
+	call getHexByte
+	[ex:less] jmp .loadError
+
+	push 0 ; address   (get -2)
+	call getHexWord
+	[ex:less] jmp .loadError
+
+	push 0 ; type      (get -3)
+	call getHexByte
+	[ex:less] jmp .loadError
+
+	get -1 
+	get -3
+	add ; add type and length
+
+	get -2
+	bswap [i0:peek]
+	add ; add high byte to low byte
+	add ; add low byte
+
+	; stacktop is now checksum(get -4)
+
+.receiveLoop:
+	; check if we have still bytes to receive
+	get -1 [f:yes]
+	[ex:zero] jmp .fetchChecksum
+	sub 1
+	set -1
+
+	; receive byte
 	push 0
 	call getHexByte
-	st SERIAL_PORT
+	[ex:less] jmp .loadError
 
-	jmp .copy_loop
+	 ; skip data processing when type is not "DATA=0"
+	get -3 [out:discard] [f:yes]
+	[ex:nonzero] jmp .nextByte
+
+	get -2 ; address
+	
+	get -5 ; the received byte
+	st8 [i1:peek] ; consume byte, keep address
+
+	add 1
+	set -2 ; write address back incremented by 1
+
+.nextByte:
+	add ; drop byte and consume into checksum
+	st '.', SERIAL_PORT
+	jmp .receiveLoop
+
+.fetchChecksum:
+	; we already have the remaining count pushed, which is 0
+	call getHexByte
+	[ex:less] jmp .loadError
+	add ; add checksum to form 0
+	and 0xFF [f:yes] [out:discard] ; mask checksum to byte
+	[ex:nonzero] jmp .invalidChecksum
+
+	get -3 
+	sub 1 [out:discard] [f:yes] ; check if the record was of type (EOF=1)
+
+  bpget ; reset current stack state
+	spset
+	
+	[ex:zero] jmp .loadDone ; we are done, we can safely return to the main menu
+
+	jmp .waitForRecord
+
+.loadDone:
+	st '\r', SERIAL_PORT
+	st '\n', SERIAL_PORT
+	jmp mainMenu
+
+.loadError:
+  bpget ; reset current stack state
+	spset
+
+	push mainMenu.ihex.invalidRecord
+	call printString
+	pop
+
+	jmp mainMenu
+
+.invalidChecksum:
+  bpget ; reset current stack state
+	spset
+
+	push mainMenu.ihex.invalidChecksum
+	call printString
+	pop
+
+	jmp mainMenu
+
 
 mainMenu.runApp:
 	pop ; remove menu char
@@ -139,7 +241,7 @@ mainMenu.runApp:
 	push mainMenu.strings.runAppIntro
 	call printString
 	pop
-	
+
 	call 0x8000 ; defined entry pointer
 
 	jmp mainMenu
@@ -198,7 +300,7 @@ getHexByte:
 	[ex:less] jmp .done ; handle error
 
 	; merge upper and lower nibble
-	or 
+	or
 	set FN_ARG_0 [f:yes] ; reset "negative" flag
 
 .done:
@@ -215,7 +317,7 @@ getHexWord:
 	bpset
 
 	; fetch upper byte
-	push 0 
+	push 0
 	call getHexByte
 	[ex:less] jmp .done
 	bswap
@@ -254,10 +356,10 @@ hexToValue:
 
 	cmpp 10
 	[ex:less] jmp .parseBelow10
-	
+
 	sub 'A'-'0' [f:yes]
 	[ex:less] jmp .failure ; between 58 and 64
-	
+
 	cmpp 6
 	[ex:less] jmp .parseUpper
 
@@ -319,7 +421,7 @@ mainMenu.strings.help:
 
 mainMenu.strings.pasteIhex:
 .ascii "load ihex binary\r\n"
-.ascii "Send the ihex file now. Terminate with :00000001FF\r\n"
+.ascii "Send the ihex file now. Terminate with :00000001FF or press 'q' to quit\r\n"
 .db 0
 
 mainMenu.strings.runAppIntro:
@@ -330,3 +432,9 @@ mainMenu.strings.haltMessage:
 
 mainMenu.ihex.invalidChar:
 .asciiz "received invalid char\r\n"
+
+mainMenu.ihex.invalidRecord:
+.asciiz "received invalid record\r\n"
+
+mainMenu.ihex.invalidChecksum:
+.asciiz "record has invalid checksum\r\n"
