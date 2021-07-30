@@ -88,7 +88,32 @@ The buttons, left to right, implement the following features:
 - <svg viewBox="0 0 24 24"><path d="M14,19H18V5H14M6,19H10V5H6V19Z" /></svg> pauses the emulation
 - <svg viewBox="0 0 24 24"><path d="M5,5V19H8V5M10,5V19L21,12" /></svg> executes a single instruction
 
-## Quick start:
+## Quick start
+
+To have something happen in the emulator above, type `h` to view the BIOS help. It tells you that you can load a binary in ihex format with `l`. Type that key, then copy-paste the following code snippet into the terminal window:
+
+```ihex
+:1080000008011C80900D09401680380AFE7F382137
+:1080100001000840048018001800184048656C6C86
+:0C8020006F2C20576F726C64210D0A0059
+:00000001FF
+```
+
+It should display something like
+```
+>load ihex binary
+Send the ihex file now. Terminate with :00000001FF or press 'q' to quit
+................ OK
+................ OK
+............ OK
+>
+```
+
+When that is done, you can run the application by typing `r`. This will jump to address `0x8000` and will execute the code loaded there.
+
+Congratulations, you loaded your first program onto the emulated computer!
+
+## My first own firmware
 
 Pause the emulator, and load a binary file compiled with the assember. Then press the play button to run your program.
 
