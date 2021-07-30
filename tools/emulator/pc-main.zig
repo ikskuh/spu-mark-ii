@@ -232,8 +232,6 @@ pub const SerialEmulator = struct {
                 if (val == 0x03) // CTRL_C
                     return error.UserBreak;
 
-                // std.debug.print("{c}", .{@truncate(u8, val)});
-
                 return val;
             }
         }

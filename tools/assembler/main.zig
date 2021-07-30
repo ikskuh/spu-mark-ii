@@ -389,7 +389,7 @@ pub const Assembler = struct {
                     const name = try self.string_cache.internString(label.text[0 .. label.text.len - 1]);
 
                     const section = self.currentSection();
-                    const offset = section.getGlobalOffset();
+                    const offset = section.getLocalOffset();
 
                     const symbol = Symbol{
                         .value = offset,
@@ -2700,5 +2700,20 @@ test "function 'physicalAddress'" {
         \\this:
         \\.dw 0
         \\.dw physicalAddress("this")
+    );
+}
+
+test "offset address emission" {
+    try testCodeGenerationGeneratesOutput(&[_]TestSectionDesc{
+        .{
+            .contents = "\x00\x00\x02\x80",
+            .load_offset = 0x8000,
+            .phys_offset = 0x8000,
+        },
+    },
+        \\.org 0x8000
+        \\.dw 0
+        \\this:
+        \\.dw this
     );
 }
