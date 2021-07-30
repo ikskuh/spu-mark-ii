@@ -65,6 +65,7 @@ entrypoint:
 mainMenu:
   st '>', SERIAL_PORT
 
+.menu_loop:
 	push 0
 	call getChar
 
@@ -80,13 +81,18 @@ mainMenu:
 	cmpp 'q'
 	[ex:zero] jmp mainMenu.halt
 
-	pop ; implement switch here
+	cmpp '\r'
+	[ex:nonzero] cmpp '\n'
+	[ex:zero] jmp .ignoreCharacter
 
-	push mainMenu.strings.invalidCmd
+	replace mainMenu.strings.invalidCmd
 	call printString
 	pop
-
 	jmp mainMenu
+
+.ignoreCharacter:
+	pop
+	jmp .menu_loop
 
 mainMenu.help:
 	pop ; remove menu char
@@ -116,13 +122,14 @@ mainMenu.loadIhex:
 
 	cmpp '\r'
 	[ex:nonzero] cmpp '\n'
-	[ex:zero] jmp .waitForRecord
+	[ex:zero] jmp .ignoreCharacter
 
 	replace mainMenu.ihex.invalidChar
 	call printString
-	pop
 
-	jmp mainMenu
+.ignoreCharacter:
+	pop
+	jmp .waitForRecord
 
 .returnToMenu:
 	pop
@@ -151,7 +158,7 @@ mainMenu.loadIhex:
 	call getHexByte
 	[ex:less] jmp .loadError
 
-	get -1 
+	get -1
 	get -3
 	add ; add type and length
 
@@ -179,7 +186,7 @@ mainMenu.loadIhex:
 	[ex:nonzero] jmp .nextByte
 
 	get -2 ; address
-	
+
 	get -5 ; the received byte
 	st8 [i1:peek] ; consume byte, keep address
 
@@ -199,19 +206,23 @@ mainMenu.loadIhex:
 	and 0xFF [f:yes] [out:discard] ; mask checksum to byte
 	[ex:nonzero] jmp .invalidChecksum
 
-	get -3 
+	get -3
 	sub 1 [out:discard] [f:yes] ; check if the record was of type (EOF=1)
 
   bpget ; reset current stack state
 	spset
-	
+
 	[ex:zero] jmp .loadDone ; we are done, we can safely return to the main menu
+
+	st ' ', SERIAL_PORT
+	st 'O', SERIAL_PORT
+	st 'K', SERIAL_PORT
+	st '\r', SERIAL_PORT
+	st '\n', SERIAL_PORT
 
 	jmp .waitForRecord
 
 .loadDone:
-	st '\r', SERIAL_PORT
-	st '\n', SERIAL_PORT
 	jmp mainMenu
 
 .loadError:
@@ -269,7 +280,7 @@ getChar:
   [ex:less] pop
 	[ex:less] jmp .waitLoop
 
-	set FN_ARG_0 ; this is the return value
+	set FN_ARG_0 [i1:peek] ; this is the return value
 
 	bpget
 	spset

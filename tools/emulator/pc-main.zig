@@ -231,6 +231,9 @@ pub const SerialEmulator = struct {
                 const val = @as(u16, try stdin.reader().readByte());
                 if (val == 0x03) // CTRL_C
                     return error.UserBreak;
+
+                // std.debug.print("{c}", .{@truncate(u8, val)});
+
                 return val;
             }
         }

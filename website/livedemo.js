@@ -7,6 +7,11 @@ function $(pat) {
     return x;
 }
 
+var emulator = {
+    input_log: false,
+    output_log: false,
+};
+
 var wasmContext = {
     instance: null,
     inputBuffer: '',
@@ -23,7 +28,9 @@ const wasmImports = {
                 const c = wasmContext.inputBuffer.charCodeAt(0);
 
                 byteView[i] = c;
-
+                if (emulator.input_log) {
+                    console.log(c, wasmContext.inputBuffer.substr(0, 1));
+                }
                 i += 1;
                 wasmContext.inputBuffer = wasmContext.inputBuffer.substr(1);
             }
@@ -37,6 +44,10 @@ const wasmImports = {
                 new Uint8Array(wasmContext.instance.exports.memory.buffer, data, len);
 
             let s = decoder.decode(byteView);
+
+            if (emulator.output_log) {
+                console.log(s);
+            }
 
             term.write(s);
         },
