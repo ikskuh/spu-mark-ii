@@ -31,27 +31,14 @@
 
 ## Memory Map
 
-| Address Range | Memory Type     | Component                          |
-|---------------|-----------------|------------------------------------|
-| `0x0*****`    | (*Memory*)      | up to 8 MB Flash ROM               |
-| `0x7F0***`    | (*Peripherial*) | MMU Control/Status                 |
-| `0x7F1***`    | (*Peripherial*) | IRQ Controller                     |
-| `0x7F2***`    | (*Peripherial*) | Serial Port 0 ... 3                |
-| `0x7F3***`    | (*Unused*)      |                                    |
-| `0x7F4***`    | (*Peripherial*) | PS/2 Keyboard, Mouse               |
-| `0x7F5***`    | (*Peripherial*) |                                    |
-| `0x7F6***`    | (*Peripherial*) | IDE/PATA Interface                 |
-| `0x7F7***`    | (*Unused*)      |                                    |
-| `0x7F8***`    | (*Peripherial*) | Timer + RTC                        |
-| `0x7F9***`    | (*Unused*)      |                                    |
-| `0x7FA***`    | (*Peripherial*) | Joystick Interface + Parallel Port |
-| `0x7FB***`    | (*Peripherial*) | PCM Audio Control/Status           |
-| `0x7FC***`    | (*Peripherial*) | DMA Control/Status                 |
-| `0x7FD***`    | (*Peripherial*) | VGA Control/Status                 |
-| `0x7FE***`    | (*Peripherial*) | VGA Palette                        |
-| `0x7FF***`    | (*Peripherial*) | VGA Sprite Data                    |
-| `0x80****`    | (*Memory*)      | 512k RAM                           |
-| `0x88****`    | (*Unused*)      |                                    |
+| Address Range | Memory Type     | Component                           |
+|---------------|-----------------|-------------------------------------|
+| `0x0*****`    | (*Memory*)      | up to 8 MB Flash ROM                |
+| `0x7FE***`    | (*Peripherial*) | [I/O Page](ashet-register-space.md) |
+| `0x7FF***`    | (*Peripherial*) | VGA Sprite Data                     |
+| `0x80****`    | (*Memory*)      | up to 8 MB of RAM                   |
+
+The [I/O Page](ashet-register-space.md) contains all peripherial registers and links to the peripherial devices.
 
 ## DMA Devices
 
@@ -98,4 +85,4 @@ The following devices have memory access (with priority top-to-bottom):
 
 ## Timers and RTC
 
-Timer 0 runs at 1 MHz, Timer 1 runs at 1 kHz
+Timer 0 runs at 1 MHz, Timer 1 runs at 1 kHz.
