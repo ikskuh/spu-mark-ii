@@ -417,7 +417,7 @@ printString:
 	ret
 
 mainMenu.strings.welcome:
-	.asciiz "Welcome to the SPU Mark II demo application!\r\n\r\nPress 'h' for help!\r\n"
+.asciiz "Welcome to the SPU Mark II demo application!\r\n\r\nPress 'h' for help!\r\n"
 
 mainMenu.strings.invalidCmd:
 .asciiz "Invalid selection!\r\n"

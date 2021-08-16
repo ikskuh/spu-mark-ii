@@ -12,7 +12,7 @@ Planned features:
 |---------|------|--------|------------------------|
 | `0x000` |    2 | R      | Active IRQs 0…15       |
 | `0x002` |    2 | R      | Active IRQs 16…31      |
-| `0x000` |    2 | W      | Acknowledge IRQs 0…15  |
-| `0x002` |    2 | W      | Acknowledge IRQs 16…31 |
-| `0x004` |    2 | R/W    | Mask IRQs 0…15         |
-| `0x006` |    2 | R/W    | Mask IRQs 16…31        |
+| `0x004` |    2 | W      | Acknowledge IRQs 0…15  |
+| `0x006` |    2 | W      | Acknowledge IRQs 16…31 |
+| `0x008` |    2 | R/W    | Mask IRQs 0…15         |
+| `0x00A` |    2 | R/W    | Mask IRQs 16…31        |

@@ -2,7 +2,15 @@
 
 **DISCLAIMER: This document is very much work-in-progress and is only a rough working draft!**
 
-TODO:
+## Brain Dump
+
+- Split the DMA into a DMA (block transfers) and a draw engine (render primitives)
+- There can be several DMA transfers active at once
+- DMA transfers are clocked by a "input signal"
+- DMA clocks can come from peripherials (serial fifo half-empty or something) or just "go as fast as possible"
+- DMA transfers always perform block copies, but can have "advanced image manipulation" enabled
+
+## TODO
 
 - blitter finished irq
 - vector fill

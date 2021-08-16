@@ -1,5 +1,7 @@
 # Ashet Home Computer Specification
 
+**DISCLAIMER: This is a living document, do not take anything here for granted!**
+
 ## Hardware
 
 ### CPU
@@ -15,9 +17,9 @@
 
 - VGA video
 - 3 serial ports
-  - 1 * USB Serial
-  - 2 * RS232
-  - 1 infrared serial interface for wireless data transfers
+    - 2 * RS232
+    - 1 * USB Serial
+    - 1 infrared serial interface for wireless data transfers
 - 2 PS/2 ports for keyboard and mouse
 - 2 IDE slots for mass storage
 - 2 (digital) joystick ports, compatible to c64/amiga/cpc/…
@@ -25,7 +27,7 @@
 - PCM audio interface
 - Real time clock
 - 10 MBit Ethernet
-  - Possibly based on ENC28J60 or ENC624J600
+    - Possibly based on ENC28J60 or ENC624J600
 
 ## Memory Map
 
@@ -75,6 +77,7 @@ The following devices have memory access (with priority top-to-bottom):
 | 8          | `TIMER0`     |
 | 9          | `TIMER1`     |
 | 10         | `VGA`        |
+| 11         | `ETHERNET`   |
 | 11 … 31    | *unused*     |
 
 ## Serial Ports
@@ -95,4 +98,4 @@ The following devices have memory access (with priority top-to-bottom):
 
 ## Timers and RTC
 
-(TBD)
+Timer 0 runs at 1 MHz, Timer 1 runs at 1 kHz
