@@ -16,7 +16,7 @@
 ### Peripherials
 
 - VGA video
-- 3 serial ports
+- 4 serial ports
     - 2 * RS232
     - 1 * USB Serial
     - 1 infrared serial interface for wireless data transfers

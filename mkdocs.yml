@@ -27,7 +27,6 @@ nav:
       - 'PCM Audio': specs/pcm.md
       - 'Real Time Clock': specs/rtc.md
       - 'Timer': specs/timer.md
-
     - 'Application Notes':
       - 'AN000 - Understanding the Instruction Set': 'app-notes/AN000 - Understanding the Instruction Set.md'
       - 'AN001 - The SPU Assembly Language': 'app-notes/AN001 - The SPU Assembly Language.md'

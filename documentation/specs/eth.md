@@ -23,7 +23,7 @@
 |     `[5]` | `RAK` | RW    | Acknowledge received packet. Write this bit to `1` to signal that the incoming packet was fully processed and a new one can be provided if available. |
 |     `[6]` | `SND` | RW    | After bytes are written into `Send Data Register`, write `1` to signal that the packet should be sent. |
 |     `[7]` | `SFL` | RW    | Write `1` to this register to flush the send buffer and discard all bytes written.                     |
-|     `[8]` | `PME` | R     | Is `1` when the currently ready receive packet is for the local MAC address                            |
+|     `[8]` | `PUC` | R     | Is `1` when the currently ready receive packet is for the local MAC address                            |
 |     `[9]` | `PMC` | R     | Is `1` when the currently ready receive packet has a multicast MAC address.                            |
 |    `[10]` | `PBC` | R     | Is `1` when the currently ready receive packet has a broadcast MAC address.                            |
 | `[15:11]` |       |       | *reserved*, must be 0                                                                                  |
