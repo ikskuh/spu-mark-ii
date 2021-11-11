@@ -1,0 +1,1082 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="14.3.0">
+  <help_text>=// Uncomment the following line to change the fontsize and font:
+// fontsize=14
+// fontfamily=SansSerif //possible: SansSerif,Serif,Monospaced
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Welcome to UMLet!
+//
+// Double-click on elements to add them to the diagram, or to copy them
+// Edit elements by modifying the text in this panel
+// Hold Ctrl to select multiple elements
+// Use Ctrl+mouse to select via lasso
+//
+// Use +/- or Ctrl+mouse wheel to zoom
+// Drag a whole relation at its central square icon
+//
+// Press Ctrl+C to copy the whole diagram to the system clipboard (then just paste it to, eg, Word)
+// Edit the files in the "palettes" directory to create your own element palettes
+//
+// Select "Custom Elements &gt; New..." to create new element types
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// This text will be stored with each diagram;  use it for notes.</help_text>
+  <zoom_level>9</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>558</x>
+      <y>333</y>
+      <w>279</w>
+      <h>639</h>
+    </coordinates>
+    <panel_attributes>FPGA
+
+transparency=0
+bg=white
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>333</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>RS232
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>378</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>RS232
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>423</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>USB-UART
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>468</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>IrDA
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>342</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>387</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>432</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>477</y>
+      <w>441</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;470.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>522</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>PS/2 (1)
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>531</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>576</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>567</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>PS/2 (2)
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>630</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>621</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>IDE / PATA
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>684</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>675</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Joystick (1)
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>729</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>720</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Joystick (2)
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>783</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>774</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Parallel Port
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>837</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>828</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Chinch/Jack
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>891</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>882</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>VGA
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>945</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1251</x>
+      <y>936</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>RJ45
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>936</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Ethernet Driver
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>945</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>828</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Audio DAC
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>837</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>774</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Level Shifter
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>783</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>720</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Buffer
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>675</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Buffer
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>684</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>729</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>621</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Level Shifter
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>567</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Level Shifter
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>522</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Level Shifter
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>531</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>576</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>630</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>423</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>USB &lt;-&gt; Serial
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>432</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>333</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Level Shifter
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>378</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Level Shifter
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>387</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>342</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>990</x>
+      <y>882</y>
+      <w>108</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>R2R-DAC
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1089</x>
+      <y>891</y>
+      <w>180</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>450</x>
+      <y>342</y>
+      <w>126</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>369</x>
+      <y>333</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>Socket
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>180</x>
+      <y>333</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>BIOS Flash
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>261</x>
+      <y>342</y>
+      <w>126</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>369</x>
+      <y>387</y>
+      <w>90</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>SDRAM
+valign=center
+halign=center
+transparency=0
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>450</x>
+      <y>396</y>
+      <w>126</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>810</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>DMA
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>810</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>AudioChip
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>891</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Video-RAM
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>891</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>GPU
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>891</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>CPU
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>729</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>UART 3
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>648</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>UART 2
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>567</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>UART 1
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>486</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>UART 0
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>486</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>PS/2 1
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>567</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>PS/2 2
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>648</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>IDE Driver
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>729</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Flash Driver
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>810</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>RAM Driver
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>567</x>
+      <y>405</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Timer 0
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>405</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Timer 1
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>405</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>IRQ
+Controller
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>486</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>RTC
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>567</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Joystick I/O
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>648</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>ParPort
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>747</x>
+      <y>729</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Ethernet
+Packet
+Interface
+valign=center
+halign=center
+lt=.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>162</x>
+      <y>315</y>
+      <w>1134</w>
+      <h>675</h>
+    </coordinates>
+    <panel_attributes>bg=#008000
+fg=black
+layer=-5
+transparency=50</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>

@@ -63,10 +63,26 @@
 - read
 
 ## RTC
+
 - read
 - write
 - read time
 - write time
 - read date
 - write date
-   
+
+## Memory
+
+- status
+- alloc page
+- free page
+
+## Tasks
+
+- spawn
+- kill
+- status
+- yield
+- sleep
+- send
+- receive

@@ -1,4 +1,5 @@
-.include "../library/syscalls.inc"
+.include "../library/ashet/syscalls.inc"
+.include "../library/ashet/io-page.inc"
 
 .org 0x0000
 
@@ -113,7 +114,8 @@ bios.interrupt.handler.irq:
 	iret
 
 bios.entrypoint:
-	st 0x7F01, 0xF002 ; map MMU to second page 0x1000
+TODO: Rebuild this to be correct
+	st 0x7FE1, 0xF002 ; map I/O page to second page 0x1000
 
 	; Map some RAM in the upper half
 	st 0x8001, 0xF010
@@ -125,10 +127,8 @@ bios.entrypoint:
 	st 0x8061, 0xF01C
 	st 0x8071, 0xF01E ; this will unmap the MMU from 0xF000
 
-	st 0x7FD1, 0x1004 ; map vga ctrl to 0x2000
-	
-	st 0x0000, 0x2000 ; map framebuffer to 0x800000
-	st 0x0080, 0x2002
+	st 0x0000, 0x1000 ; map framebuffer to 0x800000
+	st 0x0080, 0x1002
 
 	st 0x8101, 0x100E ; map RAM to 0x7000…0x7FFF for stack
 

@@ -87,7 +87,7 @@ pub fn main() !u8 {
         };
 
         if (std.mem.eql(u8, ext, "bin")) {
-            _ = try std.fs.cwd().readFile(file, &ashet.rom_buffer);
+            _ = try std.fs.cwd().readFile(file, &ashet.bus.memory);
         } else if (std.mem.eql(u8, ext, "hex")) {
             try stderr.writeAll("ihex loading is not implemented yet!\n");
             success = false;
@@ -323,6 +323,8 @@ const BusDevice = struct {
         .read16Fn = UnmappedImpl.read16,
         .write8Fn = UnmappedImpl.write8,
         .write16Fn = UnmappedImpl.write16,
+        .offset = 0,
+        .register_bank_size = 0,
     };
     pub const unmapped: *Self = &unmapped_stor;
 
@@ -336,6 +338,9 @@ const BusDevice = struct {
 
     write8Fn: fn (*Self, u24, u8) Error!void,
     write16Fn: fn (*Self, u24, u16) Error!void,
+
+    offset: u12,
+    register_bank_size: u12,
 
     pub fn read8(self: *Self, address: u24) !u8 {
         return self.read8Fn(self, address);
@@ -391,23 +396,17 @@ const Ashet = struct {
     // System configuration
     cpu_clock: u64 = 10_000_000, // instructions per second
 
-    // Memory buffers
-    rom_buffer: [8388608]u8 = undefined, // 8 MB Flash
-    ram_buffer: [524288]u8 = undefined, // 512 kB RAM
-
     // Memory interface
     bus: Bus,
+
+    devices: [20]*BusDevice,
+
     mmu: MMU,
     cpu: spu.SpuMk2(*MMU),
 
     // Memory mapped parts
-    ram: Memory,
-    rom: Memory,
     vga: VGA,
-    uart0: UART,
-    uart1: UART,
-    sdio0: SDIO,
-    sdio1: SDIO,
+    uarts: [4]UART,
 
     // Emulation state
 
@@ -420,46 +419,52 @@ const Ashet = struct {
         self.* = Self{
             .cpu = spu.SpuMk2(*MMU).init(&self.mmu),
 
-            .bus = Bus{},
+            .bus = Bus{
+                .devices = &self.devices,
+            },
+
+            .devices = [_]*BusDevice{
+                &self.mmu.bus_device, //      0x7FE000  MMU
+                BusDevice.unmapped, //        0x7FE030  IRQ
+                &self.uarts[0].bus_device, // 0x7FE040  UART 16C550-Style (1)
+                &self.uarts[1].bus_device, // 0x7FE050  UART 16C550-Style (2)
+                &self.uarts[2].bus_device, // 0x7FE060  UART 16C550-Style (3)
+                &self.uarts[3].bus_device, // 0x7FE070  UART 16C550-Style (4)
+                BusDevice.unmapped, //        0x7FE080  PS/2 (1)
+                BusDevice.unmapped, //        0x7FE090  PS/2 (2)
+                BusDevice.unmapped, //        0x7FE0A0  IDE / PATA
+                BusDevice.unmapped, //        0x7FE0B0  Timer (1)
+                BusDevice.unmapped, //        0x7FE0C0  Timer (2)
+                BusDevice.unmapped, //        0x7FE0D0  RTC
+                BusDevice.unmapped, //        0x7FE0E0  Joystick (1)
+                BusDevice.unmapped, //        0x7FE0F0  Joystick (2)
+                BusDevice.unmapped, //        0x7FE100  Parallel Port
+                BusDevice.unmapped, //        0x7FE110  PCM Audio Control/Status
+                BusDevice.unmapped, //        0x7FE110  DMA Control/Status
+                &self.vga.bus_device_control, // 0x7FE110 272 8	VGA Card
+                BusDevice.unmapped, // 0x7FE120 288 13	Ethernet
+                &self.vga.bus_device_palette, // 0x7FE200 512 512	VGA Palette Memory
+            },
+
             .mmu = MMU{
                 .bus = &self.bus,
             },
 
-            .rom = Memory.init(&self.rom_buffer, true),
-            .ram = Memory.init(&self.ram_buffer, false),
             .vga = VGA{
                 .bus = &self.bus,
                 .framebuffer_address = 0x000000,
             },
-            .uart0 = UART{},
-            .uart1 = UART{},
-            .sdio0 = SDIO{ .bus = &self.bus },
-            .sdio1 = SDIO{ .bus = &self.bus },
+            .uarts = [4]UART{
+                UART.init(0),
+                UART.init(1),
+                UART.init(2),
+                UART.init(3),
+            },
         };
 
-        self.bus.mapRange(0x000000, 0x7FFFFF, &self.rom.bus_device);
-        self.bus.mapRange(0x800000, 0xFFFFFF, &self.ram.bus_device);
-
-        self.bus.mapAddress(0x7F0000, &self.mmu.bus_device);
-        // - `0x7F1***`: (*Peripherial*) IRQ Controller
-        self.bus.mapAddress(0x7F2000, &self.uart0.bus_device);
-        self.bus.mapAddress(0x7F3000, &self.uart1.bus_device);
-        // - `0x7F4***`: (*Peripherial*) PS/2'1 (Keyboar
-        // - `0x7F5***`: (*Peripherial*) PS/2'2 (Mouse)
-        self.bus.mapAddress(0x7F6000, &self.sdio0.bus_device);
-        self.bus.mapAddress(0x7F7000, &self.sdio1.bus_device);
-        // - `0x7F8***`: (*Peripherial*) Timer + RTC
-        // - `0x7F9***`: (*Peripherial*) IrDA Interface
-        // - `0x7FA***`: (*Peripherial*) Joystick Interf
-        // - `0x7FB***`: (*Peripherial*) PCM Audio Contr
-        // - `0x7FC***`: (*Peripherial*) DMA Control/Status
-        self.bus.mapAddress(0x7FD000, &self.vga.bus_device_control);
-        self.bus.mapAddress(0x7FE000, &self.vga.bus_device_palette);
-        // - `0x7FF***`: (*Peripherial*) VGA Sprite Data
-
-        // MMU is by-default in an identity mapping, so we need to map the MMU into the visible range.
-        // In this case, we map the MMU into the last page of memory space
-        self.mmu.page_config[0xF].physical_address = 0x7F0;
+        // MMU is by-default in an identity mapping, so we need to map the I/O page into the visible range.
+        // In this case, we map it into the last page of memory space
+        self.mmu.page_config[0xF].physical_address = 0x7FE;
     }
 
     pub fn deinit(self: *Self) void {
@@ -525,12 +530,10 @@ const Ashet = struct {
 
             // TODO: Process outputs from UART1, PS/2, IrDA
 
-            while (self.uart0.output.readItem()) |item| {
-                std.debug.print("UART0: {X:0>2} {c}\n", .{ item, item });
-            }
-
-            while (self.uart1.output.readItem()) |item| {
-                std.debug.print("UART1: {X:0>2} {c}\n", .{ item, item });
+            for (self.uarts) |*uart, i| {
+                while (uart.output.readItem()) |item| {
+                    std.debug.print("UART{d}: {X:0>2} {c}\n", .{ i, item, item });
+                }
             }
         }
     }
@@ -539,34 +542,18 @@ const Ashet = struct {
 const Bus = struct {
     const Self = @This();
 
-    devices: [4096]*BusDevice = [1]*BusDevice{&BusDevice.unmapped_stor} ** 4096,
+    const io_base = 0x7FE000;
+
+    memory: [1 << 24]u8 align(2) = undefined,
+    devices: []*BusDevice,
     enable_debug_msg: bool = true,
 
-    pub fn mapAddress(self: *Self, address: u24, device: *BusDevice) void {
-        std.debug.assert(std.mem.isAligned(address, 0x1000));
-        self.devices[address >> 12] = device;
-    }
-
-    pub fn unmapAddress(self: *Self, address: u24) void {
-        self.mapAddress(address, BusDevice.unmapped);
-    }
-
-    pub fn mapRange(self: *Self, start: u24, end: u24, device: *BusDevice) void {
-        var i = start;
-        while (i < end) {
-            self.mapAddress(i, device);
-
-            if (@addWithOverflow(u24, i, 0x1000, &i))
-                break;
+    fn deviceAt(self: *Self, offset: u12) !*BusDevice {
+        for (self.devices) |dev| {
+            if (offset >= dev.offset and offset < dev.offset + dev.register_bank_size)
+                return dev;
         }
-    }
-
-    pub fn unmapRange(self: *Self, start: u24, end: u24) void {
-        self.mapRange(start, end, BusDevice.unmapped);
-    }
-
-    fn deviceAt(self: *Self, address: u24) *BusDevice {
-        return self.devices[address >> 12];
+        return error.BusError;
     }
 
     const BusAccess = enum { read, write };
@@ -594,19 +581,33 @@ const Bus = struct {
     }
 
     pub fn read8(self: *Self, address: u24) !u8 {
-        return self.deviceAt(address).read8(address) catch |err| self.logError(err, address, .read, .byte);
+        return switch (address) {
+            io_base...io_base + 0xFFF => try (try self.deviceAt(@truncate(u12, address - io_base))).read8(address) catch |err| self.logError(err, address, .read, .byte),
+            else => self.memory[address],
+        };
     }
 
     pub fn write8(self: *Self, address: u24, value: u8) !void {
-        return self.deviceAt(address).write8(address, value) catch |err| self.logError(err, address, .write, .byte);
+        switch (address) {
+            io_base...io_base + 0xFFF => try (try self.deviceAt(@truncate(u12, address - io_base))).write8(address, value) catch |err| self.logError(err, address, .read, .byte),
+            else => self.memory[address] = value,
+        }
     }
 
     pub fn read16(self: *Self, address: u24) !u16 {
-        return self.deviceAt(address).read16(address) catch |err| self.logError(err, address, .read, .word);
+        std.debug.assert((address & 0x01) == 0);
+        return switch (address) {
+            io_base...io_base + 0xFFF => try (try self.deviceAt(@truncate(u12, address - io_base))).read16(address) catch |err| self.logError(err, address, .read, .byte),
+            else => std.mem.readIntLittle(u16, self.memory[address..][0..2]),
+        };
     }
 
     pub fn write16(self: *Self, address: u24, value: u16) !void {
-        return self.deviceAt(address).write16(address, value) catch |err| self.logError(err, address, .write, .word);
+        std.debug.assert((address & 0x01) == 0);
+        switch (address) {
+            io_base...io_base + 0xFFF => try (try self.deviceAt(@truncate(u12, address - io_base))).write16(address, value) catch |err| self.logError(err, address, .read, .byte),
+            else => std.mem.writeIntLittle(u16, self.memory[address..][0..2], value),
+        }
     }
 };
 
@@ -703,6 +704,9 @@ const VGA = struct {
 
         .read16Fn = paletteRead16,
         .write16Fn = paletteWrite16,
+
+        .offset = 0x110,
+        .register_bank_size = 8,
     },
     bus_device_control: BusDevice = BusDevice{
         .read8Fn = BusDevice.read8With16,
@@ -710,6 +714,9 @@ const VGA = struct {
 
         .read16Fn = registerRead16,
         .write16Fn = registerWrite16,
+
+        .offset = 0x200,
+        .register_bank_size = 512,
     },
 
     palette: [256]RGB = init: {
@@ -909,6 +916,9 @@ const MMU = struct {
 
         .read16Fn = registerRead16,
         .write16Fn = registerWrite16,
+
+        .offset = 0x000,
+        .register_bank_size = 48,
     },
 
     /// The bus that is managed by the MMU
@@ -1002,10 +1012,19 @@ const UART = struct {
 
         .read16Fn = read16,
         .write16Fn = write16,
+
+        .offset = undefined,
+        .register_bank_size = 8,
     },
 
     input: Fifo = Fifo.init(),
     output: Fifo = Fifo.init(),
+
+    pub fn init(index: u8) UART {
+        var uart = UART{};
+        uart.bus_device.offset = 0x030 + 32 * index;
+        return uart;
+    }
 
     fn read16(busdev: *BusDevice, address: u24) BusDevice.Error!u16 {
         const uart = @fieldParentPtr(Self, "bus_device", busdev);
@@ -1045,42 +1064,6 @@ const UART = struct {
         }
     }
 };
-
-const SDIO = struct {
-    const Self = @This();
-
-    bus_device: BusDevice = BusDevice{
-        .read8Fn = BusDevice.read8With16,
-        .write8Fn = BusDevice.write8With16,
-
-        .read16Fn = read16,
-        .write16Fn = write16,
-    },
-
-    bus: *Bus,
-
-    backing_file: ?std.fs.File = null,
-
-    fn read16(busdev: *BusDevice, address: u24) !u16 {
-        _ = busdev;
-        _ = address;
-        // const sdio = @fieldParentPtr(Self, "bus_device", busdev);
-        return switch ((address & 0x7FF) >> 1) {
-            else => return error.BusError,
-        };
-    }
-
-    fn write16(busdev: *BusDevice, address: u24, value: u16) !void {
-        _ = busdev;
-        _ = address;
-        _ = value;
-        // const sdio = @fieldParentPtr(Self, "bus_device", busdev);
-        switch ((address & 0x7FF) >> 1) {
-            else => return error.BusError,
-        }
-    }
-};
-
 comptime {
     std.debug.assert(@bitSizeOf(MMU.Register) == 16);
     std.debug.assert(@sizeOf(MMU.Register) == 2);

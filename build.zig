@@ -42,6 +42,7 @@ fn buildToolchain(b: *std.build.Builder, outputDir: ?[]const u8, target: std.zig
     ashet_emulator.addPackage(packages.ihex);
     ashet_emulator.addPackage(packages.args);
     ashet_emulator.addPackage(packages.@"spu-mk2");
+    ashet_emulator.linkLibC();
     ashet_emulator.linkSystemLibrary("SDL2");
     ashet_emulator.setTarget(target);
     ashet_emulator.setBuildMode(mode);
@@ -138,16 +139,16 @@ pub fn build(b: *std.build.Builder) !void {
     const assemble_step = nativeToolchain.assembler.run();
     assemble_step.addArgs(&[_][]const u8{
         "-o",
-        "./zig-out/firmware/firmware.hex",
-        "./apps/firmware/main.asm",
+        "./zig-out/firmware/ashet-bios.hex",
+        "./apps/ashet-bios/main.asm",
     });
 
     const gen_firmware_blob = nativeToolchain.hex2bin.run();
     gen_firmware_blob.step.dependOn(&assemble_step.step);
     gen_firmware_blob.addArgs(&[_][]const u8{
         "-o",
-        "./zig-out/firmware/firmware.bin",
-        "./zig-out/firmware/firmware.hex",
+        "./zig-out/firmware/ashet-bios.bin",
+        "./zig-out/firmware/ashet-bios.hex",
     });
 
     const firmware_step = b.step("firmware", "Builds the BIOS for Ashet");

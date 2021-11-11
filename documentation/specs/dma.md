@@ -9,6 +9,8 @@
 - DMA transfers are clocked by a "input signal"
 - DMA clocks can come from peripherials (serial fifo half-empty or something) or just "go as fast as possible"
 - DMA transfers always perform block copies, but can have "advanced image manipulation" enabled
+- Rectangle transfers need to have modes "tile, wrap, clamp"
+- Keep linked list DMA transfers
 
 ## TODO
 
