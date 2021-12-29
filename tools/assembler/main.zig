@@ -2,7 +2,9 @@ const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
 
-usingnamespace @import("spu-mk2");
+const spu = @import("spu-mk2");
+
+const Instruction = spu.Instruction;
 
 const FileFormat = enum { ihex, binary };
 
@@ -40,7 +42,7 @@ pub fn main() !u8 {
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 
-    var assembler = try Assembler.init(&arena.allocator);
+    var assembler = try Assembler.init(arena.allocator());
     defer assembler.deinit();
 
     var root_dir = try std.fs.cwd().openDir(".", .{ .access_sub_paths = true, .iterate = false });
@@ -64,10 +66,14 @@ pub fn main() !u8 {
         try stdout.writeAll("Errors appeared while assembling:\n");
 
         for (assembler.errors.items) |err| {
+            const file_name = if (err.location) |loc|
+                loc.file orelse "unknown"
+            else
+                "unknown";
             if (err.location) |loc| {
                 try stdout.print("{s}: {s}:{}:{}: {s}\n", .{
                     @tagName(err.type),
-                    "f", //err.location.?.file,
+                    file_name,
                     loc.line,
                     loc.column,
                     err.message,
@@ -75,7 +81,7 @@ pub fn main() !u8 {
             } else {
                 try stdout.print("{s}: {s}:{}:{}: {s}\n", .{
                     @tagName(err.type),
-                    "f", //err.location.?.file,
+                    file_name,
                     0,
                     0,
                     err.message,
@@ -233,7 +239,7 @@ pub const Assembler = struct {
     const SectionNode = std.TailQueue(Section).Node;
 
     // utilities
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     string_cache: StringCache,
     arena: std.heap.ArenaAllocator,
 
@@ -270,7 +276,7 @@ pub const Assembler = struct {
         return &(assembler.sections.last orelse unreachable).data;
     }
 
-    pub fn init(allocator: *std.mem.Allocator) !Assembler {
+    pub fn init(allocator: std.mem.Allocator) !Assembler {
         var a = Self{
             .allocator = allocator,
             .sections = std.TailQueue(Section){},
@@ -285,8 +291,8 @@ pub const Assembler = struct {
         errdefer a.arena.deinit();
         errdefer a.string_cache.deinit();
 
-        a.local_symbols = try a.arena.allocator.create(std.StringHashMap(Symbol));
-        a.local_symbols.* = std.StringHashMap(Symbol).init(&a.arena.allocator);
+        a.local_symbols = try a.arena.allocator().create(std.StringHashMap(Symbol));
+        a.local_symbols.* = std.StringHashMap(Symbol).init(a.arena.allocator());
 
         _ = try a.appendSection(0x0000, 0x0000_0000);
 
@@ -330,7 +336,7 @@ pub const Assembler = struct {
     }
 
     fn emitError(self: *Self, kind: CompileError.Type, location: ?Location, comptime fmt: []const u8, args: anytype) !void {
-        const msg = try std.fmt.allocPrint(&self.string_cache.string_arena.allocator, fmt, args);
+        const msg = try std.fmt.allocPrint(self.string_cache.string_arena.allocator(), fmt, args);
         errdefer self.allocator.free(msg);
 
         var location_clone = location;
@@ -401,8 +407,8 @@ pub const Assembler = struct {
                         try self.local_symbols.put(name, symbol);
                     } else {
                         // global label
-                        self.local_symbols = try self.arena.allocator.create(std.StringHashMap(Symbol));
-                        self.local_symbols.* = std.StringHashMap(Symbol).init(&self.arena.allocator);
+                        self.local_symbols = try self.arena.allocator().create(std.StringHashMap(Symbol));
+                        self.local_symbols.* = std.StringHashMap(Symbol).init(self.arena.allocator());
                         try self.symbols.put(name, symbol);
                     }
                 },
@@ -526,8 +532,8 @@ pub const Assembler = struct {
             }
         }
 
-        if (std.builtin.mode == .Debug) {
-            std.debug.warn("unknown directive: {s}\n", .{token.text});
+        if (@import("builtin").mode == .Debug) {
+            std.log.warn("unknown directive: {s}\n", .{token.text});
         }
 
         return error.UnknownDirective;
@@ -728,7 +734,7 @@ pub const Assembler = struct {
 
                 try assembler.currentSection().bytes.writer().writeAll(blob);
             } else {
-                try assembler.emitError(.@"error", filename_expr.expression.location, "Cannot open file {s}: No filesystem available", .{filename});
+                try assembler.emitError(.@"error", filename_expr.expression.location, "Cannot open file {s}: No filesystem available", .{filename.string});
             }
         }
 
@@ -740,7 +746,13 @@ pub const Assembler = struct {
                 return error.TypeMismatch;
 
             if (assembler.directory) |dir| {
-                var file = try dir.openFile(filename.string, .{ .read = true, .write = false });
+                var file = dir.openFile(filename.string, .{ .read = true, .write = false }) catch |err| switch (err) {
+                    error.FileNotFound => {
+                        try assembler.emitError(.@"error", filename_expr.expression.location, "Cannot open file {s}: File not found.", .{filename.string});
+                        return;
+                    },
+                    else => |e| return e,
+                };
                 defer file.close();
 
                 const old_file_name = assembler.fileName;
@@ -838,7 +850,7 @@ const StringCache = struct {
     interned_strings: std.StringHashMap(void),
     scratch_buffer: std.ArrayList(u8),
 
-    pub fn init(allocator: *std.mem.Allocator) Self {
+    pub fn init(allocator: std.mem.Allocator) Self {
         return .{
             .string_arena = std.heap.ArenaAllocator.init(allocator),
             .interned_strings = std.StringHashMap(void).init(allocator),
@@ -908,7 +920,7 @@ const StringCache = struct {
     pub fn internString(self: *Self, string: []const u8) ![]const u8 {
         const gop = try self.interned_strings.getOrPut(string);
         if (!gop.found_existing) {
-            gop.key_ptr.* = try self.string_arena.allocator.dupe(u8, string);
+            gop.key_ptr.* = try self.string_arena.allocator().dupe(u8, string);
         }
         return gop.key_ptr.*;
     }
@@ -988,7 +1000,7 @@ pub const Token = struct {
     type: TokenType,
     location: Location,
 
-    fn duplicate(self: Self, allocator: *std.mem.Allocator) !Self {
+    fn duplicate(self: Self, allocator: std.mem.Allocator) !Self {
         return Self{
             .type = self.type,
             .text = try std.mem.dupe(allocator, u8, self.text),
@@ -998,7 +1010,7 @@ pub const Token = struct {
 };
 
 pub const Parser = struct {
-    allocator: ?*std.mem.Allocator,
+    allocator: ?std.mem.Allocator,
     string_cache: *StringCache,
     source: []u8,
     offset: usize,
@@ -1007,7 +1019,7 @@ pub const Parser = struct {
 
     const Self = @This();
 
-    fn fromStream(string_cache: *StringCache, allocator: *std.mem.Allocator, stream: anytype) !Self {
+    fn fromStream(string_cache: *StringCache, allocator: std.mem.Allocator, stream: anytype) !Self {
         return Self{
             .string_cache = string_cache,
             .allocator = allocator,
@@ -1050,7 +1062,7 @@ pub const Parser = struct {
         const tok = (try parser.parse()) orelse return error.UnexpectedEndOfFile;
         if (tok.type == t)
             return tok;
-        if (std.builtin.mode == .Debug) {
+        if (@import("builtin").mode == .Debug) {
             // std.debug.warn("Unexpected token: {}\nexpected: {}\n", .{
             //     tok,
             //     t,
@@ -1362,8 +1374,8 @@ pub const Parser = struct {
             },
 
             else => |c| {
-                if (std.builtin.mode == .Debug) {
-                    std.debug.warn("unrecognized character: {c}\n", .{c});
+                if (@import("builtin").mode == .Debug) {
+                    std.log.warn("unrecognized character: {c}", .{c});
                 }
                 return error.UnrecognizedCharacter;
             },
@@ -1415,7 +1427,7 @@ pub const Parser = struct {
         expression: Expression,
         terminator: Token,
     };
-    fn parseExpression(parser: *Parser, allocator: *std.mem.Allocator, terminators: anytype) !ParseExpressionResult {
+    fn parseExpression(parser: *Parser, allocator: std.mem.Allocator, terminators: anytype) !ParseExpressionResult {
         _ = terminators;
 
         const state = parser.saveState();
@@ -1428,7 +1440,9 @@ pub const Parser = struct {
         };
         errdefer expr.arena.deinit();
 
-        expr.root = try parser.acceptExpression(&expr.arena.allocator);
+        expr.root = try parser.acceptExpression(expr.arena.allocator());
+
+        expr.location = expr.root.location;
 
         return ParseExpressionResult{
             .expression = expr,
@@ -1436,7 +1450,7 @@ pub const Parser = struct {
         };
     }
 
-    fn moveToHeap(allocator: *std.mem.Allocator, value: anytype) !*@TypeOf(value) {
+    fn moveToHeap(allocator: std.mem.Allocator, value: anytype) !*@TypeOf(value) {
         const T = @TypeOf(value);
         std.debug.assert(@typeInfo(T) != .Pointer);
         const ptr = try allocator.create(T);
@@ -1456,7 +1470,7 @@ pub const Parser = struct {
     };
     const acceptExpression = acceptSumExpression;
 
-    fn acceptSumExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptSumExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1487,7 +1501,7 @@ pub const Parser = struct {
         return expr;
     }
 
-    fn acceptMulExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptMulExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1520,7 +1534,7 @@ pub const Parser = struct {
         return expr;
     }
 
-    fn acceptBitwiseExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptBitwiseExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1553,7 +1567,7 @@ pub const Parser = struct {
         return expr;
     }
 
-    fn acceptShiftExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptShiftExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1586,7 +1600,7 @@ pub const Parser = struct {
         return expr;
     }
 
-    fn acceptUnaryPrefixOperatorExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptUnaryPrefixOperatorExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1611,7 +1625,7 @@ pub const Parser = struct {
         }
     }
 
-    fn acceptCallExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptCallExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1653,7 +1667,7 @@ pub const Parser = struct {
         return value;
     }
 
-    fn acceptValueExpression(self: *Parser, allocator: *std.mem.Allocator) ParseError!ExpressionNode {
+    fn acceptValueExpression(self: *Parser, allocator: std.mem.Allocator) ParseError!ExpressionNode {
         const state = self.saveState();
         errdefer self.restoreState(state);
 
@@ -1934,12 +1948,12 @@ const Expression = struct {
             .symbol_reference => |symbol_name| if (context.symbols.get(symbol_name)) |sym|
                 EvalValue{ .number = try sym.getValue() }
             else
-                return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}),
+                return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}), // TODO: Store locations of symbol refs
 
             .local_symbol_reference => |symbol_name| if (context.local_symbols.get(symbol_name)) |sym|
                 EvalValue{ .number = try sym.getValue() }
             else
-                return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}),
+                return errors.emit(error.MissingIdentifiers, null, "Missing identifier: {s}", .{symbol_name}), // TODO: Store locations of symbol refs
 
             .binary_op => |op| blk: {
                 const lhs = try self.evaluateRecursive(context, errors, op.lhs);
@@ -2048,12 +2062,12 @@ const Expression = struct {
 const Modifiers = struct {
     const Self = @This();
 
-    condition: ?ExecutionCondition = null,
-    input0: ?InputBehaviour = null,
-    input1: ?InputBehaviour = null,
+    condition: ?spu.ExecutionCondition = null,
+    input0: ?spu.InputBehaviour = null,
+    input1: ?spu.InputBehaviour = null,
     modify_flags: ?bool = null,
-    output: ?OutputBehaviour = null,
-    command: ?Command = null,
+    output: ?spu.OutputBehaviour = null,
+    command: ?spu.Command = null,
 
     /// will start at identifier, not `[`!
     fn parse(mods: *Self, assembler: *Assembler, parser: *Parser) !void {

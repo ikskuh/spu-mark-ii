@@ -45,13 +45,13 @@ fn SubImage(comptime Pixel: type) type {
             else => @compileError(@typeName(Pixel) ++ " not supported yet!"),
         };
 
-        allocator: *std.mem.Allocator,
+        allocator: std.mem.Allocator,
         pixels: []Pixel,
         width: usize,
         height: usize,
         palette: ?*PaletteType,
 
-        pub fn initLinear(allocator: *std.mem.Allocator, header: Header, file: *std.fs.File, stream: anytype) !Self {
+        pub fn initLinear(allocator: std.mem.Allocator, header: Header, file: *std.fs.File, stream: anytype) !Self {
             const width = @as(usize, header.xmax - header.xmin + 1);
             const height = @as(usize, header.ymax - header.ymin + 1);
 
@@ -163,7 +163,7 @@ pub const Image = union(Format) {
     }
 };
 
-pub fn load(allocator: *std.mem.Allocator, file: *std.fs.File) !Image {
+pub fn load(allocator: std.mem.Allocator, file: *std.fs.File) !Image {
     var stream = file.reader();
 
     var header: Header = undefined;

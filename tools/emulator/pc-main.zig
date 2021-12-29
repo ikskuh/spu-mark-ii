@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const argsParser = @import("args");
 const ihex = @import("ihex");
 const spu = @import("spu-mk2");
@@ -40,17 +41,11 @@ pub fn dumpState(emu: *spu.SpuMk2(common.WasmDemoMachine)) !void {
 
 var termios_bak: std.os.termios = undefined;
 
-var window: *c.SDL_Window = undefined;
-var renderer: *c.SDL_Renderer = undefined;
-var texture: *c.SDL_Texture = undefined;
-
-var framebuffer: [128][256]u8 = undefined;
-
 fn outputErrorMsg(emu: *spu.SpuMk2(common.WasmDemoMachine), err: anyerror) !u8 {
     const stdin = std.io.getStdIn();
 
     // reset terminal before outputting error messages
-    if (std.builtin.os.tag == .linux) {
+    if (builtin.os.tag == .linux) {
         try std.os.tcsetattr(stdin.handle, .NOW, termios_bak);
     }
 
@@ -117,7 +112,7 @@ pub fn main() !u8 {
     emu.ip = cli_args.options.@"entry-point";
 
     const stdin = std.io.getStdIn();
-    if (std.builtin.os.tag == .linux) {
+    if (builtin.os.tag == .linux) {
         const original = try std.os.tcgetattr(stdin.handle);
 
         var modified_raw = original;
@@ -148,10 +143,10 @@ pub fn main() !u8 {
         _ = 0;
         _ = 0;
         _ = 0 | ISIG;
-        modified_raw.iflag &= ~@as(std.os.tcflag_t, BRKINT | IGNBRK | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-        modified_raw.oflag &= ~@as(std.os.tcflag_t, OPOST);
-        modified_raw.lflag &= ~@as(std.os.tcflag_t, ECHO | ECHONL | ICANON | IEXTEN);
-        modified_raw.cflag &= ~@as(std.os.tcflag_t, CSIZE | PARENB);
+        modified_raw.iflag &= ~@as(std.os.linux.tcflag_t, BRKINT | IGNBRK | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+        modified_raw.oflag &= ~@as(std.os.linux.tcflag_t, OPOST);
+        modified_raw.lflag &= ~@as(std.os.linux.tcflag_t, ECHO | ECHONL | ICANON | IEXTEN);
+        modified_raw.cflag &= ~@as(std.os.linux.tcflag_t, CSIZE | PARENB);
         modified_raw.cflag |= CS8;
 
         try std.os.tcsetattr(stdin.handle, .NOW, modified_raw);
@@ -159,13 +154,13 @@ pub fn main() !u8 {
         termios_bak = original;
     }
 
-    defer if (std.builtin.os.tag == .linux) {
+    defer if (builtin.os.tag == .linux) {
         std.os.tcsetattr(stdin.handle, .NOW, termios_bak) catch {
-            std.debug.warn("Failed to reset stdin. Please call stty sane to get back a proper terminal experience!\n", .{});
+            std.log.err("Failed to reset stdin. Please call stty sane to get back a proper terminal experience!", .{});
         };
     };
 
-    if (std.builtin.os.tag == .windows) {
+    if (builtin.os.tag == .windows) {
         if (SetConsoleMode(stdin.handle, 0) == 0)
             return error.FailedToSetConsole;
     }
@@ -218,16 +213,16 @@ const Debugger = struct {
 pub const SerialEmulator = struct {
     pub fn read() !u16 {
         const stdin = std.io.getStdIn();
-        if (std.builtin.os.tag == .linux) {
+        if (builtin.os.tag == .linux) {
             var fds = [1]std.os.pollfd{
                 .{
                     .fd = stdin.handle,
-                    .events = std.os.POLLIN,
+                    .events = std.os.POLL.IN,
                     .revents = 0,
                 },
             };
             _ = try std.os.poll(&fds, 0);
-            if ((fds[0].revents & std.os.POLLIN) != 0) {
+            if ((fds[0].revents & std.os.POLL.IN) != 0) {
                 const val = @as(u16, try stdin.reader().readByte());
                 if (val == 0x03) // CTRL_C
                     return error.UserBreak;
@@ -235,7 +230,7 @@ pub const SerialEmulator = struct {
                 return val;
             }
         }
-        if (std.builtin.os.tag == .windows) {
+        if (builtin.os.tag == .windows) {
             std.os.windows.WaitForSingleObject(stdin.handle, 0) catch |err| switch (err) {
                 error.WaitTimeOut => return 0xFFFF,
                 else => return err,

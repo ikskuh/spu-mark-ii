@@ -2,7 +2,7 @@ const std = @import("std");
 const argsParser = @import("args");
 const ihex = @import("ihex");
 
-usingnamespace @import("spu-mk2");
+const spu = @import("spu-mk2");
 
 const FileFormat = enum { ihex, binary };
 const DisasmError = error{EndOfStream} || std.os.WriteError || std.io.FixedBufferStream([]const u8).ReadError;
@@ -17,7 +17,7 @@ fn processRecord(out: *const std.io.Writer(std.fs.File, std.os.WriteError, std.f
         offset += 2;
 
         if (in.readIntLittle(u16)) |instr_int| {
-            const instr = @bitCast(Instruction, instr_int);
+            const instr = @bitCast(spu.Instruction, instr_int);
 
             try out.print("{}", .{instr});
 
@@ -96,8 +96,8 @@ pub fn main() !u8 {
             // Emulator will always start at address 0x0000 or CLI given entry point.
             _ = try ihex.parseData(file.reader(), hexParseMode, &out, DisasmError, processRecord);
         } else {
-            const buffer = try file.reader().readAllAlloc(&arena.allocator, 65536);
-            defer arena.allocator.free(buffer);
+            const buffer = try file.reader().readAllAlloc(arena.allocator(), 65536);
+            defer arena.allocator().free(buffer);
 
             try processRecord(&out, cli_args.options.offset orelse 0x0000, buffer);
         }

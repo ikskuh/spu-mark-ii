@@ -3,7 +3,8 @@
 ; by using ROM routines, then returns to the BIOS.
 
 .include "../library/bios.inc"
-.include "../library/ashet.inc"
+
+.equ UART_RXD,0x1000
 
 ; Programs start at 0x8000
 .org APP_START

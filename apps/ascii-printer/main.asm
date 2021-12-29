@@ -3,7 +3,6 @@
 ; serial port
 
 .include "../library/bios.inc"
-.include "../library/ashet.inc"
 
 .org APP_START
     st UART_TXD, '!'

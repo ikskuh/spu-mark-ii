@@ -1,10 +1,10 @@
-usingnamespace @import("spu-mk2");
+const spu = @import("spu-mk2");
 
 pub const Mnemonic = struct {
     name: []const u8,
     info: []const u8 = "",
     argc: usize,
-    instruction: Instruction,
+    instruction: spu.Instruction,
 };
 
 pub const mnemonics = [_]Mnemonic{
