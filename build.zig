@@ -25,9 +25,9 @@ pub fn build(b: *std.build.Builder) !void {
     hex2bin.addPackage(packages.ihex);
     hex2bin.setTarget(target);
     hex2bin.setBuildMode(mode);
-    hex2bin.install();
+    // hex2bin.install();
 
-    const emulator = b.addExecutable("emulator", "tools/emulator/pc-main.zig");
+    const emulator = b.addExecutable("spu-emulator", "tools/emulator/pc-main.zig");
     emulator.addPackage(packages.args);
     emulator.addPackage(packages.ihex);
     emulator.addPackage(packages.@"spu-mk2");
@@ -35,7 +35,7 @@ pub fn build(b: *std.build.Builder) !void {
     emulator.setBuildMode(mode);
     emulator.install();
 
-    const disassembler = b.addExecutable("disassembler", "tools/disassembler/main.zig");
+    const disassembler = b.addExecutable("spu-disasm", "tools/disassembler/main.zig");
     disassembler.addPackage(packages.args);
     disassembler.addPackage(packages.ihex);
     disassembler.addPackage(packages.@"spu-mk2");
@@ -43,7 +43,7 @@ pub fn build(b: *std.build.Builder) !void {
     disassembler.setBuildMode(mode);
     disassembler.install();
 
-    const assembler = b.addExecutable("assembler", "tools/assembler/main.zig");
+    const assembler = b.addExecutable("spu-as", "tools/assembler/main.zig");
     assembler.addPackage(packages.args);
     assembler.addPackage(packages.ihex);
     assembler.addPackage(packages.@"spu-mk2");
@@ -133,10 +133,11 @@ pub fn build(b: *std.build.Builder) !void {
         wasm_emulator.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
         wasm_emulator.setBuildMode(mode);
         wasm_emulator.step.dependOn(&gen_wasm_firmware_blob.step);
-        wasm_emulator.install();
+
+        const install_step = b.addInstallArtifact(wasm_emulator);
 
         const wasm_step = b.step("wasm", "Builds the WASM emulator");
-        wasm_step.dependOn(&wasm_emulator.install_step.?.step);
+        wasm_step.dependOn(&install_step.step);
     }
 
     // Cross-target
