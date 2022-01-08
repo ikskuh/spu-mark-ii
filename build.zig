@@ -61,6 +61,10 @@ pub fn build(b: *std.build.Builder) !void {
         _ = addTest(b, test_step, "emulator", "tools/emulator/pc-main.zig");
     }
 
+    const mkfirmware = b.addSystemCommand(&[_][]const u8{
+        "mkdir", "-p", "zig-out/firmware/",
+    });
+
     inline for (examples) |src_file| {
         const step = assembler.run();
         step.addArgs(&[_][]const u8{
@@ -68,6 +72,7 @@ pub fn build(b: *std.build.Builder) !void {
             "./zig-out/firmware/" ++ std.fs.path.basename(std.fs.path.dirname(src_file).?) ++ ".hex",
             src_file ++ ".asm",
         });
+        step.step.dependOn(&mkfirmware.step);
         b.getInstallStep().dependOn(&step.step);
     }
 
@@ -77,6 +82,7 @@ pub fn build(b: *std.build.Builder) !void {
         "./zig-out/firmware/ashet-bios.hex",
         "./apps/ashet-bios/main.asm",
     });
+    assemble_step.step.dependOn(&mkfirmware.step);
 
     // const refresh_cmd = make_vhd.run();
     // refresh_cmd.step.dependOn(&gen_firmware_blob.step);
@@ -102,7 +108,7 @@ pub fn build(b: *std.build.Builder) !void {
     emulate_cmd.addArgs(&[_][]const u8{
         "./zig-out/firmware/firmware.hex",
     });
-
+    emulate_cmd.step.dependOn(&mkfirmware.step);
     {
         const assemble_wasm_step = assembler.run();
         assemble_wasm_step.addArgs(&[_][]const u8{
@@ -110,6 +116,7 @@ pub fn build(b: *std.build.Builder) !void {
             "./zig-out/firmware/wasm.hex",
             "./apps/web-firmware/main.asm",
         });
+        assemble_wasm_step.step.dependOn(&mkfirmware.step);
 
         const gen_wasm_firmware_blob = hex2bin.run();
         gen_wasm_firmware_blob.step.dependOn(&assemble_wasm_step.step);
@@ -118,6 +125,7 @@ pub fn build(b: *std.build.Builder) !void {
             "./zig-out/firmware/wasm.bin",
             "./zig-out/firmware/wasm.hex",
         });
+        gen_wasm_firmware_blob.step.dependOn(&mkfirmware.step);
 
         const wasm_emulator = b.addSharedLibrary("emulator", "tools/emulator/web-main.zig", .unversioned);
         wasm_emulator.addPackage(packages.ihex);

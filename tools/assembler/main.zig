@@ -6,7 +6,7 @@ const spu = @import("spu-mk2");
 
 const Instruction = spu.Instruction;
 
-const FileFormat = enum { ihex, binary };
+const FileFormat = enum { ihex, binary, mem };
 
 pub fn main() !u8 {
     const cli_args = argsParser.parseForCurrentProcess(struct {
@@ -26,12 +26,13 @@ pub fn main() !u8 {
 
     if (cli_args.options.help or cli_args.positionals.len == 0) {
         try std.io.getStdOut().writer().writeAll(
-            \\assembler --help [--format ihex|binary] [--output file] fileA fileB …
+            \\assembler --help [--format ihex|binary|mem] [--output file] fileA fileB …
             \\Assembles code for the SPU Mark II platform.
             \\
             \\-h, --help     Displays this help text.
-            \\-f, --format   Selects the output format (binary or ihex).
-            \\               If not given, the assembler will emit raw binaries.
+            \\-f, --format   Selects the output format (binary, ihex or mem).
+            \\               If not given, the assembler will emit ihex files.
+            \\               mem will be a yosys compatible memory map that can be loaded with $loadmemh
             \\-o, --output   Defines the name of the output file. If not given,
             \\               the assembler will chose a.out as the output file name.
             \\-m, --map      Output all global symbols to stdout
@@ -154,6 +155,32 @@ pub fn main() !u8 {
                 // file/stream terminator
                 try outstream.writeAll(":00000001FF\n");
             },
+
+            .mem => {
+                var buffer: [1 << 16]u8 = undefined;
+
+                var limit: usize = 0;
+
+                var iter = assembler.sections.first;
+                while (iter) |section_node| : (iter = section_node.next) {
+                    const section = &section_node.data;
+
+                    const start_addr = std.math.min(buffer.len, section.phys_offset);
+                    const end_addr = std.math.min(buffer.len, section.phys_offset + section.bytes.items.len);
+                    const actual_len = if (end_addr == buffer.len)
+                        buffer.len - end_addr
+                    else
+                        section.bytes.items.len;
+
+                    std.mem.copy(u8, buffer[start_addr..end_addr], section.bytes.items[0..actual_len]);
+                    limit = std.math.max(end_addr, limit);
+                }
+
+                var i: usize = 0;
+                while (i < limit) : (i += 2) {
+                    try outstream.print("{X:0>4}\n", .{std.mem.readIntLittle(u16, buffer[i..][0..2])});
+                }
+            },
         }
     }
 
@@ -185,11 +212,11 @@ pub const Section = struct {
     }
 
     fn getLocalOffset(sect: Self) u16 {
-        return @intCast(u16, sect.bytes.items.len);
+        return @truncate(u16, sect.bytes.items.len);
     }
 
     fn getGlobalOffset(sect: Self) u16 {
-        return @intCast(u16, sect.load_offset + sect.bytes.items.len);
+        return @truncate(u16, sect.load_offset + sect.bytes.items.len);
     }
 
     fn getDotOffset(sect: Self) u16 {
