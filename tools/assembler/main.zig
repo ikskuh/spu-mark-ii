@@ -2223,6 +2223,8 @@ const Modifiers = struct {
         .{ "setip", .setip },
         .{ "addip", .addip },
         .{ "intr", .intr },
+        .{ "halt", .halt },
+        .{ "cpuid", .cpuid },
     };
 };
 
